@@ -70,6 +70,10 @@ func (p Proto) String() string {
 	return string(p)
 }
 
+func (p Proto) Normalized() Proto {
+	return Proto(p.String())
+}
+
 func (p Proto) Validate() error {
 	if p.String() != "" && p.String() != "tcp" && p.String() != "udp" {
 		return InvalidProto(p.String())
@@ -105,7 +109,7 @@ type TxtRecord struct {
 }
 
 func (r TxtRecord) String() string {
-	return fmt.Sprintf("%s %d TXT %s", r.Name, r.TTL, r.Text)
+	return fmt.Sprintf("%s %d TXT \"%s\"", r.Name, r.TTL, r.Text)
 }
 
 func (r TxtRecord) ToRR() (dns.RR, error) {

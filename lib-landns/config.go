@@ -74,6 +74,7 @@ func (c CnameRecordConfig) Normalized() CnameRecordConfig {
 	if c.TTL == nil {
 		c.TTL = &DEFAULT_TTL
 	}
+	c.Target = c.Target.Normalized()
 	return c
 }
 
@@ -181,6 +182,9 @@ func (s SrvRecordConfig) Normalized() SrvRecordConfig {
 	if s.TTL == nil {
 		s.TTL = &DEFAULT_TTL
 	}
+
+	s.Proto = s.Proto.Normalized()
+	s.Target = s.Target.Normalized()
 
 	return s
 }
