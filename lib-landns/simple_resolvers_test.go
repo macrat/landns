@@ -43,6 +43,10 @@ func TestSimpleAddressResolver(t *testing.T) {
 		},
 	}
 
+	if err := resolver.Validate(); err != nil {
+		t.Fatalf("failed to validate resolver: %s", err)
+	}
+
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 0 A 127.1.2.3", "example.com. 0 A 127.2.3.4")
 
 	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 0 A 127.2.2.2")
@@ -65,6 +69,10 @@ func TestSimpleTxtResolverResolver(t *testing.T) {
 		},
 	}
 
+	if err := resolver.Validate(); err != nil {
+		t.Fatalf("failed to validate resolver: %s", err)
+	}
+
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 0 TXT "hello"`)
 	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeTXT, false), true, `blanktar.jp. 0 TXT "foo"`, `blanktar.jp. 0 TXT "bar"`)
 
@@ -83,6 +91,10 @@ func TestSimplePtrResolverResolver(t *testing.T) {
 		},
 	}
 
+	if err := resolver.Validate(); err != nil {
+		t.Fatalf("failed to validate resolver: %s", err)
+	}
+
 	ResolverTest(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 0 PTR target.local.")
 	ResolverTest(t, resolver, landns.NewRequest("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa.", dns.TypePTR, false), true, "8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa. 0 PTR target.local.")
 
@@ -98,6 +110,10 @@ func TestSimpleCnameResolverResolver(t *testing.T) {
 		},
 	}
 
+	if err := resolver.Validate(); err != nil {
+		t.Fatalf("failed to validate resolver: %s", err)
+	}
+
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeCNAME, false), true, "example.com. 0 CNAME target.local.")
 
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeCNAME, false), true)
@@ -108,11 +124,15 @@ func TestSimpleCnameResolverResolver(t *testing.T) {
 func TestSimpleSrvResolverResolver(t *testing.T) {
 	resolver := landns.SimpleSrvResolver{
 		"example.com.": []landns.SrvRecord{
-			landns.SrvRecord{Name: landns.Domain("example.com."), Service: "http", Target: landns.Domain("target.local.")},
+			landns.SrvRecord{Name: landns.Domain("example.com."), Service: "http", Port: 10, Target: landns.Domain("target.local.")},
 		},
 	}
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 0 IN SRV 0 0 0 target.local.")
+	if err := resolver.Validate(); err != nil {
+		t.Fatalf("failed to validate resolver: %s", err)
+	}
+
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 0 IN SRV 0 0 10 target.local.")
 
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeSRV, false), true)
 
@@ -130,6 +150,14 @@ func TestResolverSet(t *testing.T) {
 			landns.AddressRecord{Name: landns.Domain("example.com."), Address: net.ParseIP("127.2.3.4")},
 		},
 	}
+
+	if err := resolverA.Validate(); err != nil {
+		t.Fatalf("failed to validate resolverA: %s", err)
+	}
+	if err := resolverB.Validate(); err != nil {
+		t.Fatalf("failed to validate resolverB: %s", err)
+	}
+
 	resolver := landns.ResolverSet{resolverA, resolverB}
 
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 0 A 127.1.2.3", "example.com. 0 A 127.2.3.4")

@@ -6,8 +6,20 @@ import (
 	"github.com/miekg/dns"
 )
 
+type DomainIsNotFQDNError string
+
+func (e DomainIsNotFQDNError) Error() string {
+	return fmt.Sprintf(`error: "%s" domain is not FQDN`, string(e))
+}
+
 type Resolver interface {
 	Resolve(Request) (Response, error)
+}
+
+type ValidatableResolver interface {
+	Resolver
+
+	Validate() error
 }
 
 type SimpleAddressResolver map[string][]AddressRecord
@@ -32,6 +44,20 @@ func (r SimpleAddressResolver) Resolve(req Request) (resp Response, err error) {
 	return
 }
 
+func (r SimpleAddressResolver) Validate() error {
+	for name, records := range r {
+		if !dns.IsFqdn(name) {
+			return DomainIsNotFQDNError(name)
+		}
+		for _, record := range records {
+			if err := record.Validate(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (r SimpleAddressResolver) String() string {
 	records := 0
 	for _, rs := range r {
@@ -51,6 +77,20 @@ func (r SimpleTxtResolver) Resolve(req Request) (resp Response, err error) {
 		}
 	}
 	return
+}
+
+func (r SimpleTxtResolver) Validate() error {
+	for name, records := range r {
+		if !dns.IsFqdn(name) {
+			return DomainIsNotFQDNError(name)
+		}
+		for _, record := range records {
+			if err := record.Validate(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (r SimpleTxtResolver) String() string {
@@ -74,6 +114,20 @@ func (r SimplePtrResolver) Resolve(req Request) (resp Response, err error) {
 	return
 }
 
+func (r SimplePtrResolver) Validate() error {
+	for name, records := range r {
+		if !dns.IsFqdn(name) {
+			return DomainIsNotFQDNError(name)
+		}
+		for _, record := range records {
+			if err := record.Validate(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (r SimplePtrResolver) String() string {
 	records := 0
 	for _, rs := range r {
@@ -95,6 +149,20 @@ func (r SimpleCnameResolver) Resolve(req Request) (resp Response, err error) {
 	return
 }
 
+func (r SimpleCnameResolver) Validate() error {
+	for name, records := range r {
+		if !dns.IsFqdn(name) {
+			return DomainIsNotFQDNError(name)
+		}
+		for _, record := range records {
+			if err := record.Validate(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (r SimpleCnameResolver) String() string {
 	records := 0
 	for _, rs := range r {
@@ -114,6 +182,20 @@ func (r SimpleSrvResolver) Resolve(req Request) (resp Response, err error) {
 		}
 	}
 	return
+}
+
+func (r SimpleSrvResolver) Validate() error {
+	for name, records := range r {
+		if !dns.IsFqdn(name) {
+			return DomainIsNotFQDNError(name)
+		}
+		for _, record := range records {
+			if err := record.Validate(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (r SimpleSrvResolver) String() string {

@@ -43,6 +43,14 @@ service:
 		t.Fatalf("failed to parse config: %s", err.Error())
 	}
 
+	for _, subResolver := range resolver {
+		if r, ok := subResolver.(landns.ValidatableResolver); !ok {
+			t.Errorf("unexcepted type of sub resolver: %#v", subResolver)
+		} else if err := r.Validate(); err != nil {
+			t.Fatalf("invalid resolver state: %s: %s", r, err)
+		}
+	}
+
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 128 A 127.1.2.3")
 	ResolverTest(t, resolver, landns.NewRequest("server.example.com.", dns.TypeA, false), true, "server.example.com. 128 A 192.168.1.2", "server.example.com. 128 A 192.168.1.3")
 
