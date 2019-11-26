@@ -80,16 +80,20 @@ func TestSimpleTxtResolverResolver(t *testing.T) {
 
 func TestSimplePtrResolverResolver(t *testing.T) {
 	resolver := landns.SimplePtrResolver{
-		"example.com.": []landns.PtrRecord{
-			landns.PtrRecord{Name: landns.Domain("example.com."), Domain: landns.Domain("target.local.")},
+		"3.2.1.127.in-addr.arpa.": []landns.PtrRecord{
+			landns.PtrRecord{Name: landns.Domain("3.2.1.127.in-addr.arpa."), Domain: landns.Domain("target.local.")},
+		},
+		"8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa.": []landns.PtrRecord{
+			landns.PtrRecord{Name: landns.Domain("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa."), Domain: landns.Domain("target.local.")},
 		},
 	}
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypePTR, false), true, "example.com. 0 PTR target.local.")
+	ResolverTest(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 0 PTR target.local.")
+	ResolverTest(t, resolver, landns.NewRequest("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa.", dns.TypePTR, false), true, "8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa. 0 PTR target.local.")
 
-	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypePTR, false), true)
+	ResolverTest(t, resolver, landns.NewRequest("4.2.1.127.in-addr.arpa.", dns.TypePTR, false), true)
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true)
+	ResolverTest(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypeA, false), true)
 }
 
 func TestSimpleCnameResolverResolver(t *testing.T) {
