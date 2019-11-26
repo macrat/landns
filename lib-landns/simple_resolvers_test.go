@@ -24,12 +24,7 @@ func ResolverTest(t *testing.T, resolver landns.Resolver, request landns.Request
 		return
 	}
 
-	l := len(resp.Records)
-	if l > len(responses) {
-		l = len(responses)
-	}
-
-	for i := 0; i < l; i++ {
+	for i, _ := range responses {
 		if resp.Records[i].String() != responses[i] {
 			t.Errorf(`%s <- %s: unexcepted resolve response: excepted "%s" but got "%s"`, resolver, request, responses[i], resp.Records[i])
 		}
