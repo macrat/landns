@@ -1,6 +1,8 @@
 package landns
 
 import (
+	"fmt"
+
 	"github.com/miekg/dns"
 )
 
@@ -35,6 +37,10 @@ func (req Request) QtypeString() string {
 	default:
 		return ""
 	}
+}
+
+func (req Request) String() string {
+	return fmt.Sprintf("%s %s", req.Name, req.QtypeString())
 }
 
 type Response struct {

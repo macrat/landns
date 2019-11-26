@@ -8,6 +8,34 @@ import (
 	"github.com/miekg/dns"
 )
 
+func ResolverTest(t *testing.T, resolver landns.Resolver, request landns.Request, authoritative bool, responses ...string) {
+	resp, err := resolver.Resolve(request)
+	if err != nil {
+		t.Errorf("%s <- %s: failed to resolve: %v", resolver, request, err.Error())
+		return
+	}
+
+	if resp.Authoritative != authoritative {
+		t.Errorf(`%s <- %s: unexcepted authoritive of response: excepted %v but got %v`, resolver, request, authoritative, resp.Authoritative)
+	}
+
+	if len(resp.Records) != len(responses) {
+		t.Errorf(`%s <- %s: unexcepted resolve response: excepted length %d but got %d`, resolver, request, len(responses), len(resp.Records))
+		return
+	}
+
+	l := len(resp.Records)
+	if l > len(responses) {
+		l = len(responses)
+	}
+
+	for i := 0; i < l; i++ {
+		if resp.Records[i].String() != responses[i] {
+			t.Errorf(`%s <- %s: unexcepted resolve response: excepted "%s" but got "%s"`, resolver, request, responses[i], resp.Records[i])
+		}
+	}
+}
+
 func TestSimpleAddressResolver(t *testing.T) {
 	resolver := landns.SimpleAddressResolver{
 		"example.com.": []landns.AddressRecord{
@@ -20,68 +48,15 @@ func TestSimpleAddressResolver(t *testing.T) {
 		},
 	}
 
-	a, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeA, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(a.Records) != 2 {
-		t.Errorf("unexcepted resolve response: %d", len(a.Records))
-	} else {
-		if !a.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if a.Records[0].String() != "example.com. 0 A 127.1.2.3" {
-			t.Errorf("unexcepted resolve response: %v", a.Records[0].String())
-		}
-		if a.Records[1].String() != "example.com. 0 A 127.2.3.4" {
-			t.Errorf("unexcepted resolve response: %v", a.Records[1].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 0 A 127.1.2.3", "example.com. 0 A 127.2.3.4")
 
-	b, err := resolver.Resolve(landns.NewRequest("blanktar.jp.", dns.TypeA, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(b.Records) != 1 {
-		t.Errorf("unexcepted resolve response: %d", len(b.Records))
-	} else {
-		if !b.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if b.Records[0].String() != "blanktar.jp. 0 A 127.2.2.2" {
-			t.Errorf("unexcepted resolve response: %v", b.Records[0].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 0 A 127.2.2.2")
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false), true, "blanktar.jp. 0 AAAA 4::2")
 
-	c, err := resolver.Resolve(landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(c.Records) != 1 {
-		t.Errorf("unexcepted resolve response: %d", len(c.Records))
-	} else {
-		if !c.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if c.Records[0].String() != "blanktar.jp. 0 AAAA 4::2" {
-			t.Errorf("unexcepted resolve response: %v", c.Records[0].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeA, false), true)
+	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeAAAA, false), true)
 
-	d, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeTXT, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(d.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(d.Records))
-	} else if !d.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
-
-	e, err := resolver.Resolve(landns.NewRequest("empty.example.com.", dns.TypeA, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(e.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(e.Records))
-	} else if !e.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true)
 }
 
 func TestSimpleTxtResolverResolver(t *testing.T) {
@@ -95,54 +70,12 @@ func TestSimpleTxtResolverResolver(t *testing.T) {
 		},
 	}
 
-	a, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeTXT, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(a.Records) != 1 {
-		t.Errorf("unexcepted resolve response: %d", len(a.Records))
-	} else {
-		if !a.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if a.Records[0].String() != `example.com. 0 TXT "hello"` {
-			t.Errorf("unexcepted resolve response: %v", a.Records[0].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 0 TXT "hello"`)
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeTXT, false), true, `blanktar.jp. 0 TXT "foo"`, `blanktar.jp. 0 TXT "bar"`)
 
-	b, err := resolver.Resolve(landns.NewRequest("blanktar.jp.", dns.TypeTXT, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(b.Records) != 2 {
-		t.Errorf("unexcepted resolve response: %d", len(b.Records))
-	} else {
-		if !b.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if b.Records[0].String() != `blanktar.jp. 0 TXT "foo"` {
-			t.Errorf("unexcepted resolve response: %v", b.Records[0].String())
-		}
-		if b.Records[1].String() != `blanktar.jp. 0 TXT "bar"` {
-			t.Errorf("unexcepted resolve response: %v", b.Records[1].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeTXT, false), true)
 
-	c, err := resolver.Resolve(landns.NewRequest("empty.example.com.", dns.TypeTXT, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(c.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(c.Records))
-	} else if !c.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
-
-	d, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeA, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(d.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(d.Records))
-	} else if !d.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true)
 }
 
 func TestSimplePtrResolverResolver(t *testing.T) {
@@ -152,37 +85,11 @@ func TestSimplePtrResolverResolver(t *testing.T) {
 		},
 	}
 
-	a, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypePTR, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(a.Records) != 1 {
-		t.Errorf("unexcepted resolve response: %d", len(a.Records))
-	} else {
-		if !a.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if a.Records[0].String() != `example.com. 0 PTR target.local.` {
-			t.Errorf("unexcepted resolve response: %v", a.Records[0].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypePTR, false), true, "example.com. 0 PTR target.local.")
 
-	b, err := resolver.Resolve(landns.NewRequest("empty.example.com.", dns.TypePTR, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(b.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(b.Records))
-	} else if !b.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
+	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypePTR, false), true)
 
-	c, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeTXT, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(c.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(c.Records))
-	} else if !c.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true)
 }
 
 func TestSimpleCnameResolverResolver(t *testing.T) {
@@ -192,37 +99,11 @@ func TestSimpleCnameResolverResolver(t *testing.T) {
 		},
 	}
 
-	a, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeCNAME, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(a.Records) != 1 {
-		t.Errorf("unexcepted resolve response: %d", len(a.Records))
-	} else {
-		if !a.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if a.Records[0].String() != `example.com. 0 CNAME target.local.` {
-			t.Errorf("unexcepted resolve response: %v", a.Records[0].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeCNAME, false), true, "example.com. 0 CNAME target.local.")
 
-	b, err := resolver.Resolve(landns.NewRequest("empty.example.com.", dns.TypePTR, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(b.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(b.Records))
-	} else if !b.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
+	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeCNAME, false), true)
 
-	c, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeTXT, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(c.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(c.Records))
-	} else if !c.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true)
 }
 
 func TestSimpleSrvResolverResolver(t *testing.T) {
@@ -232,37 +113,11 @@ func TestSimpleSrvResolverResolver(t *testing.T) {
 		},
 	}
 
-	a, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeSRV, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(a.Records) != 1 {
-		t.Errorf("unexcepted resolve response: %d", len(a.Records))
-	} else {
-		if !a.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if a.Records[0].String() != `_http._tcp.example.com. 0 IN SRV 0 0 0 target.local.` {
-			t.Errorf("unexcepted resolve response: %v", a.Records[0].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 0 IN SRV 0 0 0 target.local.")
 
-	b, err := resolver.Resolve(landns.NewRequest("empty.example.com.", dns.TypeSRV, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(b.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(b.Records))
-	} else if !b.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
+	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeSRV, false), true)
 
-	c, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeA, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(c.Records) != 0 {
-		t.Errorf("unexcepted resolve response: %d", len(c.Records))
-	} else if !c.Authoritative {
-		t.Errorf("response was not authoritative")
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true)
 }
 
 func TestResolverSet(t *testing.T) {
@@ -278,22 +133,11 @@ func TestResolverSet(t *testing.T) {
 	}
 	resolver := landns.ResolverSet{resolverA, resolverB}
 
-	a, err := resolver.Resolve(landns.NewRequest("example.com.", dns.TypeA, false))
-	if err != nil {
-		t.Errorf("failed to resolve: %v", err.Error())
-	} else if len(a.Records) != 2 {
-		t.Errorf("unexcepted resolve response: %d", len(a.Records))
-	} else {
-		if !a.Authoritative {
-			t.Errorf("response was not authoritative")
-		}
-		if a.Records[0].String() != `example.com. 0 A 127.1.2.3` {
-			t.Errorf("unexcepted resolve response: %v", a.Records[0].String())
-		}
-		if a.Records[1].String() != `example.com. 0 A 127.2.3.4` {
-			t.Errorf("unexcepted resolve response: %v", a.Records[1].String())
-		}
-	}
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 0 A 127.1.2.3", "example.com. 0 A 127.2.3.4")
+
+	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeA, false), true)
+
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true)
 }
 
 type DummyAuthoritativeResolver bool
@@ -308,27 +152,11 @@ func TestResolverSet_Authoritative(t *testing.T) {
 
 	req := landns.NewRequest("example.com.", dns.TypeA, false)
 
-	tests := []struct {
-		Name          string
-		Resolver      landns.Resolver
-		Authoritative bool
-	}{
-		{"true-true", landns.ResolverSet{resolverT, resolverT}, true},
-		{"true-false", landns.ResolverSet{resolverT, resolverF}, false},
-		{"false-true", landns.ResolverSet{resolverF, resolverT}, false},
-		{"false-false", landns.ResolverSet{resolverF, resolverT}, false},
-	}
+	ResolverTest(t, resolverT, req, true)
+	ResolverTest(t, resolverF, req, false)
 
-	for _, test := range tests {
-		if resp, err := test.Resolver.Resolve(req); err != nil {
-			t.Errorf("failed to resolve: %s: %v", test.Name, err.Error())
-		} else {
-			if len(resp.Records) != 0 {
-				t.Errorf("unexcepted resolve response: %s: %d", test.Name, len(resp.Records))
-			}
-			if resp.Authoritative != test.Authoritative {
-				t.Errorf("unexcepted authoritative: %s: excepted:%v != got:%v", test.Name, test.Authoritative, resp.Authoritative)
-			}
-		}
-	}
+	ResolverTest(t, landns.ResolverSet{resolverT, resolverT}, req, true)
+	ResolverTest(t, landns.ResolverSet{resolverT, resolverF}, req, false)
+	ResolverTest(t, landns.ResolverSet{resolverF, resolverT}, req, false)
+	ResolverTest(t, landns.ResolverSet{resolverF, resolverF}, req, false)
 }
