@@ -1,6 +1,8 @@
 package landns
 
 import (
+	"fmt"
+
 	"github.com/miekg/dns"
 )
 
@@ -30,6 +32,14 @@ func (r SimpleAddressResolver) Resolve(req Request) (resp Response, err error) {
 	return
 }
 
+func (r SimpleAddressResolver) String() string {
+	records := 0
+	for _, rs := range r {
+		records += len(rs)
+	}
+	return fmt.Sprintf("SimpleAddressResolver[%d domains %d records]", len(r), records)
+}
+
 type SimpleTxtResolver map[string][]TxtRecord
 
 func (r SimpleTxtResolver) Resolve(req Request) (resp Response, err error) {
@@ -41,6 +51,14 @@ func (r SimpleTxtResolver) Resolve(req Request) (resp Response, err error) {
 		}
 	}
 	return
+}
+
+func (r SimpleTxtResolver) String() string {
+	records := 0
+	for _, rs := range r {
+		records += len(rs)
+	}
+	return fmt.Sprintf("SimpleTxtResolver[%d domains %d records]", len(r), records)
 }
 
 type SimplePtrResolver map[string][]PtrRecord
@@ -56,6 +74,14 @@ func (r SimplePtrResolver) Resolve(req Request) (resp Response, err error) {
 	return
 }
 
+func (r SimplePtrResolver) String() string {
+	records := 0
+	for _, rs := range r {
+		records += len(rs)
+	}
+	return fmt.Sprintf("SimplePtrResolver[%d domains %d records]", len(r), records)
+}
+
 type SimpleCnameResolver map[string][]CnameRecord
 
 func (r SimpleCnameResolver) Resolve(req Request) (resp Response, err error) {
@@ -69,6 +95,14 @@ func (r SimpleCnameResolver) Resolve(req Request) (resp Response, err error) {
 	return
 }
 
+func (r SimpleCnameResolver) String() string {
+	records := 0
+	for _, rs := range r {
+		records += len(rs)
+	}
+	return fmt.Sprintf("SimpleCnameResolver[%d domains %d records]", len(r), records)
+}
+
 type SimpleSrvResolver map[string][]SrvRecord
 
 func (r SimpleSrvResolver) Resolve(req Request) (resp Response, err error) {
@@ -80,6 +114,14 @@ func (r SimpleSrvResolver) Resolve(req Request) (resp Response, err error) {
 		}
 	}
 	return
+}
+
+func (r SimpleSrvResolver) String() string {
+	records := 0
+	for _, rs := range r {
+		records += len(rs)
+	}
+	return fmt.Sprintf("SimpleSrvResolver[%d domains %d records]", len(r), records)
 }
 
 type ResolverSet []Resolver
@@ -98,4 +140,8 @@ func (rs ResolverSet) Resolve(req Request) (resp Response, err error) {
 		}
 	}
 	return
+}
+
+func (rs ResolverSet) String() string {
+	return fmt.Sprintf("ResolverSet%s", []Resolver(rs))
 }

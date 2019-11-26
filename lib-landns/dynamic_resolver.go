@@ -2,6 +2,7 @@ package landns
 
 import (
 	"database/sql"
+	"fmt"
 	"net"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -33,6 +34,7 @@ type DynamicResolver interface {
 }
 
 type SqliteResolver struct {
+	path    string
 	db      *sql.DB
 	metrics *Metrics
 }
@@ -89,7 +91,11 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 		return nil, err
 	}
 
-	return &SqliteResolver{db, metrics}, nil
+	return &SqliteResolver{path, db, metrics}, nil
+}
+
+func (r SqliteResolver) String() string {
+	return fmt.Sprintf("SqliteResolver[%s]", r.path)
 }
 
 func iterAddresses(rows *sql.Rows, callback func(AddressRecord)) error {
