@@ -459,20 +459,23 @@ func (r SqliteResolver) ResolveSRV(name string) (resp []Record, err error) {
 	})
 }
 
-func (r SqliteResolver) Resolve(q dns.Question) ([]Record, error) {
-	switch q.Qtype {
+func (r SqliteResolver) Resolve(req Request) (Response, error) {
+	var rs []Record
+	var err error
+
+	switch req.Qtype {
 	case dns.TypeA:
-		return r.ResolveA(q.Name)
+		rs, err = r.ResolveA(req.Name)
 	case dns.TypeAAAA:
-		return r.ResolveAAAA(q.Name)
+		rs, err = r.ResolveAAAA(req.Name)
 	case dns.TypePTR:
-		return r.ResolvePTR(q.Name)
+		rs, err = r.ResolvePTR(req.Name)
 	case dns.TypeCNAME:
-		return r.ResolveCNAME(q.Name)
+		rs, err = r.ResolveCNAME(req.Name)
 	case dns.TypeTXT:
-		return r.ResolveTXT(q.Name)
+		rs, err = r.ResolveTXT(req.Name)
 	case dns.TypeSRV:
-		return r.ResolveSRV(q.Name)
+		rs, err = r.ResolveSRV(req.Name)
 	}
-	return nil, nil
+	return Response{Records: rs, Authoritative: true}, err
 }

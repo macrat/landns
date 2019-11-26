@@ -5,23 +5,25 @@ import (
 )
 
 type Resolver interface {
-	Resolve(dns.Question) ([]Record, error)
+	Resolve(Request) (Response, error)
 }
 
 type SimpleAddressResolver map[string][]AddressRecord
 
-func (r SimpleAddressResolver) Resolve(q dns.Question) (resp []Record, err error) {
-	switch q.Qtype {
+func (r SimpleAddressResolver) Resolve(req Request) (resp Response, err error) {
+	resp.Authoritative = true
+
+	switch req.Qtype {
 	case dns.TypeA:
-		for _, r := range r[q.Name] {
+		for _, r := range r[req.Name] {
 			if r.IsV4() {
-				resp = append(resp, r)
+				resp.Records = append(resp.Records, r)
 			}
 		}
 	case dns.TypeAAAA:
-		for _, r := range r[q.Name] {
+		for _, r := range r[req.Name] {
 			if !r.IsV4() {
-				resp = append(resp, r)
+				resp.Records = append(resp.Records, r)
 			}
 		}
 	}
@@ -30,10 +32,12 @@ func (r SimpleAddressResolver) Resolve(q dns.Question) (resp []Record, err error
 
 type SimpleTxtResolver map[string][]TxtRecord
 
-func (r SimpleTxtResolver) Resolve(q dns.Question) (resp []Record, err error) {
-	if q.Qtype == dns.TypeTXT {
-		for _, t := range r[q.Name] {
-			resp = append(resp, t)
+func (r SimpleTxtResolver) Resolve(req Request) (resp Response, err error) {
+	resp.Authoritative = true
+
+	if req.Qtype == dns.TypeTXT {
+		for _, t := range r[req.Name] {
+			resp.Records = append(resp.Records, t)
 		}
 	}
 	return
@@ -41,10 +45,12 @@ func (r SimpleTxtResolver) Resolve(q dns.Question) (resp []Record, err error) {
 
 type SimplePtrResolver map[string][]PtrRecord
 
-func (r SimplePtrResolver) Resolve(q dns.Question) (resp []Record, err error) {
-	if q.Qtype == dns.TypePTR {
-		for _, p := range r[q.Name] {
-			resp = append(resp, p)
+func (r SimplePtrResolver) Resolve(req Request) (resp Response, err error) {
+	resp.Authoritative = true
+
+	if req.Qtype == dns.TypePTR {
+		for _, p := range r[req.Name] {
+			resp.Records = append(resp.Records, p)
 		}
 	}
 	return
@@ -52,10 +58,12 @@ func (r SimplePtrResolver) Resolve(q dns.Question) (resp []Record, err error) {
 
 type SimpleCnameResolver map[string][]CnameRecord
 
-func (r SimpleCnameResolver) Resolve(q dns.Question) (resp []Record, err error) {
-	if q.Qtype == dns.TypeCNAME {
-		for _, p := range r[q.Name] {
-			resp = append(resp, p)
+func (r SimpleCnameResolver) Resolve(req Request) (resp Response, err error) {
+	resp.Authoritative = true
+
+	if req.Qtype == dns.TypeCNAME {
+		for _, p := range r[req.Name] {
+			resp.Records = append(resp.Records, p)
 		}
 	}
 	return
@@ -63,10 +71,12 @@ func (r SimpleCnameResolver) Resolve(q dns.Question) (resp []Record, err error) 
 
 type SimpleSrvResolver map[string][]SrvRecord
 
-func (r SimpleSrvResolver) Resolve(q dns.Question) (resp []Record, err error) {
-	if q.Qtype == dns.TypeSRV {
-		for _, s := range r[q.Name] {
-			resp = append(resp, s)
+func (r SimpleSrvResolver) Resolve(req Request) (resp Response, err error) {
+	resp.Authoritative = true
+
+	if req.Qtype == dns.TypeSRV {
+		for _, s := range r[req.Name] {
+			resp.Records = append(resp.Records, s)
 		}
 	}
 	return
@@ -74,13 +84,18 @@ func (r SimpleSrvResolver) Resolve(q dns.Question) (resp []Record, err error) {
 
 type ResolverSet []Resolver
 
-func (rs ResolverSet) Resolve(q dns.Question) (resp []Record, err error) {
+func (rs ResolverSet) Resolve(req Request) (resp Response, err error) {
+	resp.Authoritative = true
+
 	for _, r := range rs {
-		rr, err := r.Resolve(q)
+		rr, err := r.Resolve(req)
 		if err != nil {
-			return nil, err
+			return resp, err
 		}
-		resp = append(resp, rr...)
+		resp.Records = append(resp.Records, rr.Records...)
+		if !rr.Authoritative {
+			resp.Authoritative = false
+		}
 	}
 	return
 }

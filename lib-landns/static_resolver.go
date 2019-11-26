@@ -106,6 +106,6 @@ func NewStaticResolver(config []byte) (StaticResolver, error) {
 	}, nil
 }
 
-func (r StaticResolver) Resolve(q dns.Question) ([]Record, error) {
-	return ResolverSet(r).Resolve(q)
+func (r StaticResolver) Resolve(req Request) (Response, error) {
+	return ResolverSet(r).Resolve(req)
 }

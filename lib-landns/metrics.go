@@ -9,29 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func qtypeToString(qtype uint16) string {
-	switch qtype {
-	case dns.TypeA:
-		return "A"
-	case dns.TypeNS:
-		return "NS"
-	case dns.TypeCNAME:
-		return "CNAME"
-	case dns.TypePTR:
-		return "PTR"
-	case dns.TypeMX:
-		return "MX"
-	case dns.TypeTXT:
-		return "TXT"
-	case dns.TypeAAAA:
-		return "AAAA"
-	case dns.TypeSRV:
-		return "SRV"
-	default:
-		return ""
-	}
-}
-
 type Metrics struct {
 	queryCount      prometheus.Counter
 	skipCount       prometheus.Counter
@@ -128,7 +105,7 @@ func (m *Metrics) makeTimer(skipped bool) func(*dns.Msg) {
 		}
 
 		for _, q := range response.Question {
-			if counter, ok := counters[qtypeToString(q.Qtype)]; ok {
+			if counter, ok := counters[Request{q, false}.QtypeString()]; ok {
 				counter.Inc()
 			}
 		}
@@ -145,8 +122,8 @@ func (m *Metrics) Start(request *dns.Msg) func(*dns.Msg) {
 	}
 }
 
-func (m *Metrics) Error(q dns.Question, err error) {
-	if counter, ok := m.errorCounters[qtypeToString(q.Qtype)]; ok {
+func (m *Metrics) Error(req Request, err error) {
+	if counter, ok := m.errorCounters[req.QtypeString()]; ok {
 		counter.Inc()
 	}
 }
