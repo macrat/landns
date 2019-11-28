@@ -86,5 +86,7 @@ func (mb *MessageBuilder) Build() *dns.Msg {
 
 	msg.Answer = dns.Dedup(mb.records, nil)
 
+	msg.Authoritative = mb.authoritative
+
 	return msg
 }
