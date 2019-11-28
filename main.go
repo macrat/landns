@@ -58,7 +58,7 @@ func main() {
 				log.Fatalf("static-zone: %s", err)
 			}
 
-			r, err := landns.NewStaticResolver(config)
+			r, err := landns.NewSimpleResolverFromConfig(config)
 			if err != nil {
 				log.Fatalf("static-zone: %s", err)
 			}

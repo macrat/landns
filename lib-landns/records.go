@@ -98,6 +98,8 @@ func (p Proto) MarshalText() ([]byte, error) {
 type Record interface {
 	fmt.Stringer
 
+	GetQtype() uint16
+	GetName() Domain
 	ToRR() (dns.RR, error)
 	Validate() error
 }
@@ -110,6 +112,14 @@ type TxtRecord struct {
 
 func (r TxtRecord) String() string {
 	return fmt.Sprintf("%s %d TXT \"%s\"", r.Name, r.TTL, r.Text)
+}
+
+func (r TxtRecord) GetName() Domain {
+	return r.Name
+}
+
+func (r TxtRecord) GetQtype() uint16 {
+	return dns.TypeTXT
 }
 
 func (r TxtRecord) ToRR() (dns.RR, error) {
@@ -128,6 +138,14 @@ type PtrRecord struct {
 
 func (r PtrRecord) String() string {
 	return fmt.Sprintf("%s %d PTR %s", r.Name, r.TTL, r.Domain)
+}
+
+func (r PtrRecord) GetName() Domain {
+	return r.Name
+}
+
+func (r PtrRecord) GetQtype() uint16 {
+	return dns.TypePTR
 }
 
 func (r PtrRecord) ToRR() (dns.RR, error) {
@@ -149,6 +167,14 @@ type CnameRecord struct {
 
 func (r CnameRecord) String() string {
 	return fmt.Sprintf("%s %d CNAME %s", r.Name, r.TTL, r.Target)
+}
+
+func (r CnameRecord) GetName() Domain {
+	return r.Name
+}
+
+func (r CnameRecord) GetQtype() uint16 {
+	return dns.TypeCNAME
 }
 
 func (r CnameRecord) ToRR() (dns.RR, error) {
@@ -178,6 +204,18 @@ func (r AddressRecord) String() string {
 		qtype = "AAAA"
 	}
 	return fmt.Sprintf("%s %d %s %s", r.Name, r.TTL, qtype, r.Address)
+}
+
+func (r AddressRecord) GetName() Domain {
+	return r.Name
+}
+
+func (r AddressRecord) GetQtype() uint16 {
+	if r.IsV4() {
+		return dns.TypeA
+	} else {
+		return dns.TypeAAAA
+	}
 }
 
 func (r AddressRecord) ToRR() (dns.RR, error) {
@@ -211,6 +249,14 @@ func (r SrvRecord) String() string {
 		r.Port,
 		r.Target,
 	)
+}
+
+func (r SrvRecord) GetName() Domain {
+	return r.Name
+}
+
+func (r SrvRecord) GetQtype() uint16 {
+	return dns.TypeSRV
 }
 
 func (r SrvRecord) ToRR() (dns.RR, error) {
