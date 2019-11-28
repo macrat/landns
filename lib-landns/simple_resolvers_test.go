@@ -9,9 +9,34 @@ import (
 	"github.com/miekg/dns"
 )
 
+type DummyResponseWriter struct {
+	Records       []landns.Record
+	Authoritative bool
+}
+
+func NewDummyResponseWriter() *DummyResponseWriter {
+	return &DummyResponseWriter{
+		Records:       make([]landns.Record, 0, 10),
+		Authoritative: true,
+	}
+}
+
+func (rw *DummyResponseWriter) Add(r landns.Record) error {
+	rw.Records = append(rw.Records, r)
+	return nil
+}
+
+func (rw *DummyResponseWriter) IsAuthoritative() bool {
+	return rw.Authoritative
+}
+
+func (rw *DummyResponseWriter) SetNoAuthoritative() {
+	rw.Authoritative = false
+}
+
 func ResolverTest(t *testing.T, resolver landns.Resolver, request landns.Request, authoritative bool, responses ...string) {
-	resp, err := resolver.Resolve(request)
-	if err != nil {
+	resp := NewDummyResponseWriter()
+	if err := resolver.Resolve(resp, request); err != nil {
 		t.Errorf("%s <- %s: failed to resolve: %v", resolver, request, err.Error())
 		return
 	}
@@ -77,7 +102,7 @@ func BenchmarkSimpleAddressResolver(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(req)
+		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
 }
 
@@ -120,7 +145,7 @@ func BenchmarkSimpleTxtResolver(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(req)
+		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
 }
 
@@ -162,7 +187,7 @@ func BenchmarkSimplePtrResolver(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(req)
+		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
 }
 
@@ -200,7 +225,7 @@ func BenchmarkSimpleCnameResolver(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(req)
+		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
 }
 
@@ -238,7 +263,7 @@ func BenchmarkSimpleSrvResolver(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(req)
+		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
 }
 
@@ -272,8 +297,11 @@ func TestResolverSet(t *testing.T) {
 
 type DummyAuthoritativeResolver bool
 
-func (d DummyAuthoritativeResolver) Resolve(r landns.Request) (landns.Response, error) {
-	return landns.Response{Authoritative: bool(d)}, nil
+func (d DummyAuthoritativeResolver) Resolve(w landns.ResponseWriter, r landns.Request) error {
+	if !bool(d) {
+		w.SetNoAuthoritative()
+	}
+	return nil
 }
 
 func TestResolverSet_Authoritative(t *testing.T) {
@@ -310,6 +338,6 @@ func BenchmarkResolverSet(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(req)
+		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
 }

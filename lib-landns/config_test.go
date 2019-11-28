@@ -20,7 +20,7 @@ func TestAddressRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to set DEFAULT_TTL: %v", *an.TTL)
 	}
 
-	p := uint(42)
+	p := uint16(42)
 	b := landns.AddressRecordConfig{&p, net.ParseIP("127.3.2.1")}
 	bn := b.Normalized()
 
@@ -47,7 +47,7 @@ func TestCnameRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to set DEFAULT_TTL: %v", *an.TTL)
 	}
 
-	p := uint(42)
+	p := uint16(42)
 	b := landns.CnameRecordConfig{&p, landns.Domain("foo.bar.")}
 	bn := b.Normalized()
 
@@ -74,7 +74,7 @@ func TestTxtRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to set DEFAULT_TTL: %v", *an.TTL)
 	}
 
-	p := uint(42)
+	p := uint16(42)
 	b := landns.TxtRecordConfig{&p, "foo_bar"}
 	bn := b.Normalized()
 
@@ -104,7 +104,7 @@ func TestSrvRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to set DEFAULT_TTL: %v", *an.TTL)
 	}
 
-	p := uint(42)
+	p := uint16(42)
 	b := landns.SrvRecordConfig{TTL: &p, Proto: landns.Proto("udp"), Target: landns.Domain("foo.bar.")}
 	bn := b.Normalized()
 

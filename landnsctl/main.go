@@ -18,7 +18,7 @@ import (
 var (
 	app      = kingpin.New("landnsctl", "A command-line client for Landns.")
 	endpoint = kingpin.Flag("endpoint", "The endpoint of Landns API.").Default("http://localhost:9353/api/v1/").URL()
-	ttl      = kingpin.Flag("ttl", "TTL for set record.").Default("3600").Uint()
+	ttl      = kingpin.Flag("ttl", "TTL for set record.").Default("3600").Uint16()
 )
 
 func forceURL(raw_url string) *url.URL {

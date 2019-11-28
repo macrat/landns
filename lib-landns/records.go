@@ -25,10 +25,10 @@ func (p InvalidProto) Error() string {
 	return fmt.Sprintf("invalid proto: \"%s\"", string(p))
 }
 
-type InvalidPort uint
+type InvalidPort uint16
 
 func (p InvalidPort) Error() string {
-	return fmt.Sprintf("invalid port: \"%d\"", uint(p))
+	return fmt.Sprintf("invalid port: \"%d\"", uint16(p))
 }
 
 type Domain string
@@ -104,7 +104,7 @@ type Record interface {
 
 type TxtRecord struct {
 	Name Domain
-	TTL  uint
+	TTL  uint16
 	Text string
 }
 
@@ -122,7 +122,7 @@ func (r TxtRecord) Validate() error {
 
 type PtrRecord struct {
 	Name   Domain
-	TTL    uint
+	TTL    uint16
 	Domain Domain
 }
 
@@ -143,7 +143,7 @@ func (r PtrRecord) Validate() error {
 
 type CnameRecord struct {
 	Name   Domain
-	TTL    uint
+	TTL    uint16
 	Target Domain
 }
 
@@ -164,7 +164,7 @@ func (r CnameRecord) Validate() error {
 
 type AddressRecord struct {
 	Name    Domain
-	TTL     uint
+	TTL     uint16
 	Address net.IP
 }
 
@@ -190,7 +190,7 @@ func (r AddressRecord) Validate() error {
 
 type SrvRecord struct {
 	Name     Domain
-	TTL      uint
+	TTL      uint16
 	Service  string
 	Proto    Proto
 	Priority uint16

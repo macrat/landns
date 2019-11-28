@@ -102,7 +102,7 @@ func iterAddresses(rows *sql.Rows, callback func(AddressRecord)) error {
 	for rows.Next() {
 		var name string
 		var addr string
-		var ttl uint
+		var ttl uint16
 
 		if err := rows.Scan(&name, &addr, &ttl); err != nil {
 			return err
@@ -117,7 +117,7 @@ func iterCnames(rows *sql.Rows, callback func(CnameRecord)) error {
 	for rows.Next() {
 		var name string
 		var target string
-		var ttl uint
+		var ttl uint16
 
 		if err := rows.Scan(&name, &target, &ttl); err != nil {
 			return err
@@ -132,7 +132,7 @@ func iterTexts(rows *sql.Rows, callback func(TxtRecord)) error {
 	for rows.Next() {
 		var name string
 		var text string
-		var ttl uint
+		var ttl uint16
 
 		if err := rows.Scan(&name, &text, &ttl); err != nil {
 			return err
@@ -152,7 +152,7 @@ func iterServices(rows *sql.Rows, callback func(SrvRecord)) error {
 		var weight uint16
 		var port uint16
 		var target string
-		var ttl uint
+		var ttl uint16
 
 		if err := rows.Scan(&name, &service, &proto, &priority, &weight, &port, &target, &ttl); err != nil {
 			return err
@@ -465,7 +465,7 @@ func (r SqliteResolver) ResolveSRV(name string) (resp []Record, err error) {
 	})
 }
 
-func (r SqliteResolver) Resolve(req Request) (Response, error) {
+func (r SqliteResolver) Resolve(resp ResponseWriter, req Request) error {
 	var rs []Record
 	var err error
 
@@ -483,5 +483,8 @@ func (r SqliteResolver) Resolve(req Request) (Response, error) {
 	case dns.TypeSRV:
 		rs, err = r.ResolveSRV(req.Name)
 	}
-	return Response{Records: rs, Authoritative: true}, err
+	for _, r := range rs {
+		resp.Add(r)
+	}
+	return err
 }

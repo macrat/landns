@@ -7,7 +7,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func makeReverseMap(addresses map[Domain][]net.IP, ttl uint) (map[string][]PtrRecord, error) {
+func makeReverseMap(addresses map[Domain][]net.IP, ttl uint16) (map[string][]PtrRecord, error) {
 	reverse := map[string][]PtrRecord{}
 	for addr, ips := range addresses {
 		for _, ip := range ips {
@@ -38,7 +38,7 @@ func NewStaticResolver(config []byte) (StaticResolver, error) {
 		return StaticResolver{}, err
 	}
 
-	ttl := uint(3600)
+	ttl := uint16(3600)
 	if conf.TTL != nil {
 		ttl = *conf.TTL
 	}
@@ -106,6 +106,6 @@ func NewStaticResolver(config []byte) (StaticResolver, error) {
 	}, nil
 }
 
-func (r StaticResolver) Resolve(req Request) (Response, error) {
-	return ResolverSet(r).Resolve(req)
+func (r StaticResolver) Resolve(resp ResponseWriter, req Request) error {
+	return ResolverSet(r).Resolve(resp, req)
 }

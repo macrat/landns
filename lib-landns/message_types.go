@@ -43,7 +43,48 @@ func (req Request) String() string {
 	return fmt.Sprintf("%s %s", req.Name, req.QtypeString())
 }
 
-type Response struct {
-	Records       []Record
-	Authoritative bool
+type ResponseWriter interface {
+	Add(Record) error
+	IsAuthoritative() bool
+	SetNoAuthoritative()
+}
+
+type MessageBuilder struct {
+	request       *dns.Msg
+	records       []dns.RR
+	authoritative bool
+}
+
+func NewMessageBuilder(request *dns.Msg) *MessageBuilder {
+	return &MessageBuilder{
+		request: request,
+		records: make([]dns.RR, 0, 10),
+	}
+}
+
+func (mb *MessageBuilder) Add(r Record) error {
+	rr, err := r.ToRR()
+	if err != nil {
+		return err
+	}
+
+	mb.records = append(mb.records, rr)
+	return nil
+}
+
+func (mb *MessageBuilder) IsAuthoritative() bool {
+	return mb.authoritative
+}
+
+func (mb *MessageBuilder) SetNoAuthoritative() {
+	mb.authoritative = false
+}
+
+func (mb *MessageBuilder) Build() *dns.Msg {
+	msg := new(dns.Msg)
+	msg.SetReply(mb.request)
+
+	msg.Answer = dns.Dedup(mb.records, nil)
+
+	return msg
 }

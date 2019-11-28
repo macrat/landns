@@ -32,6 +32,6 @@ func BenchmarkSqliteResolver(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(req)
+		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
 }

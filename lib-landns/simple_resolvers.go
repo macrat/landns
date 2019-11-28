@@ -13,7 +13,7 @@ func (e DomainIsNotFQDNError) Error() string {
 }
 
 type Resolver interface {
-	Resolve(Request) (Response, error)
+	Resolve(ResponseWriter, Request) error
 }
 
 type ValidatableResolver interface {
@@ -24,24 +24,26 @@ type ValidatableResolver interface {
 
 type SimpleAddressResolver map[string][]AddressRecord
 
-func (r SimpleAddressResolver) Resolve(req Request) (resp Response, err error) {
-	resp.Authoritative = true
-
+func (r SimpleAddressResolver) Resolve(resp ResponseWriter, req Request) error {
 	switch req.Qtype {
 	case dns.TypeA:
-		for _, r := range r[req.Name] {
-			if r.IsV4() {
-				resp.Records = append(resp.Records, r)
+		for _, a := range r[req.Name] {
+			if a.IsV4() {
+				if err := resp.Add(a); err != nil {
+					return err
+				}
 			}
 		}
 	case dns.TypeAAAA:
-		for _, r := range r[req.Name] {
-			if !r.IsV4() {
-				resp.Records = append(resp.Records, r)
+		for _, a := range r[req.Name] {
+			if !a.IsV4() {
+				if err := resp.Add(a); err != nil {
+					return err
+				}
 			}
 		}
 	}
-	return
+	return nil
 }
 
 func (r SimpleAddressResolver) Validate() error {
@@ -68,15 +70,15 @@ func (r SimpleAddressResolver) String() string {
 
 type SimpleTxtResolver map[string][]TxtRecord
 
-func (r SimpleTxtResolver) Resolve(req Request) (resp Response, err error) {
-	resp.Authoritative = true
-
+func (r SimpleTxtResolver) Resolve(resp ResponseWriter, req Request) error {
 	if req.Qtype == dns.TypeTXT {
 		for _, t := range r[req.Name] {
-			resp.Records = append(resp.Records, t)
+			if err := resp.Add(t); err != nil {
+				return err
+			}
 		}
 	}
-	return
+	return nil
 }
 
 func (r SimpleTxtResolver) Validate() error {
@@ -103,15 +105,15 @@ func (r SimpleTxtResolver) String() string {
 
 type SimplePtrResolver map[string][]PtrRecord
 
-func (r SimplePtrResolver) Resolve(req Request) (resp Response, err error) {
-	resp.Authoritative = true
-
+func (r SimplePtrResolver) Resolve(resp ResponseWriter, req Request) error {
 	if req.Qtype == dns.TypePTR {
 		for _, p := range r[req.Name] {
-			resp.Records = append(resp.Records, p)
+			if err := resp.Add(p); err != nil {
+				return err
+			}
 		}
 	}
-	return
+	return nil
 }
 
 func (r SimplePtrResolver) Validate() error {
@@ -138,15 +140,15 @@ func (r SimplePtrResolver) String() string {
 
 type SimpleCnameResolver map[string][]CnameRecord
 
-func (r SimpleCnameResolver) Resolve(req Request) (resp Response, err error) {
-	resp.Authoritative = true
-
+func (r SimpleCnameResolver) Resolve(resp ResponseWriter, req Request) error {
 	if req.Qtype == dns.TypeCNAME {
 		for _, p := range r[req.Name] {
-			resp.Records = append(resp.Records, p)
+			if err := resp.Add(p); err != nil {
+				return err
+			}
 		}
 	}
-	return
+	return nil
 }
 
 func (r SimpleCnameResolver) Validate() error {
@@ -173,15 +175,15 @@ func (r SimpleCnameResolver) String() string {
 
 type SimpleSrvResolver map[string][]SrvRecord
 
-func (r SimpleSrvResolver) Resolve(req Request) (resp Response, err error) {
-	resp.Authoritative = true
-
+func (r SimpleSrvResolver) Resolve(resp ResponseWriter, req Request) error {
 	if req.Qtype == dns.TypeSRV {
 		for _, s := range r[req.Name] {
-			resp.Records = append(resp.Records, s)
+			if err := resp.Add(s); err != nil {
+				return err
+			}
 		}
 	}
-	return
+	return nil
 }
 
 func (r SimpleSrvResolver) Validate() error {
@@ -208,20 +210,13 @@ func (r SimpleSrvResolver) String() string {
 
 type ResolverSet []Resolver
 
-func (rs ResolverSet) Resolve(req Request) (resp Response, err error) {
-	resp.Authoritative = true
-
+func (rs ResolverSet) Resolve(resp ResponseWriter, req Request) error {
 	for _, r := range rs {
-		rr, err := r.Resolve(req)
-		if err != nil {
-			return resp, err
-		}
-		resp.Records = append(resp.Records, rr.Records...)
-		if !rr.Authoritative {
-			resp.Authoritative = false
+		if err := r.Resolve(resp, req); err != nil {
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 func (rs ResolverSet) String() string {
