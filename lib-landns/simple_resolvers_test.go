@@ -1,6 +1,7 @@
 package landns_test
 
 import (
+	"fmt"
 	"net"
 	"testing"
 
@@ -58,6 +59,28 @@ func TestSimpleAddressResolver(t *testing.T) {
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true)
 }
 
+func BenchmarkSimpleAddressResolver(b *testing.B) {
+	resolver := landns.SimpleAddressResolver{}
+
+	for i := 0; i < 100; i++ {
+		host := fmt.Sprintf("host%d.example.com.", i)
+		resolver[host] = []landns.AddressRecord{
+			{Name: landns.Domain(host), Address: net.ParseIP("127.1.2.3")},
+			{Name: landns.Domain(host), Address: net.ParseIP("127.2.3.4")},
+			{Name: landns.Domain(host), Address: net.ParseIP("1:2:3::4")},
+			{Name: landns.Domain(host), Address: net.ParseIP("5:6:7::8")},
+		}
+	}
+
+	req := landns.NewRequest("host50.example.com.", dns.TypeA, false)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		resolver.Resolve(req)
+	}
+}
+
 func TestSimpleTxtResolverResolver(t *testing.T) {
 	resolver := landns.SimpleTxtResolver{
 		"example.com.": []landns.TxtRecord{
@@ -79,6 +102,26 @@ func TestSimpleTxtResolverResolver(t *testing.T) {
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeTXT, false), true)
 
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true)
+}
+
+func BenchmarkSimpleTxtResolver(b *testing.B) {
+	resolver := landns.SimpleTxtResolver{}
+
+	for i := 0; i < 100; i++ {
+		host := fmt.Sprintf("host%d.example.com.", i)
+		resolver[host] = []landns.TxtRecord{
+			{Name: landns.Domain(host), Text: "hello world"},
+			{Name: landns.Domain(host), Text: "this_is_test"},
+		}
+	}
+
+	req := landns.NewRequest("host50.example.com.", dns.TypeTXT, false)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		resolver.Resolve(req)
+	}
 }
 
 func TestSimplePtrResolverResolver(t *testing.T) {
@@ -103,6 +146,26 @@ func TestSimplePtrResolverResolver(t *testing.T) {
 	ResolverTest(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypeA, false), true)
 }
 
+func BenchmarkSimplePtrResolver(b *testing.B) {
+	resolver := landns.SimplePtrResolver{}
+
+	for i := 0; i < 100; i++ {
+		host := fmt.Sprintf("%d.1.168.192.in-addr.arpa.", i)
+		resolver[host] = []landns.PtrRecord{
+			{Name: landns.Domain(host), Domain: landns.Domain("example.com.")},
+			{Name: landns.Domain(host), Domain: landns.Domain("example.com.")},
+		}
+	}
+
+	req := landns.NewRequest("50.1.168.192.in-addr.arpa.", dns.TypePTR, false)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		resolver.Resolve(req)
+	}
+}
+
 func TestSimpleCnameResolverResolver(t *testing.T) {
 	resolver := landns.SimpleCnameResolver{
 		"example.com.": []landns.CnameRecord{
@@ -121,6 +184,26 @@ func TestSimpleCnameResolverResolver(t *testing.T) {
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true)
 }
 
+func BenchmarkSimpleCnameResolver(b *testing.B) {
+	resolver := landns.SimpleCnameResolver{}
+
+	for i := 0; i < 100; i++ {
+		host := fmt.Sprintf("host%d.example.com.", i)
+		resolver[host] = []landns.CnameRecord{
+			{Name: landns.Domain(host), Target: landns.Domain("example.com.")},
+			{Name: landns.Domain(host), Target: landns.Domain("example.com.")},
+		}
+	}
+
+	req := landns.NewRequest("host50.example.com.", dns.TypeCNAME, false)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		resolver.Resolve(req)
+	}
+}
+
 func TestSimpleSrvResolverResolver(t *testing.T) {
 	resolver := landns.SimpleSrvResolver{
 		"example.com.": []landns.SrvRecord{
@@ -137,6 +220,26 @@ func TestSimpleSrvResolverResolver(t *testing.T) {
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeSRV, false), true)
 
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true)
+}
+
+func BenchmarkSimpleSrvResolver(b *testing.B) {
+	resolver := landns.SimpleSrvResolver{}
+
+	for i := 0; i < 100; i++ {
+		host := fmt.Sprintf("host%d.example.com.", i)
+		resolver[host] = []landns.SrvRecord{
+			{Name: landns.Domain(host), Service: "http", Port: 10, Target: landns.Domain("example.com.")},
+			{Name: landns.Domain(host), Service: "http", Port: 10, Target: landns.Domain("example.com.")},
+		}
+	}
+
+	req := landns.NewRequest("host50.example.com.", dns.TypeSRV, false)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		resolver.Resolve(req)
+	}
 }
 
 func TestResolverSet(t *testing.T) {
@@ -186,4 +289,27 @@ func TestResolverSet_Authoritative(t *testing.T) {
 	ResolverTest(t, landns.ResolverSet{resolverT, resolverF}, req, false)
 	ResolverTest(t, landns.ResolverSet{resolverF, resolverT}, req, false)
 	ResolverTest(t, landns.ResolverSet{resolverF, resolverF}, req, false)
+}
+
+func BenchmarkResolverSet(b *testing.B) {
+	resolver := landns.ResolverSet{}
+
+	for i := 0; i < 100; i++ {
+		host := fmt.Sprintf("host%d.example.com.", i)
+
+		resolver = append(resolver, landns.SimpleTxtResolver{
+			host: {
+				{Name: landns.Domain(host), Text: "hello"},
+				{Name: landns.Domain(host), Text: "world"},
+			},
+		})
+	}
+
+	req := landns.NewRequest("host50.example.com.", dns.TypeTXT, false)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		resolver.Resolve(req)
+	}
 }
