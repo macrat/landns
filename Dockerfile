@@ -1,6 +1,6 @@
 FROM golang:latest AS builder
 
-ARG arch="amd64"
+ARG arch
 ARG armv
 WORKDIR /go/src/github.com/macrat/landns
 
