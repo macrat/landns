@@ -99,12 +99,23 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		"example.com. 321 A 127.0.0.2",
 	)
 
+	ResolverTest(t, resolver, landns.NewRequest("1.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.0.0.127.in-addr.arpa. 123 PTR example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("2.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "2.0.0.127.in-addr.arpa. 321 PTR example.com.")
+
 	ResolverTest(
 		t,
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeAAAA, false),
 		true,
 		"example.com. 123 AAAA 1:1::1",
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.1.0.0.0.ip6.arpa.", dns.TypePTR, false),
+		true,
+		"1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.1.0.0.0.ip6.arpa. 123 PTR example.com.",
 	)
 
 	ResolverTest(
@@ -125,10 +136,20 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 	ResolverTest(
 		t,
 		resolver,
+		landns.NewRequest("2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa.", dns.TypePTR, false),
+		true,
+		"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa. 123 PTR blanktar.jp.",
+	)
+
+	ResolverTest(
+		t,
+		resolver,
 		landns.NewRequest("test.local.", dns.TypeA, false),
 		true,
 		"test.local. 321 A 127.0.3.1",
 	)
+
+	ResolverTest(t, resolver, landns.NewRequest("1.3.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.3.0.127.in-addr.arpa. 321 PTR test.local.")
 
 	ResolverTest(
 		t,
