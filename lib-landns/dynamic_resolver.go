@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/miekg/dns"
+
+	// sqlite3 driver
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type DynamicResolver interface {

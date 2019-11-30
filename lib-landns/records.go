@@ -213,9 +213,9 @@ func (r AddressRecord) GetName() Domain {
 func (r AddressRecord) GetQtype() uint16 {
 	if r.IsV4() {
 		return dns.TypeA
-	} else {
-		return dns.TypeAAAA
 	}
+
+	return dns.TypeAAAA
 }
 
 func (r AddressRecord) ToRR() (dns.RR, error) {

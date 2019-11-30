@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	DEFAULT_TTL uint16 = 3600
+	DefaultTTL uint16 = 3600
 )
 
 type AddressRecordConfig struct {
@@ -24,7 +24,7 @@ func (a AddressRecordConfig) ToRecord(name Domain) AddressRecord {
 
 func (a AddressRecordConfig) Normalized() AddressRecordConfig {
 	if a.TTL == nil {
-		a.TTL = &DEFAULT_TTL
+		a.TTL = &DefaultTTL
 	}
 	return a
 }
@@ -72,7 +72,7 @@ func (c CnameRecordConfig) ToRecord(name Domain) CnameRecord {
 
 func (c CnameRecordConfig) Normalized() CnameRecordConfig {
 	if c.TTL == nil {
-		c.TTL = &DEFAULT_TTL
+		c.TTL = &DefaultTTL
 	}
 	c.Target = c.Target.Normalized()
 	return c
@@ -121,7 +121,7 @@ func (t TxtRecordConfig) ToRecord(name Domain) TxtRecord {
 
 func (t TxtRecordConfig) Normalized() TxtRecordConfig {
 	if t.TTL == nil {
-		t.TTL = &DEFAULT_TTL
+		t.TTL = &DefaultTTL
 	}
 	return t
 }
@@ -180,7 +180,7 @@ func (s SrvRecordConfig) ToRecord(name Domain) SrvRecord {
 
 func (s SrvRecordConfig) Normalized() SrvRecordConfig {
 	if s.TTL == nil {
-		s.TTL = &DEFAULT_TTL
+		s.TTL = &DefaultTTL
 	}
 
 	s.Proto = s.Proto.Normalized()

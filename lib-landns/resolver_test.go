@@ -72,7 +72,7 @@ func ResolverTest(t *testing.T, resolver landns.Resolver, request landns.Request
 		return strings.Compare(responses[i], responses[j]) == 1
 	})
 
-	for i, _ := range responses {
+	for i := range responses {
 		if resp.Records[i].String() != responses[i] {
 			t.Errorf(`%s <- %s: unexcepted resolve response: excepted "%s" but got "%s"`, resolver, request, responses[i], resp.Records[i])
 		}

@@ -15,9 +15,9 @@ func TestAddressRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to copy address: %s != %s", a.Address, an.Address)
 	}
 	if an.TTL == nil {
-		t.Errorf("failed to set DEFAULT_TTL: %#v", an.TTL)
-	} else if *an.TTL != landns.DEFAULT_TTL {
-		t.Errorf("failed to set DEFAULT_TTL: %v", *an.TTL)
+		t.Errorf("failed to set DefaultTTL: %#v", an.TTL)
+	} else if *an.TTL != landns.DefaultTTL {
+		t.Errorf("failed to set DefaultTTL: %v", *an.TTL)
 	}
 
 	p := uint16(42)
@@ -28,9 +28,9 @@ func TestAddressRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to copy address: %s != %s", b.Address, bn.Address)
 	}
 	if b.TTL == nil || bn.TTL == nil {
-		t.Errorf("failed to set DEFAULT_TTL: %#v != %#v", b.TTL, bn.TTL)
+		t.Errorf("failed to set DefaultTTL: %#v != %#v", b.TTL, bn.TTL)
 	} else if *b.TTL != *bn.TTL {
-		t.Errorf("failed to set DEFAULT_TTL: %v != %v", *b.TTL, *bn.TTL)
+		t.Errorf("failed to set DefaultTTL: %v != %v", *b.TTL, *bn.TTL)
 	}
 }
 
@@ -42,9 +42,9 @@ func TestCnameRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to normalize target domain: %v", an.Target)
 	}
 	if an.TTL == nil {
-		t.Errorf("failed to set DEFAULT_TTL: %#v", an.TTL)
-	} else if *an.TTL != landns.DEFAULT_TTL {
-		t.Errorf("failed to set DEFAULT_TTL: %v", *an.TTL)
+		t.Errorf("failed to set DefaultTTL: %#v", an.TTL)
+	} else if *an.TTL != landns.DefaultTTL {
+		t.Errorf("failed to set DefaultTTL: %v", *an.TTL)
 	}
 
 	p := uint16(42)
@@ -55,9 +55,9 @@ func TestCnameRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to copy target domain name: %s != %s", b.Target, bn.Target)
 	}
 	if b.TTL == nil || bn.TTL == nil {
-		t.Errorf("failed to set DEFAULT_TTL: %#v != %#v", b.TTL, bn.TTL)
+		t.Errorf("failed to set DefaultTTL: %#v != %#v", b.TTL, bn.TTL)
 	} else if *b.TTL != *bn.TTL {
-		t.Errorf("failed to set DEFAULT_TTL: %v != %v", *b.TTL, *bn.TTL)
+		t.Errorf("failed to set DefaultTTL: %v != %v", *b.TTL, *bn.TTL)
 	}
 }
 
@@ -69,9 +69,9 @@ func TestTxtRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to copy text: %v", an.Text)
 	}
 	if an.TTL == nil {
-		t.Errorf("failed to set DEFAULT_TTL: %#v", an.TTL)
-	} else if *an.TTL != landns.DEFAULT_TTL {
-		t.Errorf("failed to set DEFAULT_TTL: %v", *an.TTL)
+		t.Errorf("failed to set DefaultTTL: %#v", an.TTL)
+	} else if *an.TTL != landns.DefaultTTL {
+		t.Errorf("failed to set DefaultTTL: %v", *an.TTL)
 	}
 
 	p := uint16(42)
@@ -82,9 +82,9 @@ func TestTxtRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to copy text: %s != %s", b.Text, bn.Text)
 	}
 	if b.TTL == nil || bn.TTL == nil {
-		t.Errorf("failed to set DEFAULT_TTL: %#v != %#v", b.TTL, bn.TTL)
+		t.Errorf("failed to set DefaultTTL: %#v != %#v", b.TTL, bn.TTL)
 	} else if *b.TTL != *bn.TTL {
-		t.Errorf("failed to set DEFAULT_TTL: %v != %v", *b.TTL, *bn.TTL)
+		t.Errorf("failed to set DefaultTTL: %v != %v", *b.TTL, *bn.TTL)
 	}
 }
 
@@ -99,9 +99,9 @@ func TestSrvRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to normalize protocol: %v", an.Proto)
 	}
 	if an.TTL == nil {
-		t.Errorf("failed to set DEFAULT_TTL: %#v", an.TTL)
-	} else if *an.TTL != landns.DEFAULT_TTL {
-		t.Errorf("failed to set DEFAULT_TTL: %v", *an.TTL)
+		t.Errorf("failed to set DefaultTTL: %#v", an.TTL)
+	} else if *an.TTL != landns.DefaultTTL {
+		t.Errorf("failed to set DefaultTTL: %v", *an.TTL)
 	}
 
 	p := uint16(42)
@@ -115,8 +115,8 @@ func TestSrvRecordConfigNormalized(t *testing.T) {
 		t.Errorf("failed to copy protocol: %v != tcp", bn.Proto)
 	}
 	if b.TTL == nil || bn.TTL == nil {
-		t.Errorf("failed to set DEFAULT_TTL: %#v != %#v", b.TTL, bn.TTL)
+		t.Errorf("failed to set DefaultTTL: %#v != %#v", b.TTL, bn.TTL)
 	} else if *b.TTL != *bn.TTL {
-		t.Errorf("failed to set DEFAULT_TTL: %v != %v", *b.TTL, *bn.TTL)
+		t.Errorf("failed to set DefaultTTL: %v != %v", *b.TTL, *bn.TTL)
 	}
 }

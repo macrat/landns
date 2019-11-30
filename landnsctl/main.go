@@ -21,8 +21,8 @@ var (
 	ttl      = kingpin.Flag("ttl", "TTL for set record.").Default("3600").Uint16()
 )
 
-func forceURL(raw_url string) *url.URL {
-	if u, err := url.Parse(raw_url); err != nil {
+func forceURL(rawURL string) *url.URL {
+	if u, err := url.Parse(rawURL); err != nil {
 		panic(err.Error())
 	} else {
 		return u
@@ -167,15 +167,15 @@ func CnameCommand(app *kingpin.Application) {
 			records := []landns.CnameRecordConfig{}
 
 			for _, t := range *targets {
-				t_ := landns.Domain(t).Normalized()
+				tn := landns.Domain(t).Normalized()
 
-				if err := t_.Validate(); err != nil {
+				if err := tn.Validate(); err != nil {
 					return err
 				}
 
 				records = append(records, landns.CnameRecordConfig{
 					TTL:    ttl,
-					Target: t_,
+					Target: tn,
 				})
 			}
 

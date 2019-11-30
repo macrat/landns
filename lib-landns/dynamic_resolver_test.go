@@ -82,7 +82,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		} else if len(records) != len(rs) {
 			t.Errorf("unexcepted record length: %s: excepted %d but got %d", name, len(rs), len(records))
 		} else {
-			for i, _ := range records {
+			for i := range records {
 				if *records[i].TTL != *rs[i].TTL {
 					t.Errorf("unexcepted record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
 				}
@@ -216,7 +216,7 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 		} else if len(records) != len(rs) {
 			t.Errorf("unexcepted record length: %s: excepted %d but got %d", name, len(rs), len(records))
 		} else {
-			for i, _ := range records {
+			for i := range records {
 				if *records[i].TTL != *rs[i].TTL {
 					t.Errorf("unexcepted record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
 				}
@@ -307,7 +307,7 @@ func TestSqliteResolver_Texts(t *testing.T) {
 		} else if len(records) != len(rs) {
 			t.Errorf("unexcepted record length: %s: excepted %d but got %d", name, len(rs), len(records))
 		} else {
-			for i, _ := range records {
+			for i := range records {
 				if *records[i].TTL != *rs[i].TTL {
 					t.Errorf("unexcepted record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
 				}
@@ -398,7 +398,7 @@ func TestSqliteResolver_Services(t *testing.T) {
 		} else if len(records) != len(rs) {
 			t.Errorf("unexcepted record length: %s: excepted %d but got %d", name, len(rs), len(records))
 		} else {
-			for i, _ := range records {
+			for i := range records {
 				if *records[i].TTL != *rs[i].TTL {
 					t.Errorf("unexcepted record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
 				}

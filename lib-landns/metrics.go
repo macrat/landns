@@ -114,13 +114,13 @@ func (m *Metrics) makeTimer(skipped bool) func(*dns.Msg) {
 }
 
 func (m *Metrics) Start(request *dns.Msg) func(*dns.Msg) {
-	if request.Opcode == dns.OpcodeQuery {
-		m.queryCount.Inc()
-		return m.makeTimer(false)
-	} else {
+	if request.Opcode != dns.OpcodeQuery {
 		m.skipCount.Inc()
 		return m.makeTimer(true)
 	}
+
+	m.queryCount.Inc()
+	return m.makeTimer(false)
 }
 
 func (m *Metrics) Error(req Request, err error) {
