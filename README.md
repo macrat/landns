@@ -1,6 +1,9 @@
 Landns
 ======
 
+[![GitHub Actions](https://github.com/macrat/landns/workflows/Test%20and%20Build/badge.svg)](https://github.com/macrat/landns/actions)
+[![codecov](https://codecov.io/gh/macrat/landns/branch/master/graph/badge.svg)](https://codecov.io/gh/macrat/landns)
+
 A DNS server for developers for home use.
 
 ## How to use
