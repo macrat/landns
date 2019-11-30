@@ -3,6 +3,8 @@ package landns_test
 import (
 	"fmt"
 	"net"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
@@ -62,6 +64,13 @@ func ResolverTest(t *testing.T, resolver landns.Resolver, request landns.Request
 		t.Errorf(`%s <- %s: unexcepted resolve response: excepted length %d but got %d`, resolver, request, len(responses), len(resp.Records))
 		return
 	}
+
+	sort.Slice(resp.Records, func(i, j int) bool {
+		return strings.Compare(resp.Records[i].String(), resp.Records[j].String()) == 1
+	})
+	sort.Slice(responses, func(i, j int) bool {
+		return strings.Compare(responses[i], responses[j]) == 1
+	})
 
 	for i, _ := range responses {
 		if resp.Records[i].String() != responses[i] {

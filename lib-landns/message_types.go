@@ -50,7 +50,7 @@ type ResponseWriter interface {
 }
 
 type ResponseCallback struct {
-	Callback func(Record) error
+	Callback      func(Record) error
 	Authoritative bool
 }
 

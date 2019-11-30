@@ -151,13 +151,14 @@ func iterServices(rows *sql.Rows, callback func(SrvRecord)) error {
 		}
 
 		callback(SrvRecord{
-			Name:    Domain(name),
-			TTL:     ttl,
-			Service: service,
-			Proto:   Proto(proto),
-			Weight:  weight,
-			Port:    port,
-			Target:  Domain(target),
+			Name:     Domain(name),
+			TTL:      ttl,
+			Service:  service,
+			Proto:    Proto(proto),
+			Priority: priority,
+			Weight:   weight,
+			Port:     port,
+			Target:   Domain(target),
 		})
 	}
 	return nil

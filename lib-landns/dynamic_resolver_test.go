@@ -9,12 +9,410 @@ import (
 	"github.com/miekg/dns"
 )
 
-func BenchmarkSqliteResolver(b *testing.B) {
+type FatalFormatter interface {
+	Fatalf(fmt string, params ...interface{})
+}
+
+func createSqliteResolver(t FatalFormatter) *landns.SqliteResolver {
 	metrics := landns.NewMetrics("landns")
 	resolver, err := landns.NewSqliteResolver(":memory:", metrics)
 	if err != nil {
-		b.Fatalf("failed to make sqlite resolver: %s", err.Error())
+		t.Fatalf("failed to make sqlite resolver: %s", err.Error())
 	}
+
+	return resolver
+}
+
+func TestSqliteResolver_Addresses(t *testing.T) {
+	resolver := createSqliteResolver(t)
+
+	ttlA := uint16(123)
+	ttlB := uint16(321)
+
+	confA := landns.AddressesConfig{
+		"example.com.": {
+			{TTL: &ttlA, Address: net.ParseIP("127.0.0.1")},
+			{TTL: &ttlB, Address: net.ParseIP("127.0.0.2")},
+			{TTL: &ttlA, Address: net.ParseIP("1:1::1")},
+		},
+		"blanktar.jp.": {
+			{TTL: &ttlA, Address: net.ParseIP("127.0.1.1")},
+			{TTL: &ttlB, Address: net.ParseIP("1:2::1")},
+		},
+	}
+	confB := landns.AddressesConfig{
+		"blanktar.jp.": {
+			{TTL: &ttlA, Address: net.ParseIP("1:2::2")},
+		},
+		"test.local.": {
+			{TTL: &ttlB, Address: net.ParseIP("127.0.3.1")},
+		},
+	}
+	except := landns.AddressesConfig{
+		"example.com.": {
+			{TTL: &ttlA, Address: net.ParseIP("127.0.0.1")},
+			{TTL: &ttlB, Address: net.ParseIP("127.0.0.2")},
+			{TTL: &ttlA, Address: net.ParseIP("1:1::1")},
+		},
+		"blanktar.jp.": {
+			{TTL: &ttlA, Address: net.ParseIP("1:2::2")},
+		},
+		"test.local.": {
+			{TTL: &ttlB, Address: net.ParseIP("127.0.3.1")},
+		},
+	}
+
+	resolver.UpdateAddresses(confA)
+	resolver.UpdateAddresses(confB)
+
+	all, err := resolver.GetAddresses()
+	if err != nil {
+		t.Errorf("failed to get addresses: %s", err.Error())
+	}
+	if err := all.Validate(); err != nil {
+		t.Fatalf("invalid addresses: %s", err.Error())
+	}
+	if len(all) != 3 {
+		t.Errorf("unexcepted response length: excepted 3 but got %d", len(all))
+	}
+
+	for name, records := range all {
+		if rs, ok := except[name]; !ok {
+			t.Errorf("not found excepted name: %s", name)
+		} else if len(records) != len(rs) {
+			t.Errorf("unexcepted record length: %s: excepted %d but got %d", name, len(rs), len(records))
+		} else {
+			for i, _ := range records {
+				if *records[i].TTL != *rs[i].TTL {
+					t.Errorf("unexcepted record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
+				}
+			}
+		}
+	}
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("example.com.", dns.TypeA, false),
+		true,
+		"example.com. 123 A 127.0.0.1",
+		"example.com. 321 A 127.0.0.2",
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("example.com.", dns.TypeAAAA, false),
+		true,
+		"example.com. 123 AAAA 1:1::1",
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("blanktar.jp.", dns.TypeA, false),
+		true,
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false),
+		true,
+		"blanktar.jp. 123 AAAA 1:2::2",
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("test.local.", dns.TypeA, false),
+		true,
+		"test.local. 321 A 127.0.3.1",
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("test.local.", dns.TypeAAAA, false),
+		true,
+	)
+}
+
+func TestSqliteResolver_Cnames(t *testing.T) {
+	resolver := createSqliteResolver(t)
+
+	ttlA := uint16(123)
+	ttlB := uint16(321)
+
+	confA := landns.CnamesConfig{
+		"example.com.": {
+			{TTL: &ttlA, Target: "a.example.com."},
+			{TTL: &ttlB, Target: "b.example.com."},
+		},
+		"blanktar.jp.": {
+			{TTL: &ttlA, Target: "c.example.com."},
+			{TTL: &ttlB, Target: "d.example.com."},
+		},
+	}
+	confB := landns.CnamesConfig{
+		"blanktar.jp.": {
+			{TTL: &ttlA, Target: "e.example.com."},
+		},
+		"test.local.": {
+			{TTL: &ttlB, Target: "f.example.com."},
+		},
+	}
+	except := landns.CnamesConfig{
+		"example.com.": {
+			{TTL: &ttlA, Target: "a.example.com."},
+			{TTL: &ttlB, Target: "b.example.com."},
+		},
+		"blanktar.jp.": {
+			{TTL: &ttlA, Target: "e.example.com."},
+		},
+		"test.local.": {
+			{TTL: &ttlB, Target: "f.example.com."},
+		},
+	}
+
+	resolver.UpdateCnames(confA)
+	resolver.UpdateCnames(confB)
+
+	all, err := resolver.GetCnames()
+	if err != nil {
+		t.Errorf("failed to get cnames: %s", err.Error())
+	}
+	if err := all.Validate(); err != nil {
+		t.Fatalf("invalid cnames: %s", err.Error())
+	}
+	if len(all) != 3 {
+		t.Errorf("unexcepted response length: excepted 3 but got %d", len(all))
+	}
+
+	for name, records := range all {
+		if rs, ok := except[name]; !ok {
+			t.Errorf("not found excepted name: %s", name)
+		} else if len(records) != len(rs) {
+			t.Errorf("unexcepted record length: %s: excepted %d but got %d", name, len(rs), len(records))
+		} else {
+			for i, _ := range records {
+				if *records[i].TTL != *rs[i].TTL {
+					t.Errorf("unexcepted record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
+				}
+			}
+		}
+	}
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("example.com.", dns.TypeCNAME, false),
+		true,
+		"example.com. 123 CNAME a.example.com.",
+		"example.com. 321 CNAME b.example.com.",
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("blanktar.jp.", dns.TypeCNAME, false),
+		true,
+		"blanktar.jp. 123 CNAME e.example.com.",
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("test.local.", dns.TypeCNAME, false),
+		true,
+		"test.local. 321 CNAME f.example.com.",
+	)
+}
+
+func TestSqliteResolver_Texts(t *testing.T) {
+	resolver := createSqliteResolver(t)
+
+	ttlA := uint16(123)
+	ttlB := uint16(321)
+
+	confA := landns.TextsConfig{
+		"example.com.": {
+			{TTL: &ttlA, Text: "abc"},
+			{TTL: &ttlB, Text: "def"},
+		},
+		"blanktar.jp.": {
+			{TTL: &ttlA, Text: "ghi"},
+			{TTL: &ttlB, Text: "jkl"},
+		},
+	}
+	confB := landns.TextsConfig{
+		"blanktar.jp.": {
+			{TTL: &ttlA, Text: "mno"},
+		},
+		"test.local.": {
+			{TTL: &ttlB, Text: "pqr"},
+		},
+	}
+	except := landns.TextsConfig{
+		"example.com.": {
+			{TTL: &ttlA, Text: "abc"},
+			{TTL: &ttlB, Text: "def"},
+		},
+		"blanktar.jp.": {
+			{TTL: &ttlA, Text: "mno"},
+		},
+		"test.local.": {
+			{TTL: &ttlB, Text: "pqr"},
+		},
+	}
+
+	resolver.UpdateTexts(confA)
+	resolver.UpdateTexts(confB)
+
+	all, err := resolver.GetTexts()
+	if err != nil {
+		t.Errorf("failed to get texts: %s", err.Error())
+	}
+	if err := all.Validate(); err != nil {
+		t.Fatalf("invalid texts: %s", err.Error())
+	}
+	if len(all) != 3 {
+		t.Errorf("unexcepted response length: excepted 3 but got %d", len(all))
+	}
+
+	for name, records := range all {
+		if rs, ok := except[name]; !ok {
+			t.Errorf("not found excepted name: %s", name)
+		} else if len(records) != len(rs) {
+			t.Errorf("unexcepted record length: %s: excepted %d but got %d", name, len(rs), len(records))
+		} else {
+			for i, _ := range records {
+				if *records[i].TTL != *rs[i].TTL {
+					t.Errorf("unexcepted record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
+				}
+			}
+		}
+	}
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("example.com.", dns.TypeTXT, false),
+		true,
+		`example.com. 123 TXT "abc"`,
+		`example.com. 321 TXT "def"`,
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("blanktar.jp.", dns.TypeTXT, false),
+		true,
+		`blanktar.jp. 123 TXT "mno"`,
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("test.local.", dns.TypeTXT, false),
+		true,
+		`test.local. 321 TXT "pqr"`,
+	)
+}
+
+func TestSqliteResolver_Services(t *testing.T) {
+	resolver := createSqliteResolver(t)
+
+	ttlA := uint16(123)
+	ttlB := uint16(321)
+
+	confA := landns.ServicesConfig{
+		"example.com.": {
+			{TTL: &ttlA, Service: "http", Proto: "tcp", Priority: 1, Weight: 2, Port: 3, Target: "a.example.com."},
+			{TTL: &ttlB, Service: "ftp", Proto: "tcp", Priority: 4, Weight: 5, Port: 6, Target: "b.example.com."},
+		},
+		"blanktar.jp.": {
+			{TTL: &ttlA, Service: "ssh", Proto: "tcp", Priority: 7, Weight: 8, Port: 9, Target: "c.example.com."},
+			{TTL: &ttlB, Service: "telnet", Proto: "tcp", Priority: 10, Weight: 11, Port: 12, Target: "d.example.com."},
+		},
+	}
+	confB := landns.ServicesConfig{
+		"blanktar.jp.": {
+			{TTL: &ttlA, Service: "dns", Proto: "udp", Priority: 13, Weight: 14, Port: 15, Target: "e.example.com."},
+		},
+		"test.local.": {
+			{TTL: &ttlA, Service: "samba", Proto: "tcp", Priority: 16, Weight: 17, Port: 18, Target: "f.example.com."},
+		},
+	}
+	except := landns.ServicesConfig{
+		"example.com.": {
+			{TTL: &ttlA, Service: "http", Proto: "tcp", Priority: 1, Weight: 2, Port: 3, Target: "a.example.com."},
+			{TTL: &ttlB, Service: "ftp", Proto: "tcp", Priority: 4, Weight: 5, Port: 6, Target: "b.example.com."},
+		},
+		"blanktar.jp.": {
+			{TTL: &ttlA, Service: "dns", Proto: "udp", Priority: 13, Weight: 14, Port: 15, Target: "e.example.com."},
+		},
+		"test.local.": {
+			{TTL: &ttlA, Service: "samba", Proto: "tcp", Priority: 16, Weight: 17, Port: 18, Target: "f.example.com."},
+		},
+	}
+
+	resolver.UpdateServices(confA)
+	resolver.UpdateServices(confB)
+
+	all, err := resolver.GetServices()
+	if err != nil {
+		t.Errorf("failed to get services: %s", err.Error())
+	}
+	if err := all.Validate(); err != nil {
+		t.Fatalf("invalid services: %s", err.Error())
+	}
+	if len(all) != 3 {
+		t.Errorf("unexcepted response length: excepted 3 but got %d", len(all))
+	}
+
+	for name, records := range all {
+		if rs, ok := except[name]; !ok {
+			t.Errorf("not found excepted name: %s", name)
+		} else if len(records) != len(rs) {
+			t.Errorf("unexcepted record length: %s: excepted %d but got %d", name, len(rs), len(records))
+		} else {
+			for i, _ := range records {
+				if *records[i].TTL != *rs[i].TTL {
+					t.Errorf("unexcepted record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
+				}
+			}
+		}
+	}
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("example.com.", dns.TypeSRV, false),
+		true,
+		`_http._tcp.example.com. 123 IN SRV 1 2 3 a.example.com.`,
+		`_ftp._tcp.example.com. 321 IN SRV 4 5 6 b.example.com.`,
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("blanktar.jp.", dns.TypeSRV, false),
+		true,
+		`_dns._udp.blanktar.jp. 123 IN SRV 13 14 15 e.example.com.`,
+	)
+
+	ResolverTest(
+		t,
+		resolver,
+		landns.NewRequest("test.local.", dns.TypeSRV, false),
+		true,
+		`_samba._tcp.test.local. 123 IN SRV 16 17 18 f.example.com.`,
+	)
+}
+
+func BenchmarkSqliteResolver(b *testing.B) {
+	resolver := createSqliteResolver(b)
 
 	config := landns.AddressesConfig{}
 
