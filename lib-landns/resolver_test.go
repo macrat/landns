@@ -57,11 +57,11 @@ func ResolverTest(t *testing.T, resolver landns.Resolver, request landns.Request
 	}
 
 	if resp.Authoritative != authoritative {
-		t.Errorf(`%s <- %s: unexcepted authoritive of response: excepted %v but got %v`, resolver, request, authoritative, resp.Authoritative)
+		t.Errorf(`%s <- %s: unexpected authoritive of response: excepted %v but got %v`, resolver, request, authoritative, resp.Authoritative)
 	}
 
 	if len(resp.Records) != len(responses) {
-		t.Errorf(`%s <- %s: unexcepted resolve response: excepted length %d but got %d`, resolver, request, len(responses), len(resp.Records))
+		t.Errorf(`%s <- %s: unexpected resolve response: excepted length %d but got %d`, resolver, request, len(responses), len(resp.Records))
 		return
 	}
 
@@ -74,7 +74,7 @@ func ResolverTest(t *testing.T, resolver landns.Resolver, request landns.Request
 
 	for i := range responses {
 		if resp.Records[i].String() != responses[i] {
-			t.Errorf(`%s <- %s: unexcepted resolve response: excepted "%s" but got "%s"`, resolver, request, responses[i], resp.Records[i])
+			t.Errorf(`%s <- %s: unexpected resolve response: excepted "%s" but got "%s"`, resolver, request, responses[i], resp.Records[i])
 		}
 	}
 }
@@ -120,21 +120,21 @@ func TestResolverSet_ErrorHandling(t *testing.T) {
 
 	errorResolver := DummyErrorResolver(true)
 	if err := errorResolver.Resolve(response, request); err == nil {
-		t.Errorf("excepted returns error but got nil")
+		t.Errorf("expected returns error but got nil")
 	} else if err.Error() != "test error" {
-		t.Errorf(`unexcepted error: unexcepted "test error" but got "%s"`, err.Error())
+		t.Errorf(`unexpected error: unexcepted "test error" but got "%s"`, err.Error())
 	}
 
 	noErrorResolver := DummyErrorResolver(false)
 	if err := noErrorResolver.Resolve(response, request); err != nil {
-		t.Errorf("unexcepted error: %s", err.Error())
+		t.Errorf("unexpected error: %s", err.Error())
 	}
 
 	resolver := landns.ResolverSet{noErrorResolver, errorResolver, noErrorResolver}
 	if err := resolver.Resolve(response, request); err == nil {
-		t.Errorf("excepted returns error but got nil")
+		t.Errorf("expected returns error but got nil")
 	} else if err.Error() != "test error" {
-		t.Errorf(`unexcepted error: unexcepted "test error" but got "%s"`, err.Error())
+		t.Errorf(`unexpected error: unexcepted "test error" but got "%s"`, err.Error())
 	}
 }
 
