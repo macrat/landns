@@ -41,7 +41,7 @@ func TestResponseCallback(t *testing.T) {
 		text := fmt.Sprintf("test%d", i)
 		rc.Add(landns.TxtRecord{Text: text})
 
-		if len(log) != i + 1 {
+		if len(log) != i+1 {
 			t.Errorf("unexcepted log length: excepted %d but got %d", i, len(log))
 		} else if tr, ok := log[i].(landns.TxtRecord); !ok {
 			t.Errorf("unexcepted record type: %#v", log[i])

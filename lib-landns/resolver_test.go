@@ -79,6 +79,65 @@ func ResolverTest(t *testing.T, resolver landns.Resolver, request landns.Request
 	}
 }
 
+func TestResolverSet(t *testing.T) {
+	resolver := landns.ResolverSet{
+		landns.SimpleResolver{
+			dns.TypeA: {
+				"example.com.": {
+					landns.AddressRecord{Name: "example.com.", TTL: 42, Address: net.ParseIP("127.1.1.1")},
+				},
+			},
+		},
+		landns.SimpleResolver{
+			dns.TypeA: {
+				"example.com.": {
+					landns.AddressRecord{Name: "example.com.", TTL: 24, Address: net.ParseIP("127.1.2.1")},
+				},
+				"blanktar.jp.": {
+					landns.AddressRecord{Name: "blanktar.jp.", TTL: 4321, Address: net.ParseIP("127.1.3.1")},
+				},
+			},
+		},
+	}
+
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 A 127.1.1.1", "example.com. 24 A 127.1.2.1")
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 A 127.1.3.1")
+}
+
+type DummyErrorResolver bool
+
+func (der DummyErrorResolver) Resolve(w landns.ResponseWriter, r landns.Request) error {
+	if bool(der) {
+		return fmt.Errorf("test error")
+	} else {
+		return nil
+	}
+}
+
+func TestResolverSet_ErrorHandling(t *testing.T) {
+	response := EmptyResponseWriter{}
+	request := landns.NewRequest("example.com.", dns.TypeA, false)
+
+	errorResolver := DummyErrorResolver(true)
+	if err := errorResolver.Resolve(response, request); err == nil {
+		t.Errorf("excepted returns error but got nil")
+	} else if err.Error() != "test error" {
+		t.Errorf(`unexcepted error: unexcepted "test error" but got "%s"`, err.Error())
+	}
+
+	noErrorResolver := DummyErrorResolver(false)
+	if err := noErrorResolver.Resolve(response, request); err != nil {
+		t.Errorf("unexcepted error: %s", err.Error())
+	}
+
+	resolver := landns.ResolverSet{noErrorResolver, errorResolver, noErrorResolver}
+	if err := resolver.Resolve(response, request); err == nil {
+		t.Errorf("excepted returns error but got nil")
+	} else if err.Error() != "test error" {
+		t.Errorf(`unexcepted error: unexcepted "test error" but got "%s"`, err.Error())
+	}
+}
+
 func BenchmarkResolverSet(b *testing.B) {
 	resolver := make(landns.ResolverSet, 100)
 
