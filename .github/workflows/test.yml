@@ -8,14 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.x
 
       - uses: actions/checkout@v1
 
       - name: Download libraries
-        run: go get -t -d ./...
+        run: go get -t -d -v ./...
 
       - name: Test
-        run: go test -coverprofile=coverage.txt ./...
+        run: go test -v -cover -coverprofile=coverage.txt ./...
 
       - uses: codecov/codecov-action@v1
         with:
@@ -27,14 +29,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.x
 
       - uses: actions/checkout@v1
 
       - name: Download libraries
-        run: go get -t -d ./...
+        run: go get -t -d -v ./...
 
       - name: Build server
-        run: go build
+        run: go build -v
 
       - name: Build client
         run: go build -o ctl ./landnsctl
