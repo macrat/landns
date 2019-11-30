@@ -58,15 +58,15 @@ func NewResponseCallback(callback func(Record) error) *ResponseCallback {
 	return &ResponseCallback{Callback: callback, Authoritative: true}
 }
 
-func (rc ResponseCallback) Add(r Record) error {
+func (rc *ResponseCallback) Add(r Record) error {
 	return rc.Callback(r)
 }
 
-func (rc ResponseCallback) IsAuthoritative() bool {
+func (rc *ResponseCallback) IsAuthoritative() bool {
 	return rc.Authoritative
 }
 
-func (rc ResponseCallback) SetNoAuthoritative() {
+func (rc *ResponseCallback) SetNoAuthoritative() {
 	rc.Authoritative = false
 }
 
@@ -78,8 +78,9 @@ type MessageBuilder struct {
 
 func NewMessageBuilder(request *dns.Msg) *MessageBuilder {
 	return &MessageBuilder{
-		request: request,
-		records: make([]dns.RR, 0, 10),
+		request:       request,
+		records:       make([]dns.RR, 0, 10),
+		authoritative: true,
 	}
 }
 
