@@ -73,18 +73,18 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		t.Fatalf("invalid addresses: %s", err.Error())
 	}
 	if len(all) != 3 {
-		t.Errorf("unexpected response length: excepted 3 but got %d", len(all))
+		t.Errorf("unexpected response length: expected 3 but got %d", len(all))
 	}
 
 	for name, records := range all {
 		if rs, ok := expect[name]; !ok {
 			t.Errorf("not found expected name: %s", name)
 		} else if len(records) != len(rs) {
-			t.Errorf("unexpected record length: %s: excepted %d but got %d", name, len(rs), len(records))
+			t.Errorf("unexpected record length: %s: expected %d but got %d", name, len(rs), len(records))
 		} else {
 			for i := range records {
 				if *records[i].TTL != *rs[i].TTL {
-					t.Errorf("unexpected record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
+					t.Errorf("unexpected record: %s: expected %d but got %d", name, *rs[i].TTL, *records[i].TTL)
 				}
 			}
 		}
@@ -207,18 +207,18 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 		t.Fatalf("invalid cnames: %s", err.Error())
 	}
 	if len(all) != 3 {
-		t.Errorf("unexpected response length: excepted 3 but got %d", len(all))
+		t.Errorf("unexpected response length: expected 3 but got %d", len(all))
 	}
 
 	for name, records := range all {
 		if rs, ok := expect[name]; !ok {
 			t.Errorf("not found expected name: %s", name)
 		} else if len(records) != len(rs) {
-			t.Errorf("unexpected record length: %s: excepted %d but got %d", name, len(rs), len(records))
+			t.Errorf("unexpected record length: %s: expected %d but got %d", name, len(rs), len(records))
 		} else {
 			for i := range records {
 				if *records[i].TTL != *rs[i].TTL {
-					t.Errorf("unexpected record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
+					t.Errorf("unexpected record: %s: expected %d but got %d", name, *rs[i].TTL, *records[i].TTL)
 				}
 			}
 		}
@@ -298,18 +298,18 @@ func TestSqliteResolver_Texts(t *testing.T) {
 		t.Fatalf("invalid texts: %s", err.Error())
 	}
 	if len(all) != 3 {
-		t.Errorf("unexpected response length: excepted 3 but got %d", len(all))
+		t.Errorf("unexpected response length: expected 3 but got %d", len(all))
 	}
 
 	for name, records := range all {
 		if rs, ok := expect[name]; !ok {
 			t.Errorf("not found expected name: %s", name)
 		} else if len(records) != len(rs) {
-			t.Errorf("unexpected record length: %s: excepted %d but got %d", name, len(rs), len(records))
+			t.Errorf("unexpected record length: %s: expected %d but got %d", name, len(rs), len(records))
 		} else {
 			for i := range records {
 				if *records[i].TTL != *rs[i].TTL {
-					t.Errorf("unexpected record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
+					t.Errorf("unexpected record: %s: expected %d but got %d", name, *rs[i].TTL, *records[i].TTL)
 				}
 			}
 		}
@@ -389,18 +389,18 @@ func TestSqliteResolver_Services(t *testing.T) {
 		t.Fatalf("invalid services: %s", err.Error())
 	}
 	if len(all) != 3 {
-		t.Errorf("unexpected response length: excepted 3 but got %d", len(all))
+		t.Errorf("unexpected response length: expected 3 but got %d", len(all))
 	}
 
 	for name, records := range all {
 		if rs, ok := expect[name]; !ok {
 			t.Errorf("not found expected name: %s", name)
 		} else if len(records) != len(rs) {
-			t.Errorf("unexpected record length: %s: excepted %d but got %d", name, len(rs), len(records))
+			t.Errorf("unexpected record length: %s: expected %d but got %d", name, len(rs), len(records))
 		} else {
 			for i := range records {
 				if *records[i].TTL != *rs[i].TTL {
-					t.Errorf("unexpected record: %s: excepted %d but got %d", name, *rs[i].TTL, *records[i].TTL)
+					t.Errorf("unexpected record: %s: expected %d but got %d", name, *rs[i].TTL, *records[i].TTL)
 				}
 			}
 		}
