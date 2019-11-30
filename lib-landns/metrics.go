@@ -15,7 +15,7 @@ type Metrics struct {
 	resolveCounters map[string]prometheus.Counter
 	missCounters    map[string]prometheus.Counter
 	errorCounters   map[string]prometheus.Counter
-	resolveTime     prometheus.Gauge
+	resolveTime     prometheus.Summary
 }
 
 func newCounter(namespace, name string, labels prometheus.Labels) prometheus.Counter {
@@ -45,9 +45,10 @@ func NewMetrics(namespace string) *Metrics {
 		missCounters:    misses,
 		errorCounters:   errors,
 
-		resolveTime: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "resolve_duration_seconds",
+		resolveTime: prometheus.NewSummary(prometheus.SummaryOpts{
+			Namespace:  namespace,
+			Name:       "resolve_duration_seconds",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}),
 	}
 }
@@ -95,7 +96,7 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (m *Metrics) makeTimer(skipped bool) func(*dns.Msg) {
-	timer := prometheus.NewTimer(prometheus.ObserverFunc(m.resolveTime.Set))
+	timer := prometheus.NewTimer(m.resolveTime)
 	return func(response *dns.Msg) {
 		timer.ObserveDuration()
 
