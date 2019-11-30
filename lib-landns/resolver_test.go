@@ -34,7 +34,7 @@ func (rw *DummyResponseWriter) SetNoAuthoritative() {
 	rw.Authoritative = false
 }
 
-type EmptyResponseWriter struct {}
+type EmptyResponseWriter struct{}
 
 func (rw EmptyResponseWriter) Add(r landns.Record) error {
 	return nil
