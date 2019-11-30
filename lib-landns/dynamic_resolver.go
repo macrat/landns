@@ -12,14 +12,6 @@ import (
 type DynamicResolver interface {
 	Resolver
 
-	ResolveAddresses(string) ([]AddressRecord, error)
-	ResolveA(string) ([]Record, error)
-	ResolveAAAA(string) ([]Record, error)
-	ResolvePTR(string) ([]Record, error)
-	ResolveCNAME(string) ([]Record, error)
-	ResolveTXT(string) ([]Record, error)
-	ResolveSRV(string) ([]Record, error)
-
 	UpdateAddresses(AddressesConfig) error
 	GetAddresses() (AddressesConfig, error)
 

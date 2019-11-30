@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo"
+	"github.com/miekg/dns"
 )
 
 var (
@@ -53,19 +54,19 @@ func (d DynamicAPI) ResolveAddress(c echo.Context) error {
 		return BadRqeustError
 	}
 
-	records, err := d.resolver.ResolveAddresses(name.String())
-	if err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
-	}
+	resp := make([]Record, 0, 10)
+	writer := NewResponseCallback(func(r Record) error {
+		resp = append(resp, r)
+		return nil
+	})
 
-	conf := make(AddressesConfig)
-	for _, r := range records {
-		conf.RegisterRecord(r)
+	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeA, false)); err != nil {
+		log.Printf("dynamic-zone: %s", err)
+		return nil
 	}
-	resp := conf[name.Normalized()]
-	if resp == nil {
-		resp = []AddressRecordConfig{}
+	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeAAAA, false)); err != nil {
+		log.Printf("dynamic-zone: %s", err)
+		return nil
 	}
 
 	return c.JSON(http.StatusOK, resp)
@@ -105,19 +106,14 @@ func (d DynamicAPI) ResolveCname(c echo.Context) error {
 		return BadRqeustError
 	}
 
-	records, err := d.resolver.ResolveCNAME(name.String())
-	if err != nil {
+	resp := make([]Record, 0, 10)
+	writer := NewResponseCallback(func(r Record) error {
+		resp = append(resp, r)
+		return nil
+	})
+	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeCNAME, false)); err != nil {
 		log.Printf("dynamic-zone: %s", err)
-		return err
-	}
-
-	conf := make(CnamesConfig)
-	for _, r := range records {
-		conf.RegisterRecord(r.(CnameRecord))
-	}
-	resp := conf[name.Normalized()]
-	if resp == nil {
-		resp = []CnameRecordConfig{}
+		return nil
 	}
 
 	return c.JSON(http.StatusOK, resp)
@@ -157,19 +153,14 @@ func (d DynamicAPI) ResolveText(c echo.Context) error {
 		return BadRqeustError
 	}
 
-	records, err := d.resolver.ResolveTXT(name.String())
-	if err != nil {
+	resp := make([]Record, 0, 10)
+	writer := NewResponseCallback(func(r Record) error {
+		resp = append(resp, r)
+		return nil
+	})
+	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeTXT, false)); err != nil {
 		log.Printf("dynamic-zone: %s", err)
-		return err
-	}
-
-	conf := make(TextsConfig)
-	for _, r := range records {
-		conf.RegisterRecord(r.(TxtRecord))
-	}
-	resp := conf[name.Normalized()]
-	if resp == nil {
-		resp = []TxtRecordConfig{}
+		return nil
 	}
 
 	return c.JSON(http.StatusOK, resp)
@@ -209,19 +200,14 @@ func (d DynamicAPI) ResolveService(c echo.Context) error {
 		return BadRqeustError
 	}
 
-	records, err := d.resolver.ResolveSRV(name.String())
-	if err != nil {
+	resp := make([]Record, 0, 10)
+	writer := NewResponseCallback(func(r Record) error {
+		resp = append(resp, r)
+		return nil
+	})
+	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeSRV, false)); err != nil {
 		log.Printf("dynamic-zone: %s", err)
-		return err
-	}
-
-	conf := make(ServicesConfig)
-	for _, r := range records {
-		conf.RegisterRecord(r.(SrvRecord))
-	}
-	resp := conf[name.Normalized()]
-	if resp == nil {
-		resp = []SrvRecordConfig{}
+		return nil
 	}
 
 	return c.JSON(http.StatusOK, resp)

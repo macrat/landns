@@ -49,6 +49,27 @@ type ResponseWriter interface {
 	SetNoAuthoritative()
 }
 
+type ResponseCallback struct {
+	Callback func(Record) error
+	Authoritative bool
+}
+
+func NewResponseCallback(callback func(Record) error) *ResponseCallback {
+	return &ResponseCallback{Callback: callback, Authoritative: true}
+}
+
+func (rc ResponseCallback) Add(r Record) error {
+	return rc.Callback(r)
+}
+
+func (rc ResponseCallback) IsAuthoritative() bool {
+	return rc.Authoritative
+}
+
+func (rc ResponseCallback) SetNoAuthoritative() {
+	rc.Authoritative = false
+}
+
 type MessageBuilder struct {
 	request       *dns.Msg
 	records       []dns.RR
