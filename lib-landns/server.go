@@ -58,6 +58,8 @@ func (s *Server) ListenAndServe(apiAddress, dnsAddress *net.TCPAddr, dnsProto st
 
 	httpch := make(chan error)
 	dnsch := make(chan error)
+	defer close(httpch)
+	defer close(dnsch)
 
 	go func() {
 		httpch <- httpServer.ListenAndServe()
