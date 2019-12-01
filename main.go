@@ -12,18 +12,19 @@ import (
 )
 
 var (
-	configFiles      = kingpin.Flag("static-zone", "Path to static-zone configuration file.").Short('s').PlaceHolder("PATH").ExistingFiles()
-	sqlitePath       = kingpin.Flag("dynamic-zone", "Path to dynamic-zone database path.").Short('d').PlaceHolder("PATH").String()
-	apiListen        = kingpin.Flag("api-listen", "Address for API and metrics.").Short('l').Default(":9353").TCP()
-	dnsListen        = kingpin.Flag("dns-listen", "Address for listen.").Default(":53").TCP()
-	dnsProtocol      = kingpin.Flag("dns-protocol", "Protocol for listen.").Default("udp").Enum("udp", "tcp")
-	upstreams        = kingpin.Flag("upstream", "Upstream DNS server for recurion resolve.").TCPList()
-	upstreamTimeout  = kingpin.Flag("upstream-timeout", "Timeout for recursion resolve.").Default("100ms").Duration()
-	metricsNamespace = kingpin.Flag("metrics-namespace", "Namespace of prometheus metrics.").Default("landns").String()
+	app              = kingpin.New("landns", "A DNS server for developers for home use.")
+	configFiles      = app.Flag("config", "Path to static-zone configuration file.").Short('c').PlaceHolder("PATH").ExistingFiles()
+	sqlitePath       = app.Flag("sqlite", "Path to dynamic-zone sqlite3 database path. In default, dynamic-zone will not save to disk.").Short('s').PlaceHolder("PATH").String()
+	apiListen        = app.Flag("api-listen", "Address for API and metrics.").Short('l').Default(":9353").TCP()
+	dnsListen        = app.Flag("dns-listen", "Address for listen.").Default(":53").TCP()
+	dnsProtocol      = app.Flag("dns-protocol", "Protocol for listen.").Default("udp").Enum("udp", "tcp")
+	upstreams        = app.Flag("upstream", "Upstream DNS server for recurion resolve.").Short('u').TCPList()
+	upstreamTimeout  = app.Flag("upstream-timeout", "Timeout for recursion resolve.").Default("100ms").Duration()
+	metricsNamespace = app.Flag("metrics-namespace", "Namespace of prometheus metrics.").Default("landns").String()
 )
 
 func main() {
-	kingpin.Parse()
+	app.Parse(os.Args[1:])
 
 	metrics := landns.NewMetrics(*metricsNamespace)
 
