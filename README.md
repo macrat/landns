@@ -74,7 +74,7 @@ $ curl http://localhost:9353/api/v1/record/cname -H 'Content-Type: application/j
 
 $ curl http://localhost:9353/api/v1/record/text -H 'Content-Type: application/json' -d '{"message.local": [{"ttl": 600, "text": "hello_world"}]}'
 
-$ curl http://localhost:9353/api/v1/record/service -H 'Content-Type: application/json' -d '{"example.com": [{"ttl": 600, "service": "http", "port": 80, "target": "servers.example.com"}]}'
+$ curl http://localhost:9353/api/v1/record/service -H 'Content-Type: application/json' -d '{"_web._tcp.example.com": [{"ttl": 600, "target": "servers.example.com", "port": 80, "priority": 10, "weight": 5}]}'
 ```
 
 You can get records with API.
@@ -106,12 +106,12 @@ $ curl http://localhost:9353/api/v1/record | jq
       }
     ]
   },
-  "example.com.": [
+  "_web._tcp.example.com.": [
     {
       "ttl": 3600,
-      "service": "http",
-      "proto": "tcp",
       "port": 80,
+      "proirity": 10,
+      "weight": 5,
       "target": "servers.example.com."
     }
   ]

@@ -59,23 +59,19 @@ func iterTexts(rows *sql.Rows, callback func(TxtRecord)) error {
 func iterServices(rows *sql.Rows, callback func(SrvRecord)) error {
 	for rows.Next() {
 		var name string
-		var service string
-		var proto string
 		var priority uint16
 		var weight uint16
 		var port uint16
 		var target string
 		var ttl uint32
 
-		if err := rows.Scan(&name, &service, &proto, &priority, &weight, &port, &target, &ttl); err != nil {
+		if err := rows.Scan(&name, &priority, &weight, &port, &target, &ttl); err != nil {
 			return err
 		}
 
 		callback(SrvRecord{
 			Name:     Domain(name),
 			TTL:      ttl,
-			Service:  service,
-			Proto:    Proto(proto),
 			Priority: priority,
 			Weight:   weight,
 			Port:     port,
@@ -130,14 +126,12 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS services (
 		name TEXT,
-		service TEXT,
-		proto TEXT,
 		priority INTEGER NOT NULL CHECK(0 <= priority AND priority <= 65535),
 		weight INTEGER NOT NULL CHECK(0 <= weight AND weight <= 65535),
 		port INTEGER CHECK(0 <= port AND port <= 65535),
 		target TEXT,
 		ttl INTEGER NOT NULL CHECK(0 <= ttl),
-		PRIMARY KEY (name, service, proto, port, target)
+		PRIMARY KEY (name, port, target)
 	)`)
 	if err != nil {
 		return nil, err
@@ -316,7 +310,7 @@ func (r SqliteResolver) UpdateServices(config ServicesConfig) error {
 	}
 	defer drop.Close()
 
-	ins, err := tx.Prepare(`INSERT INTO services VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+	ins, err := tx.Prepare(`INSERT INTO services VALUES (?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return err
 	}
@@ -329,7 +323,7 @@ func (r SqliteResolver) UpdateServices(config ServicesConfig) error {
 
 		for _, r := range list {
 			rf := r.Normalized()
-			if _, err = ins.Exec(name.String(), rf.Service, rf.Proto.String(), rf.Priority, rf.Weight, rf.Port, rf.Target.String(), rf.TTL); err != nil {
+			if _, err = ins.Exec(name.String(), rf.Priority, rf.Weight, rf.Port, rf.Target.String(), rf.TTL); err != nil {
 				return err
 			}
 		}
@@ -339,7 +333,7 @@ func (r SqliteResolver) UpdateServices(config ServicesConfig) error {
 }
 
 func (r SqliteResolver) GetServices() (ServicesConfig, error) {
-	rows, err := r.db.Query(`SELECT name, service, proto, priority, weight, port, target, ttl FROM services`)
+	rows, err := r.db.Query(`SELECT name, priority, weight, port, target, ttl FROM services`)
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +427,7 @@ func (r SqliteResolver) ResolveTXT(name string) (resp []Record, err error) {
 }
 
 func (r SqliteResolver) ResolveSRV(name string) (resp []Record, err error) {
-	rows, err := r.db.Query(`SELECT name, service, proto, priority, weight, port, target, ttl FROM services WHERE name = ?`, name)
+	rows, err := r.db.Query(`SELECT name, priority, weight, port, target, ttl FROM services WHERE name = ?`, name)
 	if err != nil {
 		return nil, err
 	}

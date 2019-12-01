@@ -7,6 +7,30 @@ import (
 	"github.com/macrat/landns/lib-landns"
 )
 
+func TestProtoValidate(t *testing.T) {
+	a := landns.Proto("")
+	if err := a.Validate(); err != nil {
+		t.Errorf("failed to empty proto validation: %#v", err.Error())
+	}
+
+	b := landns.Proto("foobar")
+	if err := b.Validate(); err == nil {
+		t.Errorf("failed to invalid proto validation: <nil>")
+	} else if err.Error() != `invalid proto: "foobar"` {
+		t.Errorf("failed to invalid proto validation: %#v", err.Error())
+	}
+
+	c := landns.Proto("tcp")
+	if err := c.Validate(); err != nil {
+		t.Errorf("failed to tcp proto validation: %#v", err.Error())
+	}
+
+	d := landns.Proto("udp")
+	if err := d.Validate(); err != nil {
+		t.Errorf("failed to udp proto validation: %#v", err.Error())
+	}
+}
+
 func TestAddressRecordConfigNormalized(t *testing.T) {
 	a := landns.AddressRecordConfig{nil, net.ParseIP("127.0.1.2")}
 	an := a.Normalized()
@@ -89,14 +113,11 @@ func TestTxtRecordConfigNormalized(t *testing.T) {
 }
 
 func TestSrvRecordConfigNormalized(t *testing.T) {
-	a := landns.SrvRecordConfig{TTL: nil, Proto: landns.Proto(""), Target: landns.Domain("example.com")}
+	a := landns.SrvRecordConfig{TTL: nil, Target: landns.Domain("example.com")}
 	an := a.Normalized()
 
 	if string(an.Target) != "example.com." {
 		t.Errorf("failed to normalize target domain: %v", an.Target)
-	}
-	if string(an.Proto) != "tcp" {
-		t.Errorf("failed to normalize protocol: %v", an.Proto)
 	}
 	if an.TTL == nil {
 		t.Errorf("failed to set DefaultTTL: %#v", an.TTL)
@@ -105,14 +126,11 @@ func TestSrvRecordConfigNormalized(t *testing.T) {
 	}
 
 	ttl := uint32(42)
-	b := landns.SrvRecordConfig{TTL: &ttl, Proto: landns.Proto("udp"), Target: landns.Domain("foo.bar.")}
+	b := landns.SrvRecordConfig{TTL: &ttl, Target: landns.Domain("foo.bar.")}
 	bn := b.Normalized()
 
 	if string(b.Target) != string(bn.Target) {
 		t.Errorf("failed to copy: %v != %v", b.Target, bn.Target)
-	}
-	if string(bn.Proto) != "udp" {
-		t.Errorf("failed to copy protocol: %v != tcp", bn.Proto)
 	}
 	if b.TTL == nil || bn.TTL == nil {
 		t.Errorf("failed to set DefaultTTL: %#v != %#v", b.TTL, bn.TTL)

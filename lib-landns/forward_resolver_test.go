@@ -56,12 +56,10 @@ func TestForwardResolver(t *testing.T) {
 		landns.NewRequest("127.0.0.1.in-addr.arpa.", dns.TypePTR, true): {
 			landns.PtrRecord{Name: "127.0.0.1.in-addr.arpa.", TTL: 234, Domain: "example.com."},
 		},
-		landns.NewRequest("example.com.", dns.TypeSRV, true): {
+		landns.NewRequest("_web._tcp.example.com.", dns.TypeSRV, true): {
 			landns.SrvRecord{
-				Name:     "example.com.",
+				Name:     "_web._tcp.example.com.",
 				TTL:      234,
-				Service:  "http",
-				Proto:    "tcp",
 				Priority: 1,
 				Weight:   2,
 				Port:     3,

@@ -2,11 +2,52 @@ package landns
 
 import (
 	"net"
+	"fmt"
 )
 
 var (
 	DefaultTTL uint32 = 3600
 )
+
+type InvalidProto string
+
+func (p InvalidProto) Error() string {
+	return fmt.Sprintf("invalid proto: \"%s\"", string(p))
+}
+
+type Proto string
+
+func (p Proto) String() string {
+	if string(p) == "" {
+		return "tcp"
+	}
+	return string(p)
+}
+
+func (p Proto) Normalized() Proto {
+	return Proto(p.String())
+}
+
+func (p Proto) Validate() error {
+	if p.String() != "" && p.String() != "tcp" && p.String() != "udp" {
+		return InvalidProto(p.String())
+	}
+	return nil
+}
+
+func (p *Proto) UnmarshalText(text []byte) error {
+	if string(text) == "" {
+		*p = "tcp"
+	} else {
+		*p = Proto(string(text))
+	}
+
+	return p.Validate()
+}
+
+func (p Proto) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
+}
 
 type AddressRecordConfig struct {
 	TTL     *uint32 `json:"ttl,omitempty"`
@@ -155,8 +196,6 @@ func (tc TextsConfig) Validate() error {
 
 type SrvRecordConfig struct {
 	TTL      *uint32 `json:"ttl,omitempty"`
-	Service  string  `json:"service"`
-	Proto    Proto   `json:"proto,omitempty"`
 	Priority uint16  `json:"priority,omitempty"`
 	Weight   uint16  `json:"weight,omitempty"`
 	Port     uint16  `json:"port"`
@@ -169,8 +208,6 @@ func (s SrvRecordConfig) ToRecord(name Domain) SrvRecord {
 	return SrvRecord{
 		Name:     name,
 		TTL:      *sf.TTL,
-		Service:  sf.Service,
-		Proto:    sf.Proto,
 		Priority: sf.Priority,
 		Weight:   sf.Weight,
 		Port:     sf.Port,
@@ -183,7 +220,6 @@ func (s SrvRecordConfig) Normalized() SrvRecordConfig {
 		s.TTL = &DefaultTTL
 	}
 
-	s.Proto = s.Proto.Normalized()
 	s.Target = s.Target.Normalized()
 
 	return s
@@ -197,8 +233,6 @@ func (sc ServicesConfig) RegisterRecord(r SrvRecord) {
 	}
 	sc[r.Name] = append(sc[r.Name], SrvRecordConfig{
 		TTL:      &r.TTL,
-		Service:  r.Service,
-		Proto:    r.Proto,
 		Priority: r.Priority,
 		Weight:   r.Weight,
 		Port:     r.Port,
@@ -239,10 +273,8 @@ type SrvRecordShortConfig struct {
 
 func (s SrvRecordShortConfig) ToRecord(name Domain, ttl uint32) SrvRecord {
 	return SrvRecord{
-		Name:     name,
+		Name:     Domain(fmt.Sprintf("_%s._%s.%s", s.Service, s.Proto.Normalized(), name)),
 		TTL:      ttl,
-		Service:  s.Service,
-		Proto:    s.Proto,
 		Priority: s.Priority,
 		Weight:   s.Weight,
 		Port:     s.Port,

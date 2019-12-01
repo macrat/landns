@@ -22,7 +22,7 @@ func TestSimpleResolver(t *testing.T) {
 			landns.PtrRecord{Name: landns.Domain("3.2.1.127.in-addr.arpa."), Domain: landns.Domain("target.local.")},
 			landns.PtrRecord{Name: landns.Domain("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa."), Domain: landns.Domain("target.local.")},
 			landns.CnameRecord{Name: landns.Domain("example.com."), Target: landns.Domain("target.local.")},
-			landns.SrvRecord{Name: landns.Domain("example.com."), Service: "http", Port: 10, Target: landns.Domain("target.local.")},
+			landns.SrvRecord{Name: landns.Domain("_http._tcp.example.com."), Port: 10, Target: landns.Domain("target.local.")},
 		},
 	)
 
@@ -30,24 +30,24 @@ func TestSimpleResolver(t *testing.T) {
 		t.Fatalf("failed to validate resolver: %s", err)
 	}
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 0 A 127.1.2.3", "example.com. 0 A 127.2.3.4")
-	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 0 A 127.2.2.2")
-	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false), true, "blanktar.jp. 0 AAAA 4::2")
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 0 IN A 127.1.2.3", "example.com. 0 IN A 127.2.3.4")
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 0 IN A 127.2.2.2")
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false), true, "blanktar.jp. 0 IN AAAA 4::2")
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeA, false), true)
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeAAAA, false), true)
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 0 TXT "hello"`)
-	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeTXT, false), true, `blanktar.jp. 0 TXT "foo"`, `blanktar.jp. 0 TXT "bar"`)
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 0 IN TXT "hello"`)
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeTXT, false), true, `blanktar.jp. 0 IN TXT "foo"`, `blanktar.jp. 0 IN TXT "bar"`)
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeTXT, false), true)
 
-	ResolverTest(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 0 PTR target.local.")
-	ResolverTest(t, resolver, landns.NewRequest("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa.", dns.TypePTR, false), true, "8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa. 0 PTR target.local.")
+	ResolverTest(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 0 IN PTR target.local.")
+	ResolverTest(t, resolver, landns.NewRequest("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa.", dns.TypePTR, false), true, "8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa. 0 IN PTR target.local.")
 	ResolverTest(t, resolver, landns.NewRequest("4.2.1.127.in-addr.arpa.", dns.TypePTR, false), true)
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeCNAME, false), true, "example.com. 0 CNAME target.local.")
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeCNAME, false), true, "example.com. 0 IN CNAME target.local.")
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeCNAME, false), true)
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 0 IN SRV 0 0 10 target.local.")
+	ResolverTest(t, resolver, landns.NewRequest("_http._tcp.example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 0 IN SRV 0 0 10 target.local.")
 	ResolverTest(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeSRV, false), true)
 }
 
@@ -115,27 +115,28 @@ service:
 		t.Fatalf("invalid resolver state: %s", err)
 	}
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 128 A 127.1.2.3")
-	ResolverTest(t, resolver, landns.NewRequest("server.example.com.", dns.TypeA, false), true, "server.example.com. 128 A 192.168.1.2", "server.example.com. 128 A 192.168.1.3")
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 128 IN A 127.1.2.3")
+	ResolverTest(t, resolver, landns.NewRequest("server.example.com.", dns.TypeA, false), true, "server.example.com. 128 IN A 192.168.1.2", "server.example.com. 128 IN A 192.168.1.3")
 
-	ResolverTest(t, resolver, landns.NewRequest("server.example.com.", dns.TypeAAAA, false), true, "server.example.com. 128 AAAA 1:2::3")
+	ResolverTest(t, resolver, landns.NewRequest("server.example.com.", dns.TypeAAAA, false), true, "server.example.com. 128 IN AAAA 1:2::3")
 
-	ResolverTest(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 128 PTR example.com.")
-	ResolverTest(t, resolver, landns.NewRequest("2.1.168.192.in-addr.arpa.", dns.TypePTR, false), true, "2.1.168.192.in-addr.arpa. 128 PTR server.example.com.")
-	ResolverTest(t, resolver, landns.NewRequest("3.1.168.192.in-addr.arpa.", dns.TypePTR, false), true, "3.1.168.192.in-addr.arpa. 128 PTR server.example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 128 IN PTR example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("2.1.168.192.in-addr.arpa.", dns.TypePTR, false), true, "2.1.168.192.in-addr.arpa. 128 IN PTR server.example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("3.1.168.192.in-addr.arpa.", dns.TypePTR, false), true, "3.1.168.192.in-addr.arpa. 128 IN PTR server.example.com.")
 
 	ResolverTest(
 		t,
 		resolver,
 		landns.NewRequest("3.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa.", dns.TypePTR, false),
 		true,
-		"3.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa. 128 PTR server.example.com.",
+		"3.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa. 128 IN PTR server.example.com.",
 	)
 
-	ResolverTest(t, resolver, landns.NewRequest("file.example.com.", dns.TypeCNAME, false), true, "file.example.com. 128 CNAME server.example.com.")
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 128 TXT "hello world"`, `example.com. 128 TXT "foo"`)
+	ResolverTest(t, resolver, landns.NewRequest("file.example.com.", dns.TypeCNAME, false), true, "file.example.com. 128 IN CNAME server.example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 128 IN TXT "hello world"`, `example.com. 128 IN TXT "foo"`)
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeSRV, false), true, "_ftp._tcp.example.com. 128 IN SRV 1 2 21 file.example.com.", "_http._tcp.example.com. 128 IN SRV 0 0 80 server.example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("_ftp._tcp.example.com.", dns.TypeSRV, false), true, "_ftp._tcp.example.com. 128 IN SRV 1 2 21 file.example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("_http._tcp.example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 128 IN SRV 0 0 80 server.example.com.")
 }
 
 func TestNewSimpleResolverFromConfig_WithoutTTL(t *testing.T) {
@@ -146,5 +147,5 @@ func TestNewSimpleResolverFromConfig_WithoutTTL(t *testing.T) {
 		t.Fatalf("failed to parse config: %s", err.Error())
 	}
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 3600 A 127.1.2.3")
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 3600 IN A 127.1.2.3")
 }

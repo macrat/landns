@@ -100,8 +100,8 @@ func TestResolverSet(t *testing.T) {
 		},
 	}
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 A 127.1.1.1", "example.com. 24 A 127.1.2.1")
-	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 A 127.1.3.1")
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1", "example.com. 24 IN A 127.1.2.1")
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
 }
 
 type DummyResolver struct {
@@ -212,8 +212,8 @@ func TestAlternateResolver(t *testing.T) {
 		},
 	}
 
-	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 A 127.1.1.1")
-	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 A 127.1.3.1")
+	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1")
+	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
 }
 
 func TestAlternateResolver_RecrusionAvailable(t *testing.T) {

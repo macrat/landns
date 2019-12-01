@@ -95,19 +95,19 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeA, false),
 		true,
-		"example.com. 123 A 127.0.0.1",
-		"example.com. 321 A 127.0.0.2",
+		"example.com. 123 IN A 127.0.0.1",
+		"example.com. 321 IN A 127.0.0.2",
 	)
 
-	ResolverTest(t, resolver, landns.NewRequest("1.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.0.0.127.in-addr.arpa. 123 PTR example.com.")
-	ResolverTest(t, resolver, landns.NewRequest("2.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "2.0.0.127.in-addr.arpa. 321 PTR example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("1.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.0.0.127.in-addr.arpa. 123 IN PTR example.com.")
+	ResolverTest(t, resolver, landns.NewRequest("2.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "2.0.0.127.in-addr.arpa. 321 IN PTR example.com.")
 
 	ResolverTest(
 		t,
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeAAAA, false),
 		true,
-		"example.com. 123 AAAA 1:1::1",
+		"example.com. 123 IN AAAA 1:1::1",
 	)
 
 	ResolverTest(
@@ -115,7 +115,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		resolver,
 		landns.NewRequest("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.1.0.0.0.ip6.arpa.", dns.TypePTR, false),
 		true,
-		"1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.1.0.0.0.ip6.arpa. 123 PTR example.com.",
+		"1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.1.0.0.0.ip6.arpa. 123 IN PTR example.com.",
 	)
 
 	ResolverTest(
@@ -130,7 +130,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		resolver,
 		landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false),
 		true,
-		"blanktar.jp. 123 AAAA 1:2::2",
+		"blanktar.jp. 123 IN AAAA 1:2::2",
 	)
 
 	ResolverTest(
@@ -138,7 +138,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		resolver,
 		landns.NewRequest("2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa.", dns.TypePTR, false),
 		true,
-		"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa. 123 PTR blanktar.jp.",
+		"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa. 123 IN PTR blanktar.jp.",
 	)
 
 	ResolverTest(
@@ -146,10 +146,10 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		resolver,
 		landns.NewRequest("test.local.", dns.TypeA, false),
 		true,
-		"test.local. 321 A 127.0.3.1",
+		"test.local. 321 IN A 127.0.3.1",
 	)
 
-	ResolverTest(t, resolver, landns.NewRequest("1.3.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.3.0.127.in-addr.arpa. 321 PTR test.local.")
+	ResolverTest(t, resolver, landns.NewRequest("1.3.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.3.0.127.in-addr.arpa. 321 IN PTR test.local.")
 
 	ResolverTest(
 		t,
@@ -229,8 +229,8 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeCNAME, false),
 		true,
-		"example.com. 123 CNAME a.example.com.",
-		"example.com. 321 CNAME b.example.com.",
+		"example.com. 123 IN CNAME a.example.com.",
+		"example.com. 321 IN CNAME b.example.com.",
 	)
 
 	ResolverTest(
@@ -238,7 +238,7 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 		resolver,
 		landns.NewRequest("blanktar.jp.", dns.TypeCNAME, false),
 		true,
-		"blanktar.jp. 123 CNAME e.example.com.",
+		"blanktar.jp. 123 IN CNAME e.example.com.",
 	)
 
 	ResolverTest(
@@ -246,7 +246,7 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 		resolver,
 		landns.NewRequest("test.local.", dns.TypeCNAME, false),
 		true,
-		"test.local. 321 CNAME f.example.com.",
+		"test.local. 321 IN CNAME f.example.com.",
 	)
 }
 
@@ -320,8 +320,8 @@ func TestSqliteResolver_Texts(t *testing.T) {
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeTXT, false),
 		true,
-		`example.com. 123 TXT "abc"`,
-		`example.com. 321 TXT "def"`,
+		`example.com. 123 IN TXT "abc"`,
+		`example.com. 321 IN TXT "def"`,
 	)
 
 	ResolverTest(
@@ -329,7 +329,7 @@ func TestSqliteResolver_Texts(t *testing.T) {
 		resolver,
 		landns.NewRequest("blanktar.jp.", dns.TypeTXT, false),
 		true,
-		`blanktar.jp. 123 TXT "mno"`,
+		`blanktar.jp. 123 IN TXT "mno"`,
 	)
 
 	ResolverTest(
@@ -337,7 +337,7 @@ func TestSqliteResolver_Texts(t *testing.T) {
 		resolver,
 		landns.NewRequest("test.local.", dns.TypeTXT, false),
 		true,
-		`test.local. 321 TXT "pqr"`,
+		`test.local. 321 IN TXT "pqr"`,
 	)
 }
 
@@ -348,33 +348,33 @@ func TestSqliteResolver_Services(t *testing.T) {
 	ttlB := uint32(321)
 
 	confA := landns.ServicesConfig{
-		"example.com.": {
-			{TTL: &ttlA, Service: "http", Proto: "tcp", Priority: 1, Weight: 2, Port: 3, Target: "a.example.com."},
-			{TTL: &ttlB, Service: "ftp", Proto: "tcp", Priority: 4, Weight: 5, Port: 6, Target: "b.example.com."},
+		"_web._tcp.example.com.": {
+			{TTL: &ttlA, Priority: 1, Weight: 2, Port: 3, Target: "a.example.com."},
+			{TTL: &ttlB, Priority: 4, Weight: 5, Port: 6, Target: "b.example.com."},
 		},
-		"blanktar.jp.": {
-			{TTL: &ttlA, Service: "ssh", Proto: "tcp", Priority: 7, Weight: 8, Port: 9, Target: "c.example.com."},
-			{TTL: &ttlB, Service: "telnet", Proto: "tcp", Priority: 10, Weight: 11, Port: 12, Target: "d.example.com."},
+		"_ftp._tcp.blanktar.jp.": {
+			{TTL: &ttlA, Priority: 7, Weight: 8, Port: 9, Target: "c.example.com."},
+			{TTL: &ttlB, Priority: 10, Weight: 11, Port: 12, Target: "d.example.com."},
 		},
 	}
 	confB := landns.ServicesConfig{
-		"blanktar.jp.": {
-			{TTL: &ttlA, Service: "dns", Proto: "udp", Priority: 13, Weight: 14, Port: 15, Target: "e.example.com."},
+		"_ftp._tcp.blanktar.jp.": {
+			{TTL: &ttlA, Priority: 13, Weight: 14, Port: 15, Target: "e.example.com."},
 		},
-		"test.local.": {
-			{TTL: &ttlA, Service: "samba", Proto: "tcp", Priority: 16, Weight: 17, Port: 18, Target: "f.example.com."},
+		"_dns._udp.test.local.": {
+			{TTL: &ttlA, Priority: 16, Weight: 17, Port: 18, Target: "f.example.com."},
 		},
 	}
 	expect := landns.ServicesConfig{
-		"example.com.": {
-			{TTL: &ttlA, Service: "http", Proto: "tcp", Priority: 1, Weight: 2, Port: 3, Target: "a.example.com."},
-			{TTL: &ttlB, Service: "ftp", Proto: "tcp", Priority: 4, Weight: 5, Port: 6, Target: "b.example.com."},
+		"_web._tcp.example.com.": {
+			{TTL: &ttlA, Priority: 1, Weight: 2, Port: 3, Target: "a.example.com."},
+			{TTL: &ttlB, Priority: 4, Weight: 5, Port: 6, Target: "b.example.com."},
 		},
-		"blanktar.jp.": {
-			{TTL: &ttlA, Service: "dns", Proto: "udp", Priority: 13, Weight: 14, Port: 15, Target: "e.example.com."},
+		"_ftp._tcp.blanktar.jp.": {
+			{TTL: &ttlA, Priority: 13, Weight: 14, Port: 15, Target: "e.example.com."},
 		},
-		"test.local.": {
-			{TTL: &ttlA, Service: "samba", Proto: "tcp", Priority: 16, Weight: 17, Port: 18, Target: "f.example.com."},
+		"_dns._udp.test.local.": {
+			{TTL: &ttlA, Priority: 16, Weight: 17, Port: 18, Target: "f.example.com."},
 		},
 	}
 
@@ -409,26 +409,26 @@ func TestSqliteResolver_Services(t *testing.T) {
 	ResolverTest(
 		t,
 		resolver,
-		landns.NewRequest("example.com.", dns.TypeSRV, false),
+		landns.NewRequest("_web._tcp.example.com.", dns.TypeSRV, false),
 		true,
-		`_http._tcp.example.com. 123 IN SRV 1 2 3 a.example.com.`,
-		`_ftp._tcp.example.com. 321 IN SRV 4 5 6 b.example.com.`,
+		`_web._tcp.example.com. 123 IN SRV 1 2 3 a.example.com.`,
+		`_web._tcp.example.com. 321 IN SRV 4 5 6 b.example.com.`,
 	)
 
 	ResolverTest(
 		t,
 		resolver,
-		landns.NewRequest("blanktar.jp.", dns.TypeSRV, false),
+		landns.NewRequest("_ftp._tcp.blanktar.jp.", dns.TypeSRV, false),
 		true,
-		`_dns._udp.blanktar.jp. 123 IN SRV 13 14 15 e.example.com.`,
+		`_ftp._tcp.blanktar.jp. 123 IN SRV 13 14 15 e.example.com.`,
 	)
 
 	ResolverTest(
 		t,
 		resolver,
-		landns.NewRequest("test.local.", dns.TypeSRV, false),
+		landns.NewRequest("_dns._udp.test.local.", dns.TypeSRV, false),
 		true,
-		`_samba._tcp.test.local. 123 IN SRV 16 17 18 f.example.com.`,
+		`_dns._udp.test.local. 123 IN SRV 16 17 18 f.example.com.`,
 	)
 }
 

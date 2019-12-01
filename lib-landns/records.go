@@ -3,32 +3,18 @@ package landns
 import (
 	"fmt"
 	"net"
-	"regexp"
 
 	"github.com/miekg/dns"
 )
 
 var (
 	UnsupportedTypeError = fmt.Errorf("unsupported record type")
-	srvDomainRegexp      = regexp.MustCompile(`^_([^.]+)\._([^.]+)\.(.*)$`)
 )
 
 type InvalidDomain string
 
 func (d InvalidDomain) Error() string {
 	return fmt.Sprintf("invalid domain: \"%s\"", string(d))
-}
-
-type InvalidService string
-
-func (s InvalidService) Error() string {
-	return fmt.Sprintf("invalid service: \"%s\"", string(s))
-}
-
-type InvalidProto string
-
-func (p InvalidProto) Error() string {
-	return fmt.Sprintf("invalid proto: \"%s\"", string(p))
 }
 
 type InvalidPort uint16
@@ -67,40 +53,6 @@ func (d Domain) MarshalText() ([]byte, error) {
 	return []byte(d.String()), nil
 }
 
-type Proto string
-
-func (p Proto) String() string {
-	if string(p) == "" {
-		return "tcp"
-	}
-	return string(p)
-}
-
-func (p Proto) Normalized() Proto {
-	return Proto(p.String())
-}
-
-func (p Proto) Validate() error {
-	if p.String() != "" && p.String() != "tcp" && p.String() != "udp" {
-		return InvalidProto(p.String())
-	}
-	return nil
-}
-
-func (p *Proto) UnmarshalText(text []byte) error {
-	if string(text) == "" {
-		*p = "tcp"
-	} else {
-		*p = Proto(string(text))
-	}
-
-	return p.Validate()
-}
-
-func (p Proto) MarshalText() ([]byte, error) {
-	return []byte(p.String()), nil
-}
-
 type Record interface {
 	fmt.Stringer
 
@@ -121,12 +73,9 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 	case *dns.PTR:
 		return PtrRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Domain: Domain(x.Ptr)}, nil
 	case *dns.SRV:
-		matches := srvDomainRegexp.FindStringSubmatch(x.Hdr.Name)
 		return SrvRecord{
-			Name:     Domain(matches[3]),
+			Name:     Domain(x.Hdr.Name),
 			TTL:      x.Hdr.Ttl,
-			Service:  matches[1],
-			Proto:    Proto(matches[2]),
 			Priority: x.Priority,
 			Weight:   x.Weight,
 			Port:     x.Port,
@@ -146,7 +95,7 @@ type TxtRecord struct {
 }
 
 func (r TxtRecord) String() string {
-	return fmt.Sprintf("%s %d TXT \"%s\"", r.Name, r.TTL, r.Text)
+	return fmt.Sprintf("%s %d IN TXT \"%s\"", r.Name, r.TTL, r.Text)
 }
 
 func (r TxtRecord) GetName() Domain {
@@ -172,7 +121,7 @@ type PtrRecord struct {
 }
 
 func (r PtrRecord) String() string {
-	return fmt.Sprintf("%s %d PTR %s", r.Name, r.TTL, r.Domain)
+	return fmt.Sprintf("%s %d IN PTR %s", r.Name, r.TTL, r.Domain)
 }
 
 func (r PtrRecord) GetName() Domain {
@@ -201,7 +150,7 @@ type CnameRecord struct {
 }
 
 func (r CnameRecord) String() string {
-	return fmt.Sprintf("%s %d CNAME %s", r.Name, r.TTL, r.Target)
+	return fmt.Sprintf("%s %d IN CNAME %s", r.Name, r.TTL, r.Target)
 }
 
 func (r CnameRecord) GetName() Domain {
@@ -238,7 +187,7 @@ func (r AddressRecord) String() string {
 	if !r.IsV4() {
 		qtype = "AAAA"
 	}
-	return fmt.Sprintf("%s %d %s %s", r.Name, r.TTL, qtype, r.Address)
+	return fmt.Sprintf("%s %d IN %s %s", r.Name, r.TTL, qtype, r.Address)
 }
 
 func (r AddressRecord) GetName() Domain {
@@ -264,8 +213,6 @@ func (r AddressRecord) Validate() error {
 type SrvRecord struct {
 	Name     Domain
 	TTL      uint32
-	Service  string
-	Proto    Proto
 	Priority uint16
 	Weight   uint16
 	Port     uint16
@@ -274,9 +221,7 @@ type SrvRecord struct {
 
 func (r SrvRecord) String() string {
 	return fmt.Sprintf(
-		"_%s._%s.%s %d IN SRV %d %d %d %s",
-		r.Service,
-		r.Proto,
+		"%s %d IN SRV %d %d %d %s",
 		r.Name,
 		r.TTL,
 		r.Priority,
@@ -300,12 +245,6 @@ func (r SrvRecord) ToRR() (dns.RR, error) {
 
 func (r SrvRecord) Validate() error {
 	if err := r.Name.Validate(); err != nil {
-		return err
-	}
-	if len(r.Service) <= 0 {
-		return InvalidService(r.Service)
-	}
-	if err := r.Proto.Validate(); err != nil {
 		return err
 	}
 	if r.Port == 0 {
