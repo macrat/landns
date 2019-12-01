@@ -16,10 +16,7 @@ func StartDummyDNSServer(ctx context.Context, t *testing.T, resolver landns.Reso
 	server := dns.Server{
 		Addr: addr.String(),
 		Net:  "udp",
-		Handler: landns.Handler{
-			Resolver: resolver,
-			Metrics:  landns.NewMetrics("landns"),
-		},
+		Handler: landns.NewHandler(resolver, landns.NewMetrics("landns")),
 	}
 
 	go func() {
