@@ -13,7 +13,7 @@ type Request struct {
 }
 
 func NewRequest(name string, qtype uint16, recursionDesired bool) Request {
-	return Request{dns.Question{Name: name, Qtype: qtype}, recursionDesired}
+	return Request{dns.Question{Name: name, Qtype: qtype, Qclass: dns.ClassINET}, recursionDesired}
 }
 
 func (req Request) QtypeString() string {
@@ -71,16 +71,18 @@ func (rc *ResponseCallback) SetNoAuthoritative() {
 }
 
 type MessageBuilder struct {
-	request       *dns.Msg
-	records       []dns.RR
-	authoritative bool
+	request            *dns.Msg
+	records            []dns.RR
+	authoritative      bool
+	recursionAvailable bool
 }
 
-func NewMessageBuilder(request *dns.Msg) *MessageBuilder {
+func NewMessageBuilder(request *dns.Msg, recursionAvailable bool) *MessageBuilder {
 	return &MessageBuilder{
-		request:       request,
-		records:       make([]dns.RR, 0, 10),
-		authoritative: true,
+		request:            request,
+		records:            make([]dns.RR, 0, 10),
+		authoritative:      true,
+		recursionAvailable: recursionAvailable,
 	}
 }
 
@@ -109,6 +111,7 @@ func (mb *MessageBuilder) Build() *dns.Msg {
 	msg.Answer = dns.Dedup(mb.records, nil)
 
 	msg.Authoritative = mb.authoritative
+	msg.RecursionAvailable = mb.recursionAvailable
 
 	return msg
 }

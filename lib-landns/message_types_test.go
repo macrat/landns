@@ -52,7 +52,7 @@ func TestResponseCallback(t *testing.T) {
 }
 
 func TestMessageBuilder(t *testing.T) {
-	builder := landns.NewMessageBuilder(&dns.Msg{})
+	builder := landns.NewMessageBuilder(&dns.Msg{}, true)
 
 	if builder.IsAuthoritative() != true {
 		t.Errorf("unexpected authoritative: %v", builder.IsAuthoritative())
@@ -67,7 +67,10 @@ func TestMessageBuilder(t *testing.T) {
 		t.Errorf(`unexpected answer: expected "%s" but got "%s"`, "example.com.\t42\tIN\tA\t127.0.1.2", msg.Answer[0].String())
 	}
 	if msg.Authoritative != true {
-		t.Errorf("unexpected authoritative: %v", builder.IsAuthoritative())
+		t.Errorf("unexpected authoritative: %v", msg.Authoritative)
+	}
+	if msg.RecursionAvailable != true {
+		t.Errorf("unexpected recurtion available: %v", msg.RecursionAvailable)
 	}
 
 	builder.SetNoAuthoritative()
@@ -84,6 +87,15 @@ func TestMessageBuilder(t *testing.T) {
 		}
 	}
 	if msg.Authoritative != false {
-		t.Errorf("unexpected authoritative: %v", builder.IsAuthoritative())
+		t.Errorf("unexpected authoritative: %v", msg.RecursionAvailable)
+	}
+	if msg.RecursionAvailable != true {
+		t.Errorf("unexpected recurtion available: %v", msg.RecursionAvailable)
+	}
+
+	builder = landns.NewMessageBuilder(&dns.Msg{}, false)
+	msg = builder.Build()
+	if msg.RecursionAvailable != false {
+		t.Errorf("unexpected recurtion available: %v", msg.RecursionAvailable)
 	}
 }

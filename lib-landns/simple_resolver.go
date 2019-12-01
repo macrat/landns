@@ -36,6 +36,10 @@ func (sr SimpleResolver) Resolve(w ResponseWriter, r Request) error {
 	return nil
 }
 
+func (sr SimpleResolver) RecursionAvailable() bool {
+	return false
+}
+
 func (sr SimpleResolver) Validate() error {
 	for _, domains := range sr {
 		for _, records := range domains {
@@ -49,7 +53,7 @@ func (sr SimpleResolver) Validate() error {
 	return nil
 }
 
-func makeReverseMap(addresses map[Domain][]net.IP, ttl uint16) ([]Record, error) {
+func makeReverseMap(addresses map[Domain][]net.IP, ttl uint32) ([]Record, error) {
 	reverse := []Record{}
 
 	for addr, ips := range addresses {
@@ -76,7 +80,7 @@ func NewSimpleResolverFromConfig(config []byte) (SimpleResolver, error) {
 		return SimpleResolver{}, err
 	}
 
-	ttl := uint16(3600)
+	ttl := uint32(3600)
 	if conf.TTL != nil {
 		ttl = *conf.TTL
 	}

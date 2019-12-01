@@ -7,15 +7,24 @@ import (
 )
 
 type Handler struct {
-	Resolver Resolver
-	Metrics  *Metrics
+	Resolver           Resolver
+	Metrics            *Metrics
+	RecursionAvailable bool
+}
+
+func NewHandler(resolver Resolver, metrics *Metrics) Handler {
+	return Handler{
+		Resolver:           resolver,
+		Metrics:            metrics,
+		RecursionAvailable: resolver.RecursionAvailable(),
+	}
 }
 
 func (h Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	end := h.Metrics.Start(r)
 
 	req := Request{RecursionDesired: r.RecursionDesired}
-	resp := NewMessageBuilder(r)
+	resp := NewMessageBuilder(r, h.RecursionAvailable)
 
 	defer func() {
 		msg := resp.Build()

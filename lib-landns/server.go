@@ -34,10 +34,7 @@ func (s *Server) HTTPHandler() (http.Handler, error) {
 }
 
 func (s *Server) DNSHandler() dns.Handler {
-	return Handler{
-		Resolver: ResolverSet{s.DynamicResolver, s.StaticResolver},
-		Metrics:  s.Metrics,
-	}
+	return NewHandler(ResolverSet{s.DynamicResolver, s.StaticResolver}, s.Metrics)
 }
 
 func (s *Server) ListenAndServe(apiAddress, dnsAddress *net.TCPAddr, dnsProto string) error {

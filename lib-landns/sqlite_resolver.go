@@ -15,7 +15,7 @@ func iterAddresses(rows *sql.Rows, callback func(AddressRecord)) error {
 	for rows.Next() {
 		var name string
 		var addr string
-		var ttl uint16
+		var ttl uint32
 
 		if err := rows.Scan(&name, &addr, &ttl); err != nil {
 			return err
@@ -30,7 +30,7 @@ func iterCnames(rows *sql.Rows, callback func(CnameRecord)) error {
 	for rows.Next() {
 		var name string
 		var target string
-		var ttl uint16
+		var ttl uint32
 
 		if err := rows.Scan(&name, &target, &ttl); err != nil {
 			return err
@@ -45,7 +45,7 @@ func iterTexts(rows *sql.Rows, callback func(TxtRecord)) error {
 	for rows.Next() {
 		var name string
 		var text string
-		var ttl uint16
+		var ttl uint32
 
 		if err := rows.Scan(&name, &text, &ttl); err != nil {
 			return err
@@ -65,7 +65,7 @@ func iterServices(rows *sql.Rows, callback func(SrvRecord)) error {
 		var weight uint16
 		var port uint16
 		var target string
-		var ttl uint16
+		var ttl uint32
 
 		if err := rows.Scan(&name, &service, &proto, &priority, &weight, &port, &target, &ttl); err != nil {
 			return err
@@ -466,4 +466,8 @@ func (r SqliteResolver) Resolve(resp ResponseWriter, req Request) error {
 		resp.Add(r)
 	}
 	return err
+}
+
+func (r SqliteResolver) RecursionAvailable() bool {
+	return false
 }

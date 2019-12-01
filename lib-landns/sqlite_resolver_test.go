@@ -26,8 +26,8 @@ func createSqliteResolver(t FatalFormatter) *landns.SqliteResolver {
 func TestSqliteResolver_Addresses(t *testing.T) {
 	resolver := createSqliteResolver(t)
 
-	ttlA := uint16(123)
-	ttlB := uint16(321)
+	ttlA := uint32(123)
+	ttlB := uint32(321)
 
 	confA := landns.AddressesConfig{
 		"example.com.": {
@@ -162,8 +162,8 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 func TestSqliteResolver_Cnames(t *testing.T) {
 	resolver := createSqliteResolver(t)
 
-	ttlA := uint16(123)
-	ttlB := uint16(321)
+	ttlA := uint32(123)
+	ttlB := uint32(321)
 
 	confA := landns.CnamesConfig{
 		"example.com.": {
@@ -253,8 +253,8 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 func TestSqliteResolver_Texts(t *testing.T) {
 	resolver := createSqliteResolver(t)
 
-	ttlA := uint16(123)
-	ttlB := uint16(321)
+	ttlA := uint32(123)
+	ttlB := uint32(321)
 
 	confA := landns.TextsConfig{
 		"example.com.": {
@@ -344,8 +344,8 @@ func TestSqliteResolver_Texts(t *testing.T) {
 func TestSqliteResolver_Services(t *testing.T) {
 	resolver := createSqliteResolver(t)
 
-	ttlA := uint16(123)
-	ttlB := uint16(321)
+	ttlA := uint32(123)
+	ttlB := uint32(321)
 
 	confA := landns.ServicesConfig{
 		"example.com.": {

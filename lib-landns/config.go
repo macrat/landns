@@ -5,11 +5,11 @@ import (
 )
 
 var (
-	DefaultTTL uint16 = 3600
+	DefaultTTL uint32 = 3600
 )
 
 type AddressRecordConfig struct {
-	TTL     *uint16 `json:"ttl,omitempty"`
+	TTL     *uint32 `json:"ttl,omitempty"`
 	Address net.IP  `json:"address"`
 }
 
@@ -57,7 +57,7 @@ func (ac AddressesConfig) Validate() error {
 }
 
 type CnameRecordConfig struct {
-	TTL    *uint16 `json:"ttl,omitempty"`
+	TTL    *uint32 `json:"ttl,omitempty"`
 	Target Domain  `json:"target"`
 }
 
@@ -106,7 +106,7 @@ func (cc CnamesConfig) Validate() error {
 }
 
 type TxtRecordConfig struct {
-	TTL  *uint16 `json:"ttl,omitempty"`
+	TTL  *uint32 `json:"ttl,omitempty"`
 	Text string  `json:"text"`
 }
 
@@ -154,7 +154,7 @@ func (tc TextsConfig) Validate() error {
 }
 
 type SrvRecordConfig struct {
-	TTL      *uint16 `json:"ttl,omitempty"`
+	TTL      *uint32 `json:"ttl,omitempty"`
 	Service  string  `json:"service"`
 	Proto    Proto   `json:"proto,omitempty"`
 	Priority uint16  `json:"priority,omitempty"`
@@ -237,7 +237,7 @@ type SrvRecordShortConfig struct {
 	Target   Domain `yaml:"target"`
 }
 
-func (s SrvRecordShortConfig) ToRecord(name Domain, ttl uint16) SrvRecord {
+func (s SrvRecordShortConfig) ToRecord(name Domain, ttl uint32) SrvRecord {
 	return SrvRecord{
 		Name:     name,
 		TTL:      ttl,
@@ -251,7 +251,7 @@ func (s SrvRecordShortConfig) ToRecord(name Domain, ttl uint16) SrvRecord {
 }
 
 type ResolverShortConfig struct {
-	TTL       *uint16                           `yaml:"ttl,omitempty"`
+	TTL       *uint32                           `yaml:"ttl,omitempty"`
 	Addresses map[Domain][]net.IP               `yaml:"address,omitempty"`
 	Cnames    map[Domain][]Domain               `yaml:"cname,omitempty"`
 	Texts     map[Domain][]string               `yaml:"text,omitempty"`

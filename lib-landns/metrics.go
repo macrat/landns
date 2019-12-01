@@ -3,6 +3,7 @@ package landns
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/miekg/dns"
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,6 +17,7 @@ type Metrics struct {
 	missCounters    map[string]prometheus.Counter
 	errorCounters   map[string]prometheus.Counter
 	resolveTime     prometheus.Summary
+	upstreamTime    prometheus.Summary
 }
 
 func newCounter(namespace, name string, labels prometheus.Labels) prometheus.Counter {
@@ -50,6 +52,12 @@ func NewMetrics(namespace string) *Metrics {
 			Name:       "resolve_duration_seconds",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}),
+
+		upstreamTime: prometheus.NewSummary(prometheus.SummaryOpts{
+			Namespace:  namespace,
+			Name:       "upstream_resolve_duration_seconds",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		}),
 	}
 }
 
@@ -78,6 +86,7 @@ func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
 	}
 
 	m.resolveTime.Describe(ch)
+	m.upstreamTime.Describe(ch)
 }
 
 func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
@@ -95,6 +104,7 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	m.resolveTime.Collect(ch)
+	m.upstreamTime.Collect(ch)
 }
 
 func (m *Metrics) makeTimer(skipped bool) func(*dns.Msg) {
@@ -129,4 +139,8 @@ func (m *Metrics) Error(req Request, err error) {
 	if counter, ok := m.errorCounters[req.QtypeString()]; ok {
 		counter.Inc()
 	}
+}
+
+func (m *Metrics) UpstreamTime(duration time.Duration) {
+	m.upstreamTime.Observe(duration.Seconds())
 }

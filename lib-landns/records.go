@@ -3,8 +3,14 @@ package landns
 import (
 	"fmt"
 	"net"
+	"regexp"
 
 	"github.com/miekg/dns"
+)
+
+var (
+	UnsupportedTypeError = fmt.Errorf("unsupported record type")
+	srvDomainRegexp      = regexp.MustCompile(`^_([^.]+)\._([^.]+)\.(.*)$`)
 )
 
 type InvalidDomain string
@@ -104,9 +110,38 @@ type Record interface {
 	Validate() error
 }
 
+func NewRecordFromRR(rr dns.RR) (Record, error) {
+	switch x := rr.(type) {
+	case *dns.A:
+		return AddressRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Address: x.A}, nil
+	case *dns.AAAA:
+		return AddressRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Address: x.AAAA}, nil
+	case *dns.CNAME:
+		return CnameRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Target: Domain(x.Target)}, nil
+	case *dns.PTR:
+		return PtrRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Domain: Domain(x.Ptr)}, nil
+	case *dns.SRV:
+		matches := srvDomainRegexp.FindStringSubmatch(x.Hdr.Name)
+		return SrvRecord{
+			Name:     Domain(matches[3]),
+			TTL:      x.Hdr.Ttl,
+			Service:  matches[1],
+			Proto:    Proto(matches[2]),
+			Priority: x.Priority,
+			Weight:   x.Weight,
+			Port:     x.Port,
+			Target:   Domain(x.Target),
+		}, nil
+	case *dns.TXT:
+		return TxtRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Text: x.Txt[0]}, nil
+	default:
+		return nil, UnsupportedTypeError
+	}
+}
+
 type TxtRecord struct {
 	Name Domain
-	TTL  uint16
+	TTL  uint32
 	Text string
 }
 
@@ -132,7 +167,7 @@ func (r TxtRecord) Validate() error {
 
 type PtrRecord struct {
 	Name   Domain
-	TTL    uint16
+	TTL    uint32
 	Domain Domain
 }
 
@@ -161,7 +196,7 @@ func (r PtrRecord) Validate() error {
 
 type CnameRecord struct {
 	Name   Domain
-	TTL    uint16
+	TTL    uint32
 	Target Domain
 }
 
@@ -190,7 +225,7 @@ func (r CnameRecord) Validate() error {
 
 type AddressRecord struct {
 	Name    Domain
-	TTL     uint16
+	TTL     uint32
 	Address net.IP
 }
 
@@ -228,7 +263,7 @@ func (r AddressRecord) Validate() error {
 
 type SrvRecord struct {
 	Name     Domain
-	TTL      uint16
+	TTL      uint32
 	Service  string
 	Proto    Proto
 	Priority uint16
