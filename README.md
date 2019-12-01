@@ -8,6 +8,8 @@ Landns
 
 A DNS server for developers for home use.
 
+**BE CAREFUL**: this product is not stable yet. may change options and behavior.
+
 ## How to use
 
 ### Install server
@@ -54,7 +56,7 @@ services:
 And then, execute server.
 
 ``` shell
-$ sudo landns --static-zone path/to/config.yml
+$ sudo landns --config path/to/config.yml
 ```
 
 ### Use as dynamic DNS server
@@ -62,8 +64,11 @@ $ sudo landns --static-zone path/to/config.yml
 First, execute server.
 
 ``` shell
-$ sudo landns --dynamic-zone path/to/database.db
+$ sudo landns --sqlite path/to/database.db
 ```
+
+Dynamic settings that set by REST API will store to specified database if given `--sqlite` option.
+REST API will work if not gven it, but settings will lose when the server stopped.
 
 Then, set records with API.
 
