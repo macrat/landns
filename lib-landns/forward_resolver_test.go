@@ -14,8 +14,8 @@ func StartDummyDNSServer(ctx context.Context, t *testing.T, resolver landns.Reso
 	addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 3553}
 
 	server := dns.Server{
-		Addr: addr.String(),
-		Net:  "udp",
+		Addr:    addr.String(),
+		Net:     "udp",
 		Handler: landns.NewHandler(resolver, landns.NewMetrics("landns")),
 	}
 

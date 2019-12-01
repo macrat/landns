@@ -1,8 +1,8 @@
 package landns
 
 import (
-	"net"
 	"fmt"
+	"net"
 )
 
 var (

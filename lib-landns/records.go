@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	UnsupportedTypeError = fmt.Errorf("unsupported record type")
+	ErrUnsupportedType = fmt.Errorf("unsupported record type")
 )
 
 type InvalidDomain string
@@ -84,7 +84,7 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 	case *dns.TXT:
 		return TxtRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Text: x.Txt[0]}, nil
 	default:
-		return nil, UnsupportedTypeError
+		return nil, ErrUnsupportedType
 	}
 }
 
