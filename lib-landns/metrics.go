@@ -53,12 +53,14 @@ func NewMetrics(namespace string) *Metrics {
 	}
 }
 
-func (m *Metrics) Register() error {
-	return prometheus.Register(m)
-}
+func (m *Metrics) HTTPHandler() (http.Handler, error) {
+	registry := prometheus.NewRegistry()
 
-func (m *Metrics) HTTPHandler() http.Handler {
-	return promhttp.Handler()
+	if err := registry.Register(m); err != nil {
+		return nil, err
+	}
+
+	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), nil
 }
 
 func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
