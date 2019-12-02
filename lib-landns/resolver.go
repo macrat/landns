@@ -38,20 +38,19 @@ type AlternateResolver []Resolver
 func (ar AlternateResolver) Resolve(resp ResponseWriter, req Request) error {
 	resolved := false
 
-	respWrap := NewResponseCallback(func(r Record) error {
-		resolved = true
-		return resp.Add(r)
-	})
+	resp = ResponseWriterHook{
+		Writer: resp,
+		OnAdd: func(r Record) {
+			resolved = true
+		},
+	}
 
 	for _, r := range ar {
-		if err := r.Resolve(respWrap, req); err != nil {
+		if err := r.Resolve(resp, req); err != nil {
 			return err
 		}
 
 		if resolved {
-			if !respWrap.Authoritative {
-				resp.SetNoAuthoritative()
-			}
 			return nil
 		}
 	}

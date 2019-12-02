@@ -3,12 +3,15 @@ package landns
 import (
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/miekg/dns"
 )
 
 var (
 	ErrUnsupportedType = fmt.Errorf("unsupported record type")
+	ErrInvalidRecord   = fmt.Errorf("invalid format record")
 )
 
 type InvalidDomain string
@@ -58,6 +61,7 @@ type Record interface {
 
 	GetQtype() uint16
 	GetName() Domain
+	GetTTL() uint32
 	ToRR() (dns.RR, error)
 	Validate() error
 }
@@ -88,6 +92,57 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 	}
 }
 
+func NewRecordFromString(s string) (Record, error) {
+	ss := strings.SplitN(s, " ", 5)
+	if ss == nil {
+		return nil, ErrInvalidRecord
+	}
+
+	name := Domain(ss[0])
+
+	ttl, err := strconv.ParseUint(ss[1], 10, 32)
+	if err != nil {
+		return nil, ErrInvalidRecord
+	}
+
+	qtype := ss[4]
+
+	switch qtype {
+	case "A", "AAAA":
+		return AddressRecord{Name: name, TTL: uint32(ttl), Address: net.ParseIP(ss[5])}, nil
+	case "CNAME":
+		return CnameRecord{Name: name, TTL: uint32(ttl), Target: Domain(ss[5])}, nil
+	case "PTR":
+		return PtrRecord{Name: name, TTL: uint32(ttl), Domain: Domain(ss[5])}, nil
+	case "SRV":
+		opts := strings.Split(ss[5], " ")
+		priority, err := strconv.ParseInt(opts[0], 10, 16)
+		if err != nil {
+			return nil, ErrInvalidRecord
+		}
+		weight, err := strconv.ParseInt(opts[1], 10, 16)
+		if err != nil {
+			return nil, ErrInvalidRecord
+		}
+		port, err := strconv.ParseInt(opts[2], 10, 16)
+		if err != nil {
+			return nil, ErrInvalidRecord
+		}
+		return SrvRecord{
+			Name:     name,
+			TTL:      uint32(ttl),
+			Priority: uint16(priority),
+			Weight:   uint16(weight),
+			Port:     uint16(port),
+			Target:   Domain(opts[3]),
+		}, nil
+	case "TXT":
+		return TxtRecord{Name: name, TTL: uint32(ttl), Text: ss[5]}, nil
+	default:
+		return nil, ErrInvalidRecord
+	}
+}
+
 type TxtRecord struct {
 	Name Domain
 	TTL  uint32
@@ -100,6 +155,10 @@ func (r TxtRecord) String() string {
 
 func (r TxtRecord) GetName() Domain {
 	return r.Name
+}
+
+func (r TxtRecord) GetTTL() uint32 {
+	return r.TTL
 }
 
 func (r TxtRecord) GetQtype() uint16 {
@@ -126,6 +185,10 @@ func (r PtrRecord) String() string {
 
 func (r PtrRecord) GetName() Domain {
 	return r.Name
+}
+
+func (r PtrRecord) GetTTL() uint32 {
+	return r.TTL
 }
 
 func (r PtrRecord) GetQtype() uint16 {
@@ -155,6 +218,10 @@ func (r CnameRecord) String() string {
 
 func (r CnameRecord) GetName() Domain {
 	return r.Name
+}
+
+func (r CnameRecord) GetTTL() uint32 {
+	return r.TTL
 }
 
 func (r CnameRecord) GetQtype() uint16 {
@@ -192,6 +259,10 @@ func (r AddressRecord) String() string {
 
 func (r AddressRecord) GetName() Domain {
 	return r.Name
+}
+
+func (r AddressRecord) GetTTL() uint32 {
+	return r.TTL
 }
 
 func (r AddressRecord) GetQtype() uint16 {
@@ -233,6 +304,10 @@ func (r SrvRecord) String() string {
 
 func (r SrvRecord) GetName() Domain {
 	return r.Name
+}
+
+func (r SrvRecord) GetTTL() uint32 {
+	return r.TTL
 }
 
 func (r SrvRecord) GetQtype() uint16 {

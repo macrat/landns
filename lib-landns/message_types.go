@@ -70,6 +70,26 @@ func (rc *ResponseCallback) SetNoAuthoritative() {
 	rc.Authoritative = false
 }
 
+type ResponseWriterHook struct {
+	Writer ResponseWriter
+	OnAdd  func(Record)
+}
+
+func (rh ResponseWriterHook) Add(r Record) error {
+	if rh.OnAdd != nil {
+		rh.OnAdd(r)
+	}
+	return rh.Writer.Add(r)
+}
+
+func (rh ResponseWriterHook) IsAuthoritative() bool {
+	return rh.Writer.IsAuthoritative()
+}
+
+func (rh ResponseWriterHook) SetNoAuthoritative() {
+	rh.SetNoAuthoritative()
+}
+
 type MessageBuilder struct {
 	request            *dns.Msg
 	records            []dns.RR
