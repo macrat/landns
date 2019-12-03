@@ -1,8 +1,8 @@
 package landns
 
 import (
-	"net"
 	"fmt"
+	"net"
 
 	"github.com/go-yaml/yaml"
 	"github.com/miekg/dns"

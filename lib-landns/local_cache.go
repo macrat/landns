@@ -2,8 +2,8 @@ package landns
 
 import (
 	"fmt"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/miekg/dns"
 )
@@ -24,9 +24,9 @@ type LocalCache struct {
 
 func NewLocalCache(upstream Resolver) *LocalCache {
 	lc := &LocalCache{
-		entries: make(map[uint16]map[Domain][]localCacheEntry),
-		invoke: make(chan struct{}, 100),
-		closer: make(chan struct{}),
+		entries:  make(map[uint16]map[Domain][]localCacheEntry),
+		invoke:   make(chan struct{}, 100),
+		closer:   make(chan struct{}),
 		upstream: upstream,
 	}
 
@@ -61,7 +61,7 @@ func (lc *LocalCache) Close() {
 }
 
 func (lc *LocalCache) manageTask() (next time.Duration) {
-	next = 10*time.Second
+	next = 10 * time.Second
 
 	lc.mutex.Lock()
 	defer lc.mutex.Unlock()
@@ -110,16 +110,16 @@ func (lc *LocalCache) add(r Record) {
 	if _, ok := lc.entries[r.GetQtype()][r.GetName()]; !ok {
 		lc.entries[r.GetQtype()][r.GetName()] = []localCacheEntry{
 			{
-				Record: r,
+				Record:  r,
 				Created: time.Now(),
-				Expire: time.Now().Add(time.Duration(r.GetTTL()) * time.Second),
+				Expire:  time.Now().Add(time.Duration(r.GetTTL()) * time.Second),
 			},
 		}
 	} else {
 		lc.entries[r.GetQtype()][r.GetName()] = append(lc.entries[r.GetQtype()][r.GetName()], localCacheEntry{
-			Record: r,
+			Record:  r,
 			Created: time.Now(),
-			Expire: time.Now().Add(time.Duration(r.GetTTL()) * time.Second),
+			Expire:  time.Now().Add(time.Duration(r.GetTTL()) * time.Second),
 		})
 	}
 
@@ -129,7 +129,7 @@ func (lc *LocalCache) add(r Record) {
 func (lc *LocalCache) resolveFromUpstream(w ResponseWriter, r Request) error {
 	wh := ResponseWriterHook{
 		Writer: w,
-		OnAdd: lc.add,
+		OnAdd:  lc.add,
 	}
 
 	return lc.upstream.Resolve(wh, r)

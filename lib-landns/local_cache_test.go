@@ -1,12 +1,12 @@
 package landns_test
 
 import (
-	"testing"
 	"net"
+	"testing"
 	"time"
 
-	"github.com/miekg/dns"
 	"github.com/macrat/landns/lib-landns"
+	"github.com/miekg/dns"
 )
 
 func TestLocalCache(t *testing.T) {

@@ -1,13 +1,13 @@
 package landns_test
 
 import (
-	"testing"
-	"context"
-	"regexp"
-	"os"
-	"net"
-	"log"
 	"bytes"
+	"context"
+	"log"
+	"net"
+	"os"
+	"regexp"
+	"testing"
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
@@ -36,7 +36,7 @@ func StartDummyDNSServer(ctx context.Context, t *testing.T, resolver landns.Reso
 		server.Shutdown()
 	}()
 
-	time.Sleep(10*time.Millisecond)  // Wait for start DNS server
+	time.Sleep(10 * time.Millisecond) // Wait for start DNS server
 
 	return addr
 }
