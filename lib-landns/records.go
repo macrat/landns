@@ -3,8 +3,6 @@ package landns
 import (
 	"fmt"
 	"net"
-	"strconv"
-	"strings"
 
 	"github.com/miekg/dns"
 )
@@ -89,57 +87,6 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 		return TxtRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Text: x.Txt[0]}, nil
 	default:
 		return nil, ErrUnsupportedType
-	}
-}
-
-func NewRecordFromString(s string) (Record, error) {
-	ss := strings.SplitN(s, " ", 5)
-	if ss == nil {
-		return nil, ErrInvalidRecord
-	}
-
-	name := Domain(ss[0])
-
-	ttl, err := strconv.ParseUint(ss[1], 10, 32)
-	if err != nil {
-		return nil, ErrInvalidRecord
-	}
-
-	qtype := ss[4]
-
-	switch qtype {
-	case "A", "AAAA":
-		return AddressRecord{Name: name, TTL: uint32(ttl), Address: net.ParseIP(ss[5])}, nil
-	case "CNAME":
-		return CnameRecord{Name: name, TTL: uint32(ttl), Target: Domain(ss[5])}, nil
-	case "PTR":
-		return PtrRecord{Name: name, TTL: uint32(ttl), Domain: Domain(ss[5])}, nil
-	case "SRV":
-		opts := strings.Split(ss[5], " ")
-		priority, err := strconv.ParseInt(opts[0], 10, 16)
-		if err != nil {
-			return nil, ErrInvalidRecord
-		}
-		weight, err := strconv.ParseInt(opts[1], 10, 16)
-		if err != nil {
-			return nil, ErrInvalidRecord
-		}
-		port, err := strconv.ParseInt(opts[2], 10, 16)
-		if err != nil {
-			return nil, ErrInvalidRecord
-		}
-		return SrvRecord{
-			Name:     name,
-			TTL:      uint32(ttl),
-			Priority: uint16(priority),
-			Weight:   uint16(weight),
-			Port:     uint16(port),
-			Target:   Domain(opts[3]),
-		}, nil
-	case "TXT":
-		return TxtRecord{Name: name, TTL: uint32(ttl), Text: ss[5]}, nil
-	default:
-		return nil, ErrInvalidRecord
 	}
 }
 

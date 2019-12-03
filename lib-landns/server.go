@@ -48,9 +48,10 @@ func (s *Server) ListenAndServe(apiAddress, dnsAddress *net.TCPAddr, dnsProto st
 	}
 
 	dnsServer := dns.Server{
-		Addr:    dnsAddress.String(),
-		Net:     dnsProto,
-		Handler: s.DNSHandler(),
+		Addr:      dnsAddress.String(),
+		Net:       dnsProto,
+		ReusePort: true,
+		Handler:   s.DNSHandler(),
 	}
 
 	httpch := make(chan error)

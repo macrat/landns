@@ -9,6 +9,30 @@ import (
 	"github.com/miekg/dns"
 )
 
+func TestRequest(t *testing.T) {
+	x := landns.NewRequest("example.com.", dns.TypeA, true)
+	if x.QtypeString() != "A" {
+		t.Errorf("unexpected qtype string: %s", x.QtypeString())
+	}
+	if x.String() != ";example.com. IN A" {
+		t.Errorf(`unexpected string: "%s"`, x.String())
+	}
+	if x.Question.String() != ";example.com.\tIN\t A" {
+		t.Errorf(`unexpected string of request as dns.Question: "%s"`, x.Question.String())
+	}
+
+	y := landns.NewRequest("example.com.", dns.TypeCNAME, true)
+	if y.QtypeString() != "CNAME" {
+		t.Errorf("unexpected qtype string: %s", y.QtypeString())
+	}
+	if y.String() != ";example.com. IN CNAME" {
+		t.Errorf(`unexpected string: "%s"`, y.String())
+	}
+	if y.Question.String() != ";example.com.\tIN\t CNAME" {
+		t.Errorf(`unexpected string of request as dns.Question: "%s"`, y.Question.String())
+	}
+}
+
 func TestResponseCallback(t *testing.T) {
 	rc := landns.NewResponseCallback(func(r landns.Record) error {
 		return fmt.Errorf("test error")
@@ -47,6 +71,60 @@ func TestResponseCallback(t *testing.T) {
 			t.Errorf("unexpected record type: %#v", log[i])
 		} else if tr.Text != text {
 			t.Errorf(`unexpected text: expected "%s" but got "%s"`, text, tr.Text)
+		}
+	}
+}
+
+func TestResponseWriterHook(t *testing.T) {
+	upstreamLog := make([]landns.Record, 0, 5)
+	upstream := landns.NewResponseCallback(func(r landns.Record) error {
+		upstreamLog = append(upstreamLog, r)
+		return nil
+	})
+
+	hookLog := make([]landns.Record, 0, 5)
+	hook := landns.ResponseWriterHook{
+		Writer: upstream,
+		OnAdd: func(r landns.Record) {
+			hookLog = append(hookLog, r)
+		},
+	}
+
+	if upstream.IsAuthoritative() != true {
+		t.Errorf("unexpected authoritative of upstream: %v", upstream.IsAuthoritative())
+	}
+	if hook.IsAuthoritative() != true {
+		t.Errorf("unexpected authoritative of hook: %v", hook.IsAuthoritative())
+	}
+	hook.SetNoAuthoritative()
+	if upstream.IsAuthoritative() != false {
+		t.Errorf("unexpected authoritative of upstream: %v", upstream.IsAuthoritative())
+	}
+	if hook.IsAuthoritative() != false {
+		t.Errorf("unexpected authoritative of hook: %v", hook.IsAuthoritative())
+	}
+
+	for i := 0; i < 5; i++ {
+		if len(upstreamLog) != i {
+			t.Errorf("unexpected upstream log length: expected %d but got %d", i, len(upstreamLog))
+		}
+		if len(hookLog) != i {
+			t.Errorf("unexpected hook log length: expected %d but got %d", i, len(hookLog))
+		}
+
+		text := fmt.Sprintf("test%d", i)
+		if err := hook.Add(landns.TxtRecord{Name: "example.com.", Text: text}); err != nil {
+			t.Fatalf("failed to add record: %s", err)
+		}
+
+		for name, log := range map[string][]landns.Record{"upstream": upstreamLog, "hook": hookLog} {
+			if len(log) != i+1 {
+				t.Errorf("unexpected %s log length: expected %d but got %d", name, i, len(log))
+			} else if tr, ok := log[i].(landns.TxtRecord); !ok {
+				t.Errorf("unexpected record type in %s log: %#v", name, log[i])
+			} else if tr.Text != text {
+				t.Errorf(`unexpected text in %s log: expected "%s" but got "%s"`, name, text, tr.Text)
+			}
 		}
 	}
 }

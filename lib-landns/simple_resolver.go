@@ -2,6 +2,7 @@ package landns
 
 import (
 	"net"
+	"fmt"
 
 	"github.com/go-yaml/yaml"
 	"github.com/miekg/dns"
@@ -23,6 +24,18 @@ func NewSimpleResolver(records []Record) SimpleResolver {
 	}
 
 	return sr
+}
+
+func (sr SimpleResolver) String() string {
+	domains := make(map[Domain]struct{})
+	records := 0
+	for _, xs := range sr {
+		for name, x := range xs {
+			domains[name] = struct{}{}
+			records += len(x)
+		}
+	}
+	return fmt.Sprintf("SimpleResolver[%d domains %d types %d records]", len(domains), len(sr), records)
 }
 
 func (sr SimpleResolver) Resolve(w ResponseWriter, r Request) error {

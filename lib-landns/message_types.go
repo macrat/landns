@@ -40,7 +40,7 @@ func (req Request) QtypeString() string {
 }
 
 func (req Request) String() string {
-	return fmt.Sprintf("%s %s", req.Name, req.QtypeString())
+	return fmt.Sprintf(";%s IN %s", req.Name, req.QtypeString())
 }
 
 type ResponseWriter interface {
@@ -87,7 +87,7 @@ func (rh ResponseWriterHook) IsAuthoritative() bool {
 }
 
 func (rh ResponseWriterHook) SetNoAuthoritative() {
-	rh.SetNoAuthoritative()
+	rh.Writer.SetNoAuthoritative()
 }
 
 type MessageBuilder struct {

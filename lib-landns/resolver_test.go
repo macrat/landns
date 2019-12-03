@@ -11,6 +11,23 @@ import (
 	"github.com/miekg/dns"
 )
 
+type DummyResolver struct {
+	Error     bool
+	Recrusion bool
+}
+
+func (dr DummyResolver) Resolve(w landns.ResponseWriter, r landns.Request) error {
+	if dr.Error {
+		return fmt.Errorf("test error")
+	} else {
+		return nil
+	}
+}
+
+func (dr DummyResolver) RecursionAvailable() bool {
+	return dr.Recrusion
+}
+
 type DummyResponseWriter struct {
 	Records       []landns.Record
 	Authoritative bool
@@ -100,25 +117,13 @@ func TestResolverSet(t *testing.T) {
 		},
 	}
 
+	if s := resolver.String(); s != "ResolverSet[SimpleResolver[1 domains 1 types 1 records] SimpleResolver[2 domains 1 types 2 records]]" {
+		t.Errorf(`unexpected resolver string: "%s"`, s)
+	}
+
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1", "example.com. 24 IN A 127.1.2.1")
 	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
-}
-
-type DummyResolver struct {
-	Error     bool
-	Recrusion bool
-}
-
-func (dr DummyResolver) Resolve(w landns.ResponseWriter, r landns.Request) error {
-	if dr.Error {
-		return fmt.Errorf("test error")
-	} else {
-		return nil
-	}
-}
-
-func (dr DummyResolver) RecursionAvailable() bool {
-	return dr.Recrusion
+	ResolverTest(t, resolver, landns.NewRequest("no.such.com.", dns.TypeA, false), true)
 }
 
 func TestResolverSet_ErrorHandling(t *testing.T) {
@@ -214,6 +219,38 @@ func TestAlternateResolver(t *testing.T) {
 
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1")
 	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
+	ResolverTest(t, resolver, landns.NewRequest("no.such.com.", dns.TypeA, false), true)
+}
+
+func TestAlternateResolver_ErrorHandling(t *testing.T) {
+	response := EmptyResponseWriter{}
+	request := landns.NewRequest("example.com.", dns.TypeA, false)
+
+	errorResolver := DummyResolver{true, false}
+	if err := errorResolver.Resolve(response, request); err == nil {
+		t.Fatalf("expected returns error but got nil")
+	} else if err.Error() != "test error" {
+		t.Fatalf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
+	}
+
+	noErrorResolver := DummyResolver{false, false}
+	if err := noErrorResolver.Resolve(response, request); err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	resolver := landns.AlternateResolver{noErrorResolver, errorResolver, noErrorResolver}
+	if err := resolver.Resolve(response, request); err == nil {
+		t.Errorf("expected returns error but got nil")
+	} else if err.Error() != "test error" {
+		t.Errorf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
+	}
+
+	resolver = landns.AlternateResolver{errorResolver, noErrorResolver}
+	if err := resolver.Resolve(response, request); err == nil {
+		t.Errorf("expected returns error but got nil")
+	} else if err.Error() != "test error" {
+		t.Errorf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
+	}
 }
 
 func TestAlternateResolver_RecrusionAvailable(t *testing.T) {

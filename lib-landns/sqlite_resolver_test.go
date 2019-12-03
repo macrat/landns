@@ -13,7 +13,7 @@ type FatalFormatter interface {
 	Fatalf(fmt string, params ...interface{})
 }
 
-func createSqliteResolver(t FatalFormatter) *landns.SqliteResolver {
+func CreateSqliteResolver(t FatalFormatter) *landns.SqliteResolver {
 	metrics := landns.NewMetrics("landns")
 	resolver, err := landns.NewSqliteResolver(":memory:", metrics)
 	if err != nil {
@@ -24,7 +24,8 @@ func createSqliteResolver(t FatalFormatter) *landns.SqliteResolver {
 }
 
 func TestSqliteResolver_Addresses(t *testing.T) {
-	resolver := createSqliteResolver(t)
+	resolver := CreateSqliteResolver(t)
+	defer resolver.Close()
 
 	ttlA := uint32(123)
 	ttlB := uint32(321)
@@ -160,7 +161,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 }
 
 func TestSqliteResolver_Cnames(t *testing.T) {
-	resolver := createSqliteResolver(t)
+	resolver := CreateSqliteResolver(t)
 
 	ttlA := uint32(123)
 	ttlB := uint32(321)
@@ -251,7 +252,7 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 }
 
 func TestSqliteResolver_Texts(t *testing.T) {
-	resolver := createSqliteResolver(t)
+	resolver := CreateSqliteResolver(t)
 
 	ttlA := uint32(123)
 	ttlB := uint32(321)
@@ -342,7 +343,7 @@ func TestSqliteResolver_Texts(t *testing.T) {
 }
 
 func TestSqliteResolver_Services(t *testing.T) {
-	resolver := createSqliteResolver(t)
+	resolver := CreateSqliteResolver(t)
 
 	ttlA := uint32(123)
 	ttlB := uint32(321)
@@ -433,7 +434,7 @@ func TestSqliteResolver_Services(t *testing.T) {
 }
 
 func BenchmarkSqliteResolver(b *testing.B) {
-	resolver := createSqliteResolver(b)
+	resolver := CreateSqliteResolver(b)
 
 	config := landns.AddressesConfig{}
 
