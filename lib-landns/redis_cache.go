@@ -70,6 +70,8 @@ func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []strin
 		} else if err := w.Add(record); err != nil {
 			return err
 		}
+
+		w.SetNoAuthoritative()
 	}
 
 	return nil

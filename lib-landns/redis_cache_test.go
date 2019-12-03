@@ -53,13 +53,13 @@ func TestRedisCache(t *testing.T) {
 		func(ch chan struct{}) {
 			ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 100 IN A 127.1.2.3", "example.com. 10 IN A 127.2.3.4")
 			time.Sleep(1 * time.Second)
-			ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 9 IN A 127.1.2.3", "example.com. 9 IN A 127.2.3.4") // Override TTL with minimal TTL
+			ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), false, "example.com. 9 IN A 127.1.2.3", "example.com. 9 IN A 127.2.3.4") // Override TTL with minimal TTL
 			close(ch)
 		},
 		func(ch chan struct{}) {
 			ResolverTest(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), true, "short.example.com. 1 IN A 127.3.4.5")
 			time.Sleep(100 * time.Millisecond)
-			ResolverTest(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), true, "short.example.com. 1 IN A 127.3.4.5")
+			ResolverTest(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), false, "short.example.com. 1 IN A 127.3.4.5")
 			time.Sleep(1 * time.Second)
 			ResolverTest(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), true, "short.example.com. 1 IN A 127.3.4.5")
 			close(ch)
