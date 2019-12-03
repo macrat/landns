@@ -13,7 +13,7 @@ import (
 
 type DummyResolver struct {
 	Error     bool
-	Recrusion bool
+	Recursion bool
 }
 
 func (dr DummyResolver) Resolve(w landns.ResponseWriter, r landns.Request) error {
@@ -25,7 +25,7 @@ func (dr DummyResolver) Resolve(w landns.ResponseWriter, r landns.Request) error
 }
 
 func (dr DummyResolver) RecursionAvailable() bool {
-	return dr.Recrusion
+	return dr.Recursion
 }
 
 type DummyResponseWriter struct {
@@ -150,25 +150,25 @@ func TestResolverSet_ErrorHandling(t *testing.T) {
 	}
 }
 
-func TestResolverSet_RecrusionAvailable(t *testing.T) {
+func TestResolverSet_RecursionAvailable(t *testing.T) {
 	recursionResolver := DummyResolver{false, true}
 	if recursionResolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recrusion available: %v", recursionResolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
 	}
 
 	nonRecursionResolver := DummyResolver{false, false}
 	if nonRecursionResolver.RecursionAvailable() != false {
-		t.Fatalf("unexpected recrusion available: %v", nonRecursionResolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", nonRecursionResolver.RecursionAvailable())
 	}
 
 	resolver := landns.ResolverSet{nonRecursionResolver, recursionResolver, nonRecursionResolver}
 	if resolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recrusion available: %v", recursionResolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
 	}
 
 	resolver = landns.ResolverSet{nonRecursionResolver, nonRecursionResolver}
 	if resolver.RecursionAvailable() != false {
-		t.Fatalf("unexpected recrusion available: %v", recursionResolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
 	}
 }
 
@@ -253,25 +253,25 @@ func TestAlternateResolver_ErrorHandling(t *testing.T) {
 	}
 }
 
-func TestAlternateResolver_RecrusionAvailable(t *testing.T) {
+func TestAlternateResolver_RecursionAvailable(t *testing.T) {
 	recursionResolver := DummyResolver{false, true}
 	if recursionResolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recrusion available: %v", recursionResolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
 	}
 
 	nonRecursionResolver := DummyResolver{false, false}
 	if nonRecursionResolver.RecursionAvailable() != false {
-		t.Fatalf("unexpected recrusion available: %v", nonRecursionResolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", nonRecursionResolver.RecursionAvailable())
 	}
 
 	resolver := landns.AlternateResolver{nonRecursionResolver, recursionResolver, nonRecursionResolver}
 	if resolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recrusion available: %v", recursionResolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
 	}
 
 	resolver = landns.AlternateResolver{nonRecursionResolver, nonRecursionResolver}
 	if resolver.RecursionAvailable() != false {
-		t.Fatalf("unexpected recrusion available: %v", recursionResolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
 	}
 }
 

@@ -60,6 +60,6 @@ func TestForwardResolver(t *testing.T) {
 	}
 
 	if resolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recrusion available: %v", resolver.RecursionAvailable())
+		t.Fatalf("unexpected recursion available: %v", resolver.RecursionAvailable())
 	}
 }
