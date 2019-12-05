@@ -6,7 +6,15 @@ WORKDIR /go/src/github.com/macrat/landns
 
 COPY . .
 
-RUN go get -d && CGO_ENABLED=0 GOARCH=${arch} GOARM=${armv} go build -o /landns .
+RUN go get -d && \
+    GOARCH=${arch} \
+    GOARM=${armv} \
+    go build \
+    -tags netgo \
+    -installsuffix netgo \
+    --ldflags '-extldflags -static' \
+    -o /landns \
+    .
 
 
 FROM scratch
