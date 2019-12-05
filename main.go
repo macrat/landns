@@ -23,6 +23,30 @@ var (
 	metricsNamespace = app.Flag("metrics-namespace", "Namespace of prometheus metrics.").Default("landns").String()
 )
 
+func loadStatisResolvers(files []string) (resolver landns.ResolverSet, err error) {
+	for _, path := range files {
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer (*file).Close()
+
+		config, err := ioutil.ReadAll(file)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := landns.NewSimpleResolverFromConfig(config)
+		if err != nil {
+			return nil, err
+		}
+
+		resolver = append(resolver, r)
+	}
+
+	return resolver, nil
+}
+
 func main() {
 	app.Parse(os.Args[1:])
 
@@ -36,29 +60,13 @@ func main() {
 		log.Fatalf("dynamic-zone: %s", err)
 	}
 
-	resolverSet := landns.ResolverSet{}
-	for _, path := range *configFiles {
-		file, err := os.Open(path)
-		if err != nil {
-			log.Fatalf("static-zone: %s", err)
-		}
-		defer (*file).Close()
-
-		config, err := ioutil.ReadAll(file)
-		if err != nil {
-			log.Fatalf("static-zone: %s", err)
-		}
-
-		r, err := landns.NewSimpleResolverFromConfig(config)
-		if err != nil {
-			log.Fatalf("static-zone: %s", err)
-		}
-
-		resolverSet = append(resolverSet, r)
+	resolvers, err := loadStatisResolvers(*configFiles)
+	if err != nil {
+		log.Fatalf("static-zone: %s", err)
 	}
+	resolvers = append(resolvers, dynamicResolver)
 
-	var staticResolver landns.Resolver = resolverSet
-
+	var resolver landns.Resolver = resolvers
 	if len(*upstreams) > 0 {
 		us := make([]*net.UDPAddr, len(*upstreams))
 		for i, u := range *upstreams {
@@ -68,8 +76,8 @@ func main() {
 				Zone: u.Zone,
 			}
 		}
-		staticResolver = landns.AlternateResolver{
-			staticResolver,
+		resolver = landns.AlternateResolver{
+			resolver,
 			landns.NewForwardResolver(us, *upstreamTimeout, metrics),
 		}
 	}
@@ -77,7 +85,7 @@ func main() {
 	server := landns.Server{
 		Metrics:         metrics,
 		DynamicResolver: dynamicResolver,
-		StaticResolver:  staticResolver,
+		Resolvers:       resolver,
 	}
 
 	log.Printf("API server listen on %s", *apiListen)

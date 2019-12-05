@@ -12,7 +12,7 @@ import (
 type Server struct {
 	Metrics         *Metrics
 	DynamicResolver DynamicResolver
-	StaticResolver  Resolver
+	Resolvers       Resolver
 }
 
 func (s *Server) HTTPHandler() (http.Handler, error) {
@@ -34,7 +34,7 @@ func (s *Server) HTTPHandler() (http.Handler, error) {
 }
 
 func (s *Server) DNSHandler() dns.Handler {
-	return NewHandler(ResolverSet{s.DynamicResolver, s.StaticResolver}, s.Metrics)
+	return NewHandler(s.Resolvers, s.Metrics)
 }
 
 func (s *Server) ListenAndServe(apiAddress, dnsAddress *net.TCPAddr, dnsProto string) error {
