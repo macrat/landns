@@ -10,6 +10,18 @@ A DNS server for developers for home use.
 
 **BE CAREFUL**: this product is not stable yet. may change options and behavior.
 
+
+## Features
+
+- Serve addresses from the YAML style configuration file.
+
+- Serve addresses from a database that operatable with RESTFUL API.
+
+- Recursion resolve and caching addresses to local memory or Redis server.
+
+- Built-in metrics exporter for Prometheus.
+
+
 ## How to use
 
 ### Install server

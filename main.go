@@ -16,10 +16,14 @@ var (
 	configFiles      = app.Flag("config", "Path to static-zone configuration file.").Short('c').PlaceHolder("PATH").ExistingFiles()
 	sqlitePath       = app.Flag("sqlite", "Path to dynamic-zone sqlite3 database path. In default, dynamic-zone will not save to disk.").Short('s').PlaceHolder("PATH").String()
 	apiListen        = app.Flag("api-listen", "Address for API and metrics.").Short('l').Default(":9353").TCP()
-	dnsListen        = app.Flag("dns-listen", "Address for listen.").Default(":53").TCP()
+	dnsListen        = app.Flag("dns-listen", "Address for listen.").Short('L').Default(":53").TCP()
 	dnsProtocol      = app.Flag("dns-protocol", "Protocol for listen.").Default("udp").Enum("udp", "tcp")
-	upstreams        = app.Flag("upstream", "Upstream DNS server for recurion resolve.").Short('u').TCPList()
-	upstreamTimeout  = app.Flag("upstream-timeout", "Timeout for recursion resolve.").Default("100ms").Duration()
+	upstreams        = app.Flag("upstream", "Upstream DNS server for recursive resolve. (e.g. 8.8.8.8:53)").Short('u').PlaceHolder("ADDRESS").TCPList()
+	upstreamTimeout  = app.Flag("upstream-timeout", "Timeout for recursive resolve.").Default("100ms").Duration()
+	cacheDisabled    = app.Flag("disable-cache", "Disable cache for recursive resolve.").Bool()
+	redisAddr        = app.Flag("redis", "Address of Redis server for sharing recursive resolver's cache. (e.g. 127.0.0.1:6379)").PlaceHolder("ADDRESS").TCP()
+	redisPassword    = app.Flag("redis-password", "Password of Redis server.").PlaceHolder("PASSWORD").String()
+	redisDatabase    = app.Flag("redis-database", "Database ID of Redis server.").PlaceHolder("ID").Int()
 	metricsNamespace = app.Flag("metrics-namespace", "Namespace of prometheus metrics.").Default("landns").String()
 )
 
@@ -48,7 +52,8 @@ func loadStatisResolvers(files []string) (resolver landns.ResolverSet, err error
 }
 
 func main() {
-	app.Parse(os.Args[1:])
+	_, err := app.Parse(os.Args[1:])
+	app.FatalIfError(err, "")
 
 	metrics := landns.NewMetrics(*metricsNamespace)
 
@@ -56,14 +61,11 @@ func main() {
 		*sqlitePath = ":memory:"
 	}
 	dynamicResolver, err := landns.NewSqliteResolver(*sqlitePath, metrics)
-	if err != nil {
-		log.Fatalf("dynamic-zone: %s", err)
-	}
+	app.FatalIfError(err, "dynamic-zone")
 
 	resolvers, err := loadStatisResolvers(*configFiles)
-	if err != nil {
-		log.Fatalf("static-zone: %s", err)
-	}
+	app.FatalIfError(err, "static-zone")
+
 	resolvers = append(resolvers, dynamicResolver)
 
 	var resolver landns.Resolver = resolvers
@@ -76,10 +78,16 @@ func main() {
 				Zone: u.Zone,
 			}
 		}
-		resolver = landns.AlternateResolver{
-			resolver,
-			landns.NewForwardResolver(us, *upstreamTimeout, metrics),
+		var forwardResolver landns.Resolver = landns.NewForwardResolver(us, *upstreamTimeout, metrics)
+		if !*cacheDisabled {
+			if *redisAddr != nil {
+				forwardResolver, err = landns.NewRedisCache(*redisAddr, *redisDatabase, *redisPassword, forwardResolver)
+				app.FatalIfError(err, "recursive: Redis cache")
+			} else {
+				forwardResolver = landns.NewLocalCache(forwardResolver)
+			}
 		}
+		resolver = landns.AlternateResolver{resolver, forwardResolver}
 	}
 
 	server := landns.Server{

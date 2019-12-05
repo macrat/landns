@@ -1,10 +1,10 @@
 package main
 
 import (
-	"testing"
-	"os"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
 
 	"github.com/macrat/landns/lib-landns"
 	"github.com/miekg/dns"
