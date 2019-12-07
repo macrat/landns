@@ -140,15 +140,15 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 	return &SqliteResolver{path, db, metrics}, nil
 }
 
-func (r SqliteResolver) Close() {
+func (r *SqliteResolver) Close() {
 	r.db.Close()
 }
 
-func (r SqliteResolver) String() string {
+func (r *SqliteResolver) String() string {
 	return fmt.Sprintf("SqliteResolver[%s]", r.path)
 }
 
-func (r SqliteResolver) UpdateAddresses(config AddressesConfig) error {
+func (r *SqliteResolver) UpdateAddresses(config AddressesConfig) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -189,7 +189,7 @@ func (r SqliteResolver) UpdateAddresses(config AddressesConfig) error {
 	return tx.Commit()
 }
 
-func (r SqliteResolver) GetAddresses() (AddressesConfig, error) {
+func (r *SqliteResolver) GetAddresses() (AddressesConfig, error) {
 	rows, err := r.db.Query(`SELECT name, address, ttl FROM addresses`)
 	if err != nil {
 		return nil, err
@@ -203,7 +203,7 @@ func (r SqliteResolver) GetAddresses() (AddressesConfig, error) {
 	})
 }
 
-func (r SqliteResolver) UpdateCnames(config CnamesConfig) error {
+func (r *SqliteResolver) UpdateCnames(config CnamesConfig) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -238,7 +238,7 @@ func (r SqliteResolver) UpdateCnames(config CnamesConfig) error {
 	return tx.Commit()
 }
 
-func (r SqliteResolver) GetCnames() (CnamesConfig, error) {
+func (r *SqliteResolver) GetCnames() (CnamesConfig, error) {
 	rows, err := r.db.Query(`SELECT name, target, ttl FROM cnames`)
 	if err != nil {
 		return nil, err
@@ -252,7 +252,7 @@ func (r SqliteResolver) GetCnames() (CnamesConfig, error) {
 	})
 }
 
-func (r SqliteResolver) UpdateTexts(config TextsConfig) error {
+func (r *SqliteResolver) UpdateTexts(config TextsConfig) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -287,7 +287,7 @@ func (r SqliteResolver) UpdateTexts(config TextsConfig) error {
 	return tx.Commit()
 }
 
-func (r SqliteResolver) GetTexts() (TextsConfig, error) {
+func (r *SqliteResolver) GetTexts() (TextsConfig, error) {
 	rows, err := r.db.Query(`SELECT name, text, ttl FROM texts`)
 	if err != nil {
 		return nil, err
@@ -301,7 +301,7 @@ func (r SqliteResolver) GetTexts() (TextsConfig, error) {
 	})
 }
 
-func (r SqliteResolver) UpdateServices(config ServicesConfig) error {
+func (r *SqliteResolver) UpdateServices(config ServicesConfig) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -336,7 +336,7 @@ func (r SqliteResolver) UpdateServices(config ServicesConfig) error {
 	return tx.Commit()
 }
 
-func (r SqliteResolver) GetServices() (ServicesConfig, error) {
+func (r *SqliteResolver) GetServices() (ServicesConfig, error) {
 	rows, err := r.db.Query(`SELECT name, priority, weight, port, target, ttl FROM services`)
 	if err != nil {
 		return nil, err
@@ -350,7 +350,7 @@ func (r SqliteResolver) GetServices() (ServicesConfig, error) {
 	})
 }
 
-func (r SqliteResolver) ResolveAddresses(name string) (resp []AddressRecord, err error) {
+func (r *SqliteResolver) ResolveAddresses(name string) (resp []AddressRecord, err error) {
 	rows, err := r.db.Query(`SELECT name, address, ttl FROM addresses WHERE name = ?`, name)
 	if err != nil {
 		return nil, err
@@ -362,7 +362,7 @@ func (r SqliteResolver) ResolveAddresses(name string) (resp []AddressRecord, err
 	})
 }
 
-func (r SqliteResolver) ResolveA(name string) (resp []Record, err error) {
+func (r *SqliteResolver) ResolveA(name string) (resp []Record, err error) {
 	ipresp, err := r.ResolveAddresses(name)
 	if err != nil {
 		return nil, err
@@ -376,7 +376,7 @@ func (r SqliteResolver) ResolveA(name string) (resp []Record, err error) {
 	return
 }
 
-func (r SqliteResolver) ResolveAAAA(name string) (resp []Record, err error) {
+func (r *SqliteResolver) ResolveAAAA(name string) (resp []Record, err error) {
 	ipresp, err := r.ResolveAddresses(name)
 	if err != nil {
 		return nil, err
@@ -390,7 +390,7 @@ func (r SqliteResolver) ResolveAAAA(name string) (resp []Record, err error) {
 	return
 }
 
-func (r SqliteResolver) ResolvePTR(addr string) (resp []Record, err error) {
+func (r *SqliteResolver) ResolvePTR(addr string) (resp []Record, err error) {
 	rows, err := r.db.Query(`SELECT name, address, ttl FROM addresses WHERE reverse_address = ?`, addr)
 	if err != nil {
 		return nil, err
@@ -406,7 +406,7 @@ func (r SqliteResolver) ResolvePTR(addr string) (resp []Record, err error) {
 	})
 }
 
-func (r SqliteResolver) ResolveCNAME(name string) (resp []Record, err error) {
+func (r *SqliteResolver) ResolveCNAME(name string) (resp []Record, err error) {
 	rows, err := r.db.Query(`SELECT name, target, ttl FROM cnames WHERE name = ?`, name)
 	if err != nil {
 		return nil, err
@@ -418,7 +418,7 @@ func (r SqliteResolver) ResolveCNAME(name string) (resp []Record, err error) {
 	})
 }
 
-func (r SqliteResolver) ResolveTXT(name string) (resp []Record, err error) {
+func (r *SqliteResolver) ResolveTXT(name string) (resp []Record, err error) {
 	rows, err := r.db.Query(`SELECT name, text, ttl FROM texts WHERE name = ?`, name)
 	if err != nil {
 		return nil, err
@@ -430,7 +430,7 @@ func (r SqliteResolver) ResolveTXT(name string) (resp []Record, err error) {
 	})
 }
 
-func (r SqliteResolver) ResolveSRV(name string) (resp []Record, err error) {
+func (r *SqliteResolver) ResolveSRV(name string) (resp []Record, err error) {
 	rows, err := r.db.Query(`SELECT name, priority, weight, port, target, ttl FROM services WHERE name = ?`, name)
 	if err != nil {
 		return nil, err
@@ -442,7 +442,7 @@ func (r SqliteResolver) ResolveSRV(name string) (resp []Record, err error) {
 	})
 }
 
-func (r SqliteResolver) Resolve(resp ResponseWriter, req Request) error {
+func (r *SqliteResolver) Resolve(resp ResponseWriter, req Request) error {
 	var rs []Record
 	var err error
 
@@ -466,6 +466,6 @@ func (r SqliteResolver) Resolve(resp ResponseWriter, req Request) error {
 	return err
 }
 
-func (r SqliteResolver) RecursionAvailable() bool {
+func (r *SqliteResolver) RecursionAvailable() bool {
 	return false
 }
