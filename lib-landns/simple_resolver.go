@@ -53,6 +53,10 @@ func (sr SimpleResolver) RecursionAvailable() bool {
 	return false
 }
 
+func (sr SimpleResolver) Close() error {
+	return nil
+}
+
 func (sr SimpleResolver) Validate() error {
 	for _, domains := range sr {
 		for _, records := range domains {

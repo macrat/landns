@@ -22,7 +22,11 @@ func TestLocalCache(t *testing.T) {
 		t.Fatalf("failed to validate upstream resolver: %s", err)
 	}
 	resolver := landns.NewLocalCache(upstream)
-	defer resolver.Close()
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	if resolver.String() != "LocalCache[0 domains 0 records]" {
 		t.Errorf("unexpected string: %s", resolver)
@@ -73,7 +77,11 @@ func BenchmarkLocalCache(b *testing.B) {
 		b.Fatalf("failed to validate upstream resolver: %s", err)
 	}
 	resolver := landns.NewLocalCache(upstream)
-	defer resolver.Close()
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			b.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	req := landns.NewRequest("example.com.", dns.TypeA, false)
 
@@ -82,4 +90,6 @@ func BenchmarkLocalCache(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
+
+	b.StopTimer()
 }

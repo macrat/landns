@@ -50,6 +50,11 @@ func TestForwardResolver(t *testing.T) {
 	addr := StartDummyDNSServer(ctx, t, landns.NewSimpleResolver(records))
 
 	resolver := landns.NewForwardResolver([]*net.UDPAddr{addr}, 1*time.Second, landns.NewMetrics("landns"))
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	for request, records := range testCases {
 		rs := []string{}

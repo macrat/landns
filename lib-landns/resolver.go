@@ -2,9 +2,12 @@ package landns
 
 import (
 	"fmt"
+	"io"
 )
 
 type Resolver interface {
+	io.Closer
+
 	Resolve(ResponseWriter, Request) error
 	RecursionAvailable() bool
 }
@@ -27,6 +30,15 @@ func (rs ResolverSet) RecursionAvailable() bool {
 		}
 	}
 	return false
+}
+
+func (rs ResolverSet) Close() error {
+	for _, r := range rs {
+		if err := r.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (rs ResolverSet) String() string {
@@ -64,4 +76,13 @@ func (ar AlternateResolver) RecursionAvailable() bool {
 		}
 	}
 	return false
+}
+
+func (ar AlternateResolver) Close() error {
+	for _, r := range ar {
+		if err := r.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -90,6 +90,11 @@ func main() {
 		resolver = landns.AlternateResolver{resolver, forwardResolver}
 	}
 
+	defer func() {
+		err := resolver.Close()
+		app.FatalIfError(err, "failed to close")
+	}()
+
 	server := landns.Server{
 		Metrics:         metrics,
 		DynamicResolver: dynamicResolver,

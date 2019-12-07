@@ -64,3 +64,7 @@ func (fr ForwardResolver) Resolve(w ResponseWriter, r Request) error {
 func (fr ForwardResolver) RecursionAvailable() bool {
 	return true
 }
+
+func (fr ForwardResolver) Close() error {
+	return nil
+}

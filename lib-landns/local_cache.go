@@ -55,9 +55,10 @@ func (lc *LocalCache) String() string {
 	return fmt.Sprintf("LocalCache[%d domains %d records]", len(domains), records)
 }
 
-func (lc *LocalCache) Close() {
+func (lc *LocalCache) Close() error {
 	close(lc.closer)
 	close(lc.invoke)
+	return nil
 }
 
 func (lc *LocalCache) manageTask() (next time.Duration) {

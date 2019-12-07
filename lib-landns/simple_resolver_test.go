@@ -25,6 +25,11 @@ func TestSimpleResolver(t *testing.T) {
 			landns.SrvRecord{Name: landns.Domain("_http._tcp.example.com."), Port: 10, Target: landns.Domain("target.local.")},
 		},
 	)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	if err := resolver.Validate(); err != nil {
 		t.Fatalf("failed to validate resolver: %s", err)
@@ -61,6 +66,11 @@ func BenchmarkSimpleResolver(b *testing.B) {
 	}
 
 	resolver := landns.NewSimpleResolver(records)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			b.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	if err := resolver.Validate(); err != nil {
 		b.Fatalf("failed to validate resolver: %s", err)
@@ -73,6 +83,8 @@ func BenchmarkSimpleResolver(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
+
+	b.StopTimer()
 }
 
 func TestNewSimpleResolverFromConfig(t *testing.T) {
@@ -110,6 +122,11 @@ service:
 	if err != nil {
 		t.Fatalf("failed to parse config: %s", err.Error())
 	}
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	if err := resolver.Validate(); err != nil {
 		t.Fatalf("invalid resolver state: %s", err)
@@ -146,6 +163,11 @@ func TestNewSimpleResolverFromConfig_WithoutTTL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to parse config: %s", err.Error())
 	}
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 3600 IN A 127.1.2.3")
 }

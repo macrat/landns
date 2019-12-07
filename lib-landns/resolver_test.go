@@ -28,6 +28,10 @@ func (dr DummyResolver) RecursionAvailable() bool {
 	return dr.Recursion
 }
 
+func (dr DummyResolver) Close() error {
+	return nil
+}
+
 type DummyResponseWriter struct {
 	Records       []landns.Record
 	Authoritative bool
@@ -117,6 +121,12 @@ func TestResolverSet(t *testing.T) {
 		},
 	}
 
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Errorf("failed to close: %s", err)
+		}
+	}()
+
 	if s := resolver.String(); s != "ResolverSet[SimpleResolver[1 domains 1 types 1 records] SimpleResolver[2 domains 1 types 2 records]]" {
 		t.Errorf(`unexpected resolver string: "%s"`, s)
 	}
@@ -174,6 +184,11 @@ func TestResolverSet_RecursionAvailable(t *testing.T) {
 
 func BenchmarkResolverSet(b *testing.B) {
 	resolver := make(landns.ResolverSet, 100)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			b.Errorf("failed to close: %s", err)
+		}
+	}()
 
 	for i := 0; i < 100; i++ {
 		host := fmt.Sprintf("host%d.example.com.", i)
@@ -194,6 +209,8 @@ func BenchmarkResolverSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resolver.Resolve(resp, req)
 	}
+
+	b.StopTimer()
 }
 
 func TestAlternateResolver(t *testing.T) {
@@ -216,6 +233,12 @@ func TestAlternateResolver(t *testing.T) {
 			},
 		},
 	}
+
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Errorf("failed to close: %s", err)
+		}
+	}()
 
 	ResolverTest(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1")
 	ResolverTest(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
@@ -277,6 +300,11 @@ func TestAlternateResolver_RecursionAvailable(t *testing.T) {
 
 func BenchmarkAlternateResolver(b *testing.B) {
 	resolver := make(landns.AlternateResolver, 100)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			b.Errorf("failed to close: %s", err)
+		}
+	}()
 
 	for i := 0; i < 100; i++ {
 		host := fmt.Sprintf("host%d.example.com.", i)
@@ -297,4 +325,6 @@ func BenchmarkAlternateResolver(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resolver.Resolve(resp, req)
 	}
+
+	b.StopTimer()
 }

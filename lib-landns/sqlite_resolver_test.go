@@ -25,7 +25,11 @@ func CreateSqliteResolver(t FatalFormatter) *landns.SqliteResolver {
 
 func TestSqliteResolver_Addresses(t *testing.T) {
 	resolver := CreateSqliteResolver(t)
-	defer resolver.Close()
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	ttlA := uint32(123)
 	ttlB := uint32(321)
@@ -162,6 +166,11 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 
 func TestSqliteResolver_Cnames(t *testing.T) {
 	resolver := CreateSqliteResolver(t)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	ttlA := uint32(123)
 	ttlB := uint32(321)
@@ -253,6 +262,11 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 
 func TestSqliteResolver_Texts(t *testing.T) {
 	resolver := CreateSqliteResolver(t)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	ttlA := uint32(123)
 	ttlB := uint32(321)
@@ -344,6 +358,11 @@ func TestSqliteResolver_Texts(t *testing.T) {
 
 func TestSqliteResolver_Services(t *testing.T) {
 	resolver := CreateSqliteResolver(t)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	ttlA := uint32(123)
 	ttlB := uint32(321)
@@ -435,6 +454,11 @@ func TestSqliteResolver_Services(t *testing.T) {
 
 func BenchmarkSqliteResolver(b *testing.B) {
 	resolver := CreateSqliteResolver(b)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			b.Fatalf("failed to close: %s", err)
+		}
+	}()
 
 	config := landns.AddressesConfig{}
 
@@ -454,4 +478,6 @@ func BenchmarkSqliteResolver(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
+
+	b.StopTimer()
 }

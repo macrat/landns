@@ -140,10 +140,6 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 	return &SqliteResolver{path, db, metrics}, nil
 }
 
-func (r *SqliteResolver) Close() {
-	r.db.Close()
-}
-
 func (r *SqliteResolver) String() string {
 	return fmt.Sprintf("SqliteResolver[%s]", r.path)
 }
@@ -468,4 +464,8 @@ func (r *SqliteResolver) Resolve(resp ResponseWriter, req Request) error {
 
 func (r *SqliteResolver) RecursionAvailable() bool {
 	return false
+}
+
+func (r *SqliteResolver) Close() error {
+	return r.db.Close()
 }
