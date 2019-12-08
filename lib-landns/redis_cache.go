@@ -13,9 +13,10 @@ import (
 type RedisCache struct {
 	client   *redis.Client
 	upstream Resolver
+	metrics  *Metrics
 }
 
-func NewRedisCache(addr *net.TCPAddr, database int, password string, upstream Resolver) (RedisCache, error) {
+func NewRedisCache(addr *net.TCPAddr, database int, password string, upstream Resolver, metrics *Metrics) (RedisCache, error) {
 	rc := RedisCache{
 		client: redis.NewClient(&redis.Options{
 			Addr:     addr.String(),
@@ -23,6 +24,7 @@ func NewRedisCache(addr *net.TCPAddr, database int, password string, upstream Re
 			DB:       database,
 		}),
 		upstream: upstream,
+		metrics:  metrics,
 	}
 	return rc, rc.client.Ping().Err()
 }
@@ -32,6 +34,8 @@ func (rc RedisCache) Close() error {
 }
 
 func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string) error {
+	rc.metrics.CacheHit(r)
+
 	ttl := uint32(math.MaxUint32)
 	wh := ResponseWriterHook{
 		Writer: w,
@@ -57,6 +61,8 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 }
 
 func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []string, ttl time.Duration) error {
+	rc.metrics.CacheMiss(r)
+
 	for _, str := range cache {
 		rr, err := dns.NewRR(str)
 		if err != nil {

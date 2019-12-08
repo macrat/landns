@@ -41,7 +41,7 @@ func TestRedisCache(t *testing.T) {
 	if err := upstream.Validate(); err != nil {
 		t.Fatalf("failed to validate upstream resolver: %s", err)
 	}
-	resolver, err := landns.NewRedisCache(redisAddr, 0, "", upstream)
+	resolver, err := landns.NewRedisCache(redisAddr, 0, "", upstream, landns.NewMetrics("landns"))
 	if err != nil {
 		t.Fatalf("failed to connect redis server: %s", err)
 	}
@@ -93,7 +93,7 @@ func BenchmarkRedisCache(b *testing.B) {
 	if err := upstream.Validate(); err != nil {
 		b.Fatalf("failed to validate upstream resolver: %s", err)
 	}
-	resolver, err := landns.NewRedisCache(redisAddr, 0, "", upstream)
+	resolver, err := landns.NewRedisCache(redisAddr, 0, "", upstream, landns.NewMetrics("landns"))
 	if err != nil {
 		b.Fatalf("failed to connect redis server: %s", err)
 	}

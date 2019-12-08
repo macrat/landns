@@ -20,14 +20,16 @@ type LocalCache struct {
 	invoke   chan struct{}
 	closer   chan struct{}
 	upstream Resolver
+	metrics  *Metrics
 }
 
-func NewLocalCache(upstream Resolver) *LocalCache {
+func NewLocalCache(upstream Resolver, metrics *Metrics) *LocalCache {
 	lc := &LocalCache{
 		entries:  make(map[uint16]map[Domain][]localCacheEntry),
 		invoke:   make(chan struct{}, 100),
 		closer:   make(chan struct{}),
 		upstream: upstream,
+		metrics:  metrics,
 	}
 
 	for _, t := range []uint16{dns.TypeA, dns.TypeNS, dns.TypeCNAME, dns.TypePTR, dns.TypeMX, dns.TypeTXT, dns.TypeAAAA, dns.TypeSRV} {
@@ -128,6 +130,8 @@ func (lc *LocalCache) add(r Record) {
 }
 
 func (lc *LocalCache) resolveFromUpstream(w ResponseWriter, r Request) error {
+	lc.metrics.CacheMiss(r)
+
 	wh := ResponseWriterHook{
 		Writer: w,
 		OnAdd:  lc.add,
@@ -136,7 +140,9 @@ func (lc *LocalCache) resolveFromUpstream(w ResponseWriter, r Request) error {
 	return lc.upstream.Resolve(wh, r)
 }
 
-func (lc *LocalCache) resolveFromCache(w ResponseWriter, records []localCacheEntry) error {
+func (lc *LocalCache) resolveFromCache(w ResponseWriter, r Request, records []localCacheEntry) error {
+	lc.metrics.CacheHit(r)
+
 	w.SetNoAuthoritative()
 
 	now := time.Now()
@@ -178,7 +184,7 @@ func (lc *LocalCache) Resolve(w ResponseWriter, r Request) error {
 		}
 	}
 
-	return lc.resolveFromCache(w, records)
+	return lc.resolveFromCache(w, r, records)
 }
 
 func (lc *LocalCache) RecursionAvailable() bool {

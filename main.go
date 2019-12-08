@@ -81,10 +81,10 @@ func main() {
 		var forwardResolver landns.Resolver = landns.NewForwardResolver(us, *upstreamTimeout, metrics)
 		if !*cacheDisabled {
 			if *redisAddr != nil {
-				forwardResolver, err = landns.NewRedisCache(*redisAddr, *redisDatabase, *redisPassword, forwardResolver)
+				forwardResolver, err = landns.NewRedisCache(*redisAddr, *redisDatabase, *redisPassword, forwardResolver, metrics)
 				app.FatalIfError(err, "recursive: Redis cache")
 			} else {
-				forwardResolver = landns.NewLocalCache(forwardResolver)
+				forwardResolver = landns.NewLocalCache(forwardResolver, metrics)
 			}
 		}
 		resolver = landns.AlternateResolver{resolver, forwardResolver}

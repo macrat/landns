@@ -11,14 +11,16 @@ import (
 )
 
 type Metrics struct {
-	queryCount      prometheus.Counter
-	skipCount       prometheus.Counter
-	resolveCounters map[string]prometheus.Counter
-	unauthCounters  map[string]prometheus.Counter
-	missCounters    map[string]prometheus.Counter
-	errorCounters   map[string]prometheus.Counter
-	resolveTime     prometheus.Summary
-	upstreamTime    prometheus.Summary
+	queryCount        prometheus.Counter
+	skipCount         prometheus.Counter
+	resolveCounters   map[string]prometheus.Counter
+	unauthCounters    map[string]prometheus.Counter
+	missCounters      map[string]prometheus.Counter
+	errorCounters     map[string]prometheus.Counter
+	cacheHitCounters  map[string]prometheus.Counter
+	cacheMissCounters map[string]prometheus.Counter
+	resolveTime       prometheus.Summary
+	upstreamTime      prometheus.Summary
 }
 
 func newCounter(namespace, name string, labels prometheus.Labels) prometheus.Counter {
@@ -34,22 +36,28 @@ func NewMetrics(namespace string) *Metrics {
 	unauthes := map[string]prometheus.Counter{}
 	misses := map[string]prometheus.Counter{}
 	errors := map[string]prometheus.Counter{}
+	cacheHits := map[string]prometheus.Counter{}
+	cacheMisses := map[string]prometheus.Counter{}
 
 	for _, qtype := range []string{"A", "AAAA", "PTR", "SRV", "TXT"} {
 		resolves[qtype] = newCounter(namespace, "resolve", prometheus.Labels{"type": qtype, "source": "local"})
 		unauthes[qtype] = newCounter(namespace, "resolve", prometheus.Labels{"type": qtype, "source": "upstream"})
 		misses[qtype] = newCounter(namespace, "resolve", prometheus.Labels{"type": qtype, "source": "not-found"})
 		errors[qtype] = newCounter(namespace, "resolve_error", prometheus.Labels{"type": qtype})
+		cacheHits[qtype] = newCounter(namespace, "cache", prometheus.Labels{"type": qtype, "cache": "hit"})
+		cacheMisses[qtype] = newCounter(namespace, "cache", prometheus.Labels{"type": qtype, "cache": "miss"})
 	}
 
 	return &Metrics{
 		queryCount: newCounter(namespace, "received_message", prometheus.Labels{"type": "query"}),
 		skipCount:  newCounter(namespace, "received_message", prometheus.Labels{"type": "another"}),
 
-		resolveCounters: resolves,
-		unauthCounters:  unauthes,
-		missCounters:    misses,
-		errorCounters:   errors,
+		resolveCounters:   resolves,
+		unauthCounters:    unauthes,
+		missCounters:      misses,
+		errorCounters:     errors,
+		cacheHitCounters:  cacheHits,
+		cacheMissCounters: cacheMisses,
 
 		resolveTime: prometheus.NewSummary(prometheus.SummaryOpts{
 			Namespace:  namespace,
@@ -91,6 +99,12 @@ func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
 	for _, c := range m.errorCounters {
 		c.Describe(ch)
 	}
+	for _, c := range m.cacheHitCounters {
+		c.Describe(ch)
+	}
+	for _, c := range m.cacheMissCounters {
+		c.Describe(ch)
+	}
 
 	m.resolveTime.Describe(ch)
 	m.upstreamTime.Describe(ch)
@@ -110,6 +124,12 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 		c.Collect(ch)
 	}
 	for _, c := range m.errorCounters {
+		c.Collect(ch)
+	}
+	for _, c := range m.cacheHitCounters {
+		c.Collect(ch)
+	}
+	for _, c := range m.cacheMissCounters {
 		c.Collect(ch)
 	}
 
@@ -156,4 +176,16 @@ func (m *Metrics) Error(req Request, err error) {
 
 func (m *Metrics) UpstreamTime(duration time.Duration) {
 	m.upstreamTime.Observe(duration.Seconds())
+}
+
+func (m *Metrics) CacheHit(req Request) {
+	if counter, ok := m.cacheHitCounters[req.QtypeString()]; ok {
+		counter.Inc()
+	}
+}
+
+func (m *Metrics) CacheMiss(req Request) {
+	if counter, ok := m.cacheMissCounters[req.QtypeString()]; ok {
+		counter.Inc()
+	}
 }

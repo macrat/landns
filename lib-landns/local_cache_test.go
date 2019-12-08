@@ -21,7 +21,7 @@ func TestLocalCache(t *testing.T) {
 	if err := upstream.Validate(); err != nil {
 		t.Fatalf("failed to validate upstream resolver: %s", err)
 	}
-	resolver := landns.NewLocalCache(upstream)
+	resolver := landns.NewLocalCache(upstream, landns.NewMetrics("landns"))
 	defer func() {
 		if err := resolver.Close(); err != nil {
 			t.Fatalf("failed to close: %s", err)
@@ -76,7 +76,7 @@ func BenchmarkLocalCache(b *testing.B) {
 	if err := upstream.Validate(); err != nil {
 		b.Fatalf("failed to validate upstream resolver: %s", err)
 	}
-	resolver := landns.NewLocalCache(upstream)
+	resolver := landns.NewLocalCache(upstream, landns.NewMetrics("landns"))
 	defer func() {
 		if err := resolver.Close(); err != nil {
 			b.Fatalf("failed to close: %s", err)

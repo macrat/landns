@@ -114,6 +114,14 @@ func TestMetrics(t *testing.T) {
 		MetricsResponseTest(t, "message count", get(), regexp.MustCompile(`landns_received_message_count\{.*type="query".*\} (.*)`), i+1)
 	}
 
+	MetricsResponseTest(t, "cache hit count", get(), regexp.MustCompile(`landns_cache_count\{.*cache="hit".*type="A".*\} (.*)`), 0)
+	metrics.CacheHit(landns.NewRequest("example.com.", dns.TypeA, true))
+	MetricsResponseTest(t, "cache hit count", get(), regexp.MustCompile(`landns_cache_count\{.*cache="hit".*type="A".*\} (.*)`), 1)
+
+	MetricsResponseTest(t, "cache miss count", get(), regexp.MustCompile(`landns_cache_count\{.*cache="miss".*type="A".*\} (.*)`), 0)
+	metrics.CacheMiss(landns.NewRequest("example.com.", dns.TypeA, true))
+	MetricsResponseTest(t, "cache miss count", get(), regexp.MustCompile(`landns_cache_count\{.*cache="miss".*type="A".*\} (.*)`), 1)
+
 	MetricsResponseTest(t, "skip count", get(), regexp.MustCompile(`landns_received_message_count\{.*type="another".*\} (.*)`), 0)
 	req := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Id: dns.Id(), Opcode: dns.OpcodeNotify},
@@ -148,7 +156,7 @@ func BenchmarkMetrics(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := 0; i<b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		metrics.Start(req)(resp)
 	}
 }
