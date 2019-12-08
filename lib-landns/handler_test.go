@@ -8,38 +8,11 @@ import (
 	"os"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
-
-func StartDummyDNSServer(ctx context.Context, t *testing.T, resolver landns.Resolver) *net.UDPAddr {
-	addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 3553}
-
-	server := dns.Server{
-		Addr:      addr.String(),
-		Net:       "udp",
-		ReusePort: true,
-		Handler:   landns.NewHandler(resolver, landns.NewMetrics("landns")),
-	}
-
-	go func() {
-		err := server.ListenAndServe()
-		if ctx.Err() == nil {
-			t.Fatalf("failed to serve dummy DNS: %s", err)
-		}
-	}()
-
-	go func() {
-		<-ctx.Done()
-		server.Shutdown()
-	}()
-
-	time.Sleep(10 * time.Millisecond) // Wait for start DNS server
-
-	return addr
-}
 
 func TestHandler(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -52,7 +25,7 @@ func TestHandler(t *testing.T) {
 		t.Errorf("failed to make resolver: %s", err)
 	}
 
-	addr := StartDummyDNSServer(ctx, t, resolver)
+	addr := testutil.StartDummyDNSServer(ctx, t, resolver)
 
 	msg := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Id: dns.Id()},
@@ -89,8 +62,8 @@ func TestHandler_ErrorHandling(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	resolver := &DummyResolver{false, false}
-	addr := StartDummyDNSServer(ctx, t, resolver)
+	resolver := &testutil.DummyResolver{false, false}
+	addr := testutil.StartDummyDNSServer(ctx, t, resolver)
 
 	msg := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Id: dns.Id()},

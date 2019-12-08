@@ -6,14 +6,11 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
-type FatalFormatter interface {
-	Fatalf(fmt string, params ...interface{})
-}
-
-func CreateSqliteResolver(t FatalFormatter) *landns.SqliteResolver {
+func CreateSqliteResolver(t testutil.FatalFormatter) *landns.SqliteResolver {
 	metrics := landns.NewMetrics("landns")
 	resolver, err := landns.NewSqliteResolver(":memory:", metrics)
 	if err != nil {
@@ -95,7 +92,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		}
 	}
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeA, false),
@@ -104,10 +101,10 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		"example.com. 321 IN A 127.0.0.2",
 	)
 
-	ResolverTest(t, resolver, landns.NewRequest("1.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.0.0.127.in-addr.arpa. 123 IN PTR example.com.")
-	ResolverTest(t, resolver, landns.NewRequest("2.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "2.0.0.127.in-addr.arpa. 321 IN PTR example.com.")
+	testutil.AssertResolve(t, resolver, landns.NewRequest("1.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.0.0.127.in-addr.arpa. 123 IN PTR example.com.")
+	testutil.AssertResolve(t, resolver, landns.NewRequest("2.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, "2.0.0.127.in-addr.arpa. 321 IN PTR example.com.")
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeAAAA, false),
@@ -115,7 +112,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		"example.com. 123 IN AAAA 1:1::1",
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.1.0.0.0.ip6.arpa.", dns.TypePTR, false),
@@ -123,14 +120,14 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		"1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.1.0.0.0.ip6.arpa. 123 IN PTR example.com.",
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("blanktar.jp.", dns.TypeA, false),
 		true,
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false),
@@ -138,7 +135,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		"blanktar.jp. 123 IN AAAA 1:2::2",
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa.", dns.TypePTR, false),
@@ -146,7 +143,7 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa. 123 IN PTR blanktar.jp.",
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("test.local.", dns.TypeA, false),
@@ -154,9 +151,9 @@ func TestSqliteResolver_Addresses(t *testing.T) {
 		"test.local. 321 IN A 127.0.3.1",
 	)
 
-	ResolverTest(t, resolver, landns.NewRequest("1.3.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.3.0.127.in-addr.arpa. 321 IN PTR test.local.")
+	testutil.AssertResolve(t, resolver, landns.NewRequest("1.3.0.127.in-addr.arpa.", dns.TypePTR, false), true, "1.3.0.127.in-addr.arpa. 321 IN PTR test.local.")
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("test.local.", dns.TypeAAAA, false),
@@ -234,7 +231,7 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 		}
 	}
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeCNAME, false),
@@ -243,7 +240,7 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 		"example.com. 321 IN CNAME b.example.com.",
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("blanktar.jp.", dns.TypeCNAME, false),
@@ -251,7 +248,7 @@ func TestSqliteResolver_Cnames(t *testing.T) {
 		"blanktar.jp. 123 IN CNAME e.example.com.",
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("test.local.", dns.TypeCNAME, false),
@@ -330,7 +327,7 @@ func TestSqliteResolver_Texts(t *testing.T) {
 		}
 	}
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("example.com.", dns.TypeTXT, false),
@@ -339,7 +336,7 @@ func TestSqliteResolver_Texts(t *testing.T) {
 		`example.com. 321 IN TXT "def"`,
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("blanktar.jp.", dns.TypeTXT, false),
@@ -347,7 +344,7 @@ func TestSqliteResolver_Texts(t *testing.T) {
 		`blanktar.jp. 123 IN TXT "mno"`,
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("test.local.", dns.TypeTXT, false),
@@ -426,7 +423,7 @@ func TestSqliteResolver_Services(t *testing.T) {
 		}
 	}
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("_web._tcp.example.com.", dns.TypeSRV, false),
@@ -435,7 +432,7 @@ func TestSqliteResolver_Services(t *testing.T) {
 		`_web._tcp.example.com. 321 IN SRV 4 5 6 b.example.com.`,
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("_ftp._tcp.blanktar.jp.", dns.TypeSRV, false),
@@ -443,7 +440,7 @@ func TestSqliteResolver_Services(t *testing.T) {
 		`_ftp._tcp.blanktar.jp. 123 IN SRV 13 14 15 e.example.com.`,
 	)
 
-	ResolverTest(
+	testutil.AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("_dns._udp.test.local.", dns.TypeSRV, false),
@@ -476,7 +473,7 @@ func BenchmarkSqliteResolver(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(NewDummyResponseWriter(), req)
+		resolver.Resolve(testutil.NewDummyResponseWriter(), req)
 	}
 
 	b.StopTimer()

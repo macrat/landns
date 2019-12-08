@@ -3,63 +3,13 @@ package landns_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"net"
-	"net/http"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
-
-func StartDummyMetricsServer(ctx context.Context, t *testing.T, namespace string) (*landns.Metrics, func() string) {
-	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5380}
-
-	metrics := landns.NewMetrics("landns")
-	handler, err := metrics.HTTPHandler()
-	if err != nil {
-		t.Fatalf("failed to serve dummy metrics server: %s", err)
-	}
-
-	server := http.Server{
-		Addr:    addr.String(),
-		Handler: handler,
-	}
-
-	go func() {
-		err := server.ListenAndServe()
-		if ctx.Err() == nil {
-			t.Fatalf("failed to serve dummy metrics server: %s", err)
-		}
-	}()
-
-	go func() {
-		<-ctx.Done()
-		c, _ := context.WithTimeout(context.Background(), 1*time.Second)
-		if err := server.Shutdown(c); err != nil {
-			t.Errorf("failed to stop dummy metrics server: %s", err)
-		}
-	}()
-
-	time.Sleep(10 * time.Millisecond) // Wait for start DNS server
-
-	return metrics, func() string {
-		resp, err := http.Get(fmt.Sprintf("http://%s", addr))
-		if err != nil {
-			t.Fatalf("failed to get metrics: %s", err)
-		}
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatalf("failed to get metrics: %s", err)
-		}
-
-		return string(body)
-	}
-}
 
 func MetricsResponseTest(t *testing.T, name, metrics string, re *regexp.Regexp, expect int) {
 	result := re.FindStringSubmatch(metrics)
@@ -75,7 +25,7 @@ func TestMetrics(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	metrics, get := StartDummyMetricsServer(ctx, t, "landns")
+	metrics, get := testutil.StartDummyMetricsServer(ctx, t, "landns")
 
 	for i, test := range []struct {
 		Name           string
