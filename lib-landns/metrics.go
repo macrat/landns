@@ -14,6 +14,7 @@ type Metrics struct {
 	queryCount      prometheus.Counter
 	skipCount       prometheus.Counter
 	resolveCounters map[string]prometheus.Counter
+	unauthCounters  map[string]prometheus.Counter
 	missCounters    map[string]prometheus.Counter
 	errorCounters   map[string]prometheus.Counter
 	resolveTime     prometheus.Summary
@@ -30,12 +31,14 @@ func newCounter(namespace, name string, labels prometheus.Labels) prometheus.Cou
 
 func NewMetrics(namespace string) *Metrics {
 	resolves := map[string]prometheus.Counter{}
+	unauthes := map[string]prometheus.Counter{}
 	misses := map[string]prometheus.Counter{}
 	errors := map[string]prometheus.Counter{}
 
 	for _, qtype := range []string{"A", "AAAA", "PTR", "SRV", "TXT"} {
-		resolves[qtype] = newCounter(namespace, "resolve", prometheus.Labels{"type": qtype, "result": "hit"})
-		misses[qtype] = newCounter(namespace, "resolve", prometheus.Labels{"type": qtype, "result": "miss"})
+		resolves[qtype] = newCounter(namespace, "resolve", prometheus.Labels{"type": qtype, "source": "local"})
+		unauthes[qtype] = newCounter(namespace, "resolve", prometheus.Labels{"type": qtype, "source": "upstream"})
+		misses[qtype] = newCounter(namespace, "resolve", prometheus.Labels{"type": qtype, "source": "not-found"})
 		errors[qtype] = newCounter(namespace, "resolve_error", prometheus.Labels{"type": qtype})
 	}
 
@@ -44,6 +47,7 @@ func NewMetrics(namespace string) *Metrics {
 		skipCount:  newCounter(namespace, "received_message", prometheus.Labels{"type": "another"}),
 
 		resolveCounters: resolves,
+		unauthCounters:  unauthes,
 		missCounters:    misses,
 		errorCounters:   errors,
 
@@ -78,6 +82,9 @@ func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
 	for _, c := range m.resolveCounters {
 		c.Describe(ch)
 	}
+	for _, c := range m.unauthCounters {
+		c.Describe(ch)
+	}
 	for _, c := range m.missCounters {
 		c.Describe(ch)
 	}
@@ -94,6 +101,9 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 	m.skipCount.Collect(ch)
 
 	for _, c := range m.resolveCounters {
+		c.Collect(ch)
+	}
+	for _, c := range m.unauthCounters {
 		c.Collect(ch)
 	}
 	for _, c := range m.missCounters {
@@ -113,12 +123,15 @@ func (m *Metrics) makeTimer(skipped bool) func(*dns.Msg) {
 		timer.ObserveDuration()
 
 		counters := m.resolveCounters
+		if !response.Authoritative {
+			counters = m.unauthCounters
+		}
 		if len(response.Answer) == 0 {
 			counters = m.missCounters
 		}
 
 		for _, q := range response.Question {
-			if counter, ok := counters[Request{q, false}.QtypeString()]; ok {
+			if counter, ok := counters[QtypeToString(q.Qtype)]; ok {
 				counter.Inc()
 			}
 		}

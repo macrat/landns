@@ -6,18 +6,8 @@ import (
 	"github.com/miekg/dns"
 )
 
-type Request struct {
-	dns.Question
-
-	RecursionDesired bool
-}
-
-func NewRequest(name string, qtype uint16, recursionDesired bool) Request {
-	return Request{dns.Question{Name: name, Qtype: qtype, Qclass: dns.ClassINET}, recursionDesired}
-}
-
-func (req Request) QtypeString() string {
-	switch req.Qtype {
+func QtypeToString(qtype uint16) string {
+	switch qtype {
 	case dns.TypeA:
 		return "A"
 	case dns.TypeNS:
@@ -35,8 +25,22 @@ func (req Request) QtypeString() string {
 	case dns.TypeSRV:
 		return "SRV"
 	default:
-		return ""
+		return "UNKNOWN"
 	}
+}
+
+type Request struct {
+	dns.Question
+
+	RecursionDesired bool
+}
+
+func NewRequest(name string, qtype uint16, recursionDesired bool) Request {
+	return Request{dns.Question{Name: name, Qtype: qtype, Qclass: dns.ClassINET}, recursionDesired}
+}
+
+func (req Request) QtypeString() string {
+	return QtypeToString(req.Qtype)
 }
 
 func (req Request) String() string {
