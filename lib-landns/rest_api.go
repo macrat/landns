@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -71,7 +72,25 @@ func (d DynamicAPI) GetAllRecords(path, req string) (string, *HTTPError) {
 	return records.String(), nil
 }
 
-func (d DynamicAPI) GetRecords(path, req string) (string, *HTTPError) {
+func (d DynamicAPI) GetRecordByID(path, req string) (string, *HTTPError) {
+	id, err := strconv.Atoi(path[len("/v1/id/"):])
+	if err != nil {
+		return "", &HTTPError{http.StatusNotFound, "not found"}
+	}
+
+	records, err := d.resolver.GetRecord(id)
+	if err != nil {
+		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
+	}
+
+	if len(records) == 0 {
+		return "", &HTTPError{http.StatusNotFound, "not found"}
+	}
+
+	return records.String(), nil
+}
+
+func (d DynamicAPI) GetRecordsBySuffix(path, req string) (string, *HTTPError) {
 	if path[len(path)-1] == '/' {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
 	}
@@ -95,7 +114,7 @@ func (d DynamicAPI) GetRecords(path, req string) (string, *HTTPError) {
 	return records.String(), nil
 }
 
-func (d DynamicAPI) GlobRecords(path, req string) (string, *HTTPError) {
+func (d DynamicAPI) GetRecordsByGlob(path, req string) (string, *HTTPError) {
 	glob := path[len("/v1/glob/"):]
 	if strings.Contains(glob, "/") || len(glob) == 0 {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
@@ -161,8 +180,9 @@ func (d DynamicAPI) Handler() http.Handler {
 		"POST":   httpHandler(d.PostRecords),
 		"DELETE": httpHandler(d.DeleteRecords),
 	})
-	mux.Handle("/v1/suffix/", httpHandlerSet{"GET": httpHandler(d.GetRecords)})
-	mux.Handle("/v1/glob/", httpHandlerSet{"GET": httpHandler(d.GlobRecords)})
+	mux.Handle("/v1/id/", httpHandlerSet{"GET": httpHandler(d.GetRecordByID)})
+	mux.Handle("/v1/suffix/", httpHandlerSet{"GET": httpHandler(d.GetRecordsBySuffix)})
+	mux.Handle("/v1/glob/", httpHandlerSet{"GET": httpHandler(d.GetRecordsByGlob)})
 
 	return mux
 }

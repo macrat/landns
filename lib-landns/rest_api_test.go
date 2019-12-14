@@ -63,6 +63,11 @@ func TestDynamicAPI(t *testing.T) {
 		{"GET", "/v1/glob/*.example.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:3\n"},
 		{"GET", "/v1/glob/*ple.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:3\n"},
 		{"GET", "/v1/glob/a.*", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\n"},
+		{"GET", "/v1/id/1", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\n"},
+		{"GET", "/v1/id/2", "", http.StatusOK, "1.0.0.127.in-addr.arpa. 42 IN PTR a.example.com. ; ID:2\n"},
+		{"GET", "/v1/id/3", "", http.StatusOK, "b.example.com. 24 IN A 127.0.1.2 ; ID:3\n"},
+		{"GET", "/v1/id/4", "", http.StatusOK, "2.1.0.127.in-addr.arpa. 24 IN PTR b.example.com. ; ID:4\n"},
+		{"GET", "/v1/id/5", "", http.StatusNotFound, "; 404: not found\n"},
 
 		{"POST", "/v1", "test.com. 100 IN A 127.0.1.1\n;b.example.com. 24 IN A 127.0.1.2", http.StatusOK, "; 200: add:1 delete:1\n"},
 		{"GET", "/v1", "", http.StatusOK, strings.Join([]string{
@@ -77,6 +82,7 @@ func TestDynamicAPI(t *testing.T) {
 		{"GET", "/v1/suffix/com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\ntest.com. 100 IN A 127.0.1.1 ; ID:5\n"},
 		{"GET", "/v1/glob/*om", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\ntest.com. 100 IN A 127.0.1.1 ; ID:5\n"},
 		{"GET", "/v1/glob/*e*.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\ntest.com. 100 IN A 127.0.1.1 ; ID:5\n"},
+		{"GET", "/v1/id/3", "", http.StatusNotFound, "; 404: not found\n"},
 
 		{"DELETE", "/v1", "test.com. 100 IN A 127.0.1.1\n;b.example.com. 24 IN A 127.0.1.2", http.StatusOK, "; 200: add:1 delete:1\n"},
 		{"GET", "/v1", "", http.StatusOK, strings.Join([]string{

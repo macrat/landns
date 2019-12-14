@@ -44,7 +44,7 @@ func TestSqliteResolver(t *testing.T) {
 	tests := []struct {
 		Records string
 		Tests   []Test
-		Entries []string
+		Entries map[int]string
 		Suffix  map[landns.Domain][]string
 		Glob    map[string][]string
 	}{
@@ -64,15 +64,15 @@ func TestSqliteResolver(t *testing.T) {
 				{landns.NewRequest("abc.example.com.", dns.TypeCNAME, false), true, []string{"abc.example.com. 400 IN CNAME example.com."}},
 				{landns.NewRequest("1.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, []string{"1.0.0.127.in-addr.arpa. 42 IN PTR example.com."}},
 			},
-			Entries: []string{
-				"example.com. 42 IN A 127.0.0.1 ; ID:1",
-				"1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
-				"example.com. 100 IN A 127.0.0.2 ; ID:3",
-				"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-				"example.com. 200 IN AAAA 4::2 ; ID:5",
-				"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
-				"example.com. 300 IN TXT \"hello world\" ; ID:7",
-				"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+			Entries: map[int]string{
+				1: "example.com. 42 IN A 127.0.0.1 ; ID:1",
+				2: "1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
+				3: "example.com. 100 IN A 127.0.0.2 ; ID:3",
+				4: "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				5: "example.com. 200 IN AAAA 4::2 ; ID:5",
+				6: "2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
+				7: "example.com. 300 IN TXT \"hello world\" ; ID:7",
+				8: "abc.example.com. 400 IN CNAME example.com. ; ID:8",
 			},
 			Suffix: map[landns.Domain][]string{
 				"example.com.": {
@@ -119,15 +119,15 @@ func TestSqliteResolver(t *testing.T) {
 				{landns.NewRequest("new.example.com.", dns.TypeA, false), true, []string{"new.example.com. 42 IN A 127.0.1.1"}},
 				{landns.NewRequest("1.1.0.127.in-addr.arpa.", dns.TypePTR, false), true, []string{"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com."}},
 			},
-			Entries: []string{
-				"example.com. 100 IN A 127.0.0.2 ; ID:3",
-				"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-				"example.com. 200 IN AAAA 4::2 ; ID:5",
-				"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
-				"example.com. 300 IN TXT \"hello world\" ; ID:7",
-				"abc.example.com. 400 IN CNAME example.com. ; ID:8",
-				"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
-				"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
+			Entries: map[int]string{
+				3:  "example.com. 100 IN A 127.0.0.2 ; ID:3",
+				4:  "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				5:  "example.com. 200 IN AAAA 4::2 ; ID:5",
+				6:  "2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
+				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
+				8:  "abc.example.com. 400 IN CNAME example.com. ; ID:8",
+				9:  "new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+				10: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
 			},
 			Suffix: map[landns.Domain][]string{
 				"example.com.": {
@@ -178,13 +178,13 @@ func TestSqliteResolver(t *testing.T) {
 				{landns.NewRequest("example.com.", dns.TypeA, false), true, []string{"example.com. 100 IN A 127.0.0.2"}},
 				{landns.NewRequest("example.com.", dns.TypeAAAA, false), true, []string{}},
 			},
-			Entries: []string{
-				"example.com. 100 IN A 127.0.0.2 ; ID:3",
-				"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-				"example.com. 300 IN TXT \"hello world\" ; ID:7",
-				"abc.example.com. 400 IN CNAME example.com. ; ID:8",
-				"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
-				"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
+			Entries: map[int]string{
+				3:  "example.com. 100 IN A 127.0.0.2 ; ID:3",
+				4:  "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
+				8:  "abc.example.com. 400 IN CNAME example.com. ; ID:8",
+				9:  "new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+				10: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
 			},
 			Suffix: map[landns.Domain][]string{
 				"example.com.": {
@@ -227,10 +227,31 @@ func TestSqliteResolver(t *testing.T) {
 			t.Errorf("failed to set records: %s", err)
 		}
 
+		for id, expect := range test.Entries {
+			record, err := resolver.GetRecord(id)
+			if err != nil {
+				t.Errorf("failed to get record: %d: %d", id, err)
+				continue
+			}
+
+			if record.String() != expect+"\n" {
+				t.Errorf("failed to get record: %d:\nexpected: %#v\nbut got:  %#v", id, expect+"\n", record.String())
+			}
+		}
+
 		ttfuncs := []func() ([]string, landns.DynamicRecordSet, error){
 			func() ([]string, landns.DynamicRecordSet, error) {
 				rs, err := resolver.Records()
-				return test.Entries, rs, err
+				es := make([]string, len(test.Entries))
+				ptr := 0
+				for i := 0; ptr < len(test.Entries); i++ {
+					x, ok := test.Entries[i]
+					if ok {
+						es[ptr] = x
+						ptr++
+					}
+				}
+				return es, rs, err
 			},
 		}
 		for suffix, expect := range test.Suffix {

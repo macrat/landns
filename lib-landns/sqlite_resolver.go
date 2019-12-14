@@ -219,6 +219,16 @@ func (sr *SqliteResolver) GlobRecords(pattern string) (DynamicRecordSet, error) 
 	return scanRecords(rows)
 }
 
+func (sr *SqliteResolver) GetRecord(id int) (DynamicRecordSet, error) {
+	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE id = ?`, id)
+	if err != nil {
+		return DynamicRecordSet{}, err
+	}
+	defer rows.Close()
+
+	return scanRecords(rows)
+}
+
 func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
 	rows, err := sr.db.Query(`SELECT record FROM records WHERE name = ? AND qtype = ?`, r.Name, r.QtypeString())
 	if err != nil {
