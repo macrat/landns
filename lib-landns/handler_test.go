@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
-	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -25,7 +24,7 @@ func TestHandler(t *testing.T) {
 		t.Errorf("failed to make resolver: %s", err)
 	}
 
-	addr := testutil.StartDummyDNSServer(ctx, t, resolver)
+	addr := StartDummyDNSServer(ctx, t, resolver)
 
 	msg := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Id: dns.Id()},
@@ -62,8 +61,8 @@ func TestHandler_ErrorHandling(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	resolver := &testutil.DummyResolver{false, false}
-	addr := testutil.StartDummyDNSServer(ctx, t, resolver)
+	resolver := &DummyResolver{false, false}
+	addr := StartDummyDNSServer(ctx, t, resolver)
 
 	msg := &dns.Msg{
 		MsgHdr: dns.MsgHdr{Id: dns.Id()},

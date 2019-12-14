@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
-	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -36,25 +35,25 @@ func TestSimpleResolver(t *testing.T) {
 		t.Fatalf("failed to validate resolver: %s", err)
 	}
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 0 IN A 127.1.2.3", "example.com. 0 IN A 127.2.3.4")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 0 IN A 127.2.2.2")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false), true, "blanktar.jp. 0 IN AAAA 4::2")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeA, false), true)
-	testutil.AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeAAAA, false), true)
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 0 IN A 127.1.2.3", "example.com. 0 IN A 127.2.3.4")
+	AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 0 IN A 127.2.2.2")
+	AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeAAAA, false), true, "blanktar.jp. 0 IN AAAA 4::2")
+	AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeA, false), true)
+	AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeAAAA, false), true)
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 0 IN TXT "hello"`)
-	testutil.AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeTXT, false), true, `blanktar.jp. 0 IN TXT "foo"`, `blanktar.jp. 0 IN TXT "bar"`)
-	testutil.AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeTXT, false), true)
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 0 IN TXT "hello"`)
+	AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeTXT, false), true, `blanktar.jp. 0 IN TXT "foo"`, `blanktar.jp. 0 IN TXT "bar"`)
+	AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeTXT, false), true)
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 0 IN PTR target.local.")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa.", dns.TypePTR, false), true, "8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa. 0 IN PTR target.local.")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("4.2.1.127.in-addr.arpa.", dns.TypePTR, false), true)
+	AssertResolve(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 0 IN PTR target.local.")
+	AssertResolve(t, resolver, landns.NewRequest("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa.", dns.TypePTR, false), true, "8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa. 0 IN PTR target.local.")
+	AssertResolve(t, resolver, landns.NewRequest("4.2.1.127.in-addr.arpa.", dns.TypePTR, false), true)
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeCNAME, false), true, "example.com. 0 IN CNAME target.local.")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeCNAME, false), true)
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeCNAME, false), true, "example.com. 0 IN CNAME target.local.")
+	AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeCNAME, false), true)
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("_http._tcp.example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 0 IN SRV 0 0 10 target.local.")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeSRV, false), true)
+	AssertResolve(t, resolver, landns.NewRequest("_http._tcp.example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 0 IN SRV 0 0 10 target.local.")
+	AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeSRV, false), true)
 }
 
 func BenchmarkSimpleResolver(b *testing.B) {
@@ -82,7 +81,7 @@ func BenchmarkSimpleResolver(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(testutil.NewDummyResponseWriter(), req)
+		resolver.Resolve(NewDummyResponseWriter(), req)
 	}
 
 	b.StopTimer()
@@ -133,16 +132,16 @@ service:
 		t.Fatalf("invalid resolver state: %s", err)
 	}
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 128 IN A 127.1.2.3")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("server.example.com.", dns.TypeA, false), true, "server.example.com. 128 IN A 192.168.1.2", "server.example.com. 128 IN A 192.168.1.3")
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 128 IN A 127.1.2.3")
+	AssertResolve(t, resolver, landns.NewRequest("server.example.com.", dns.TypeA, false), true, "server.example.com. 128 IN A 192.168.1.2", "server.example.com. 128 IN A 192.168.1.3")
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("server.example.com.", dns.TypeAAAA, false), true, "server.example.com. 128 IN AAAA 1:2::3")
+	AssertResolve(t, resolver, landns.NewRequest("server.example.com.", dns.TypeAAAA, false), true, "server.example.com. 128 IN AAAA 1:2::3")
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 128 IN PTR example.com.")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("2.1.168.192.in-addr.arpa.", dns.TypePTR, false), true, "2.1.168.192.in-addr.arpa. 128 IN PTR server.example.com.")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("3.1.168.192.in-addr.arpa.", dns.TypePTR, false), true, "3.1.168.192.in-addr.arpa. 128 IN PTR server.example.com.")
+	AssertResolve(t, resolver, landns.NewRequest("3.2.1.127.in-addr.arpa.", dns.TypePTR, false), true, "3.2.1.127.in-addr.arpa. 128 IN PTR example.com.")
+	AssertResolve(t, resolver, landns.NewRequest("2.1.168.192.in-addr.arpa.", dns.TypePTR, false), true, "2.1.168.192.in-addr.arpa. 128 IN PTR server.example.com.")
+	AssertResolve(t, resolver, landns.NewRequest("3.1.168.192.in-addr.arpa.", dns.TypePTR, false), true, "3.1.168.192.in-addr.arpa. 128 IN PTR server.example.com.")
 
-	testutil.AssertResolve(
+	AssertResolve(
 		t,
 		resolver,
 		landns.NewRequest("3.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa.", dns.TypePTR, false),
@@ -150,11 +149,11 @@ service:
 		"3.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa. 128 IN PTR server.example.com.",
 	)
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("file.example.com.", dns.TypeCNAME, false), true, "file.example.com. 128 IN CNAME server.example.com.")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 128 IN TXT "hello world"`, `example.com. 128 IN TXT "foo"`)
+	AssertResolve(t, resolver, landns.NewRequest("file.example.com.", dns.TypeCNAME, false), true, "file.example.com. 128 IN CNAME server.example.com.")
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, `example.com. 128 IN TXT "hello world"`, `example.com. 128 IN TXT "foo"`)
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("_ftp._tcp.example.com.", dns.TypeSRV, false), true, "_ftp._tcp.example.com. 128 IN SRV 1 2 21 file.example.com.")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("_http._tcp.example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 128 IN SRV 0 0 80 server.example.com.")
+	AssertResolve(t, resolver, landns.NewRequest("_ftp._tcp.example.com.", dns.TypeSRV, false), true, "_ftp._tcp.example.com. 128 IN SRV 1 2 21 file.example.com.")
+	AssertResolve(t, resolver, landns.NewRequest("_http._tcp.example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 128 IN SRV 0 0 80 server.example.com.")
 }
 
 func TestNewSimpleResolverFromConfig_WithoutTTL(t *testing.T) {
@@ -170,5 +169,5 @@ func TestNewSimpleResolverFromConfig_WithoutTTL(t *testing.T) {
 		}
 	}()
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 3600 IN A 127.1.2.3")
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 3600 IN A 127.1.2.3")
 }

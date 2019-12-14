@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"context"
 	"log"
 	"net"
 	"os"
@@ -103,5 +104,5 @@ func main() {
 
 	log.Printf("API server listen on %s", *apiListen)
 	log.Printf("DNS server listen on %s", *dnsListen)
-	log.Fatalf(server.ListenAndServe(*apiListen, *dnsListen, *dnsProtocol).Error())
+	log.Fatalf(server.ListenAndServe(context.Background(), *apiListen, &net.UDPAddr{IP: (*dnsListen).IP, Port: (*dnsListen).Port}, *dnsProtocol).Error())
 }

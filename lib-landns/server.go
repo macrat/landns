@@ -37,7 +37,7 @@ func (s *Server) DNSHandler() dns.Handler {
 	return NewHandler(s.Resolvers, s.Metrics)
 }
 
-func (s *Server) ListenAndServe(apiAddress, dnsAddress *net.TCPAddr, dnsProto string) error {
+func (s *Server) ListenAndServe(ctx context.Context, apiAddress *net.TCPAddr, dnsAddress *net.UDPAddr, dnsProto string) error {
 	httpHandler, err := s.HTTPHandler()
 	if err != nil {
 		return err
@@ -68,10 +68,14 @@ func (s *Server) ListenAndServe(apiAddress, dnsAddress *net.TCPAddr, dnsProto st
 
 	select {
 	case err = <-httpch:
-		dnsServer.Shutdown()
+		dnsServer.ShutdownContext(ctx)
 		return err
 	case err = <-dnsch:
-		httpServer.Shutdown(context.Background())
+		httpServer.Shutdown(ctx)
 		return err
+	case <-ctx.Done():
+		dnsServer.ShutdownContext(ctx)
+		httpServer.Shutdown(ctx)
+		return nil
 	}
 }

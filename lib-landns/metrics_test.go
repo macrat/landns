@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
-	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
-func MetricsResponseTest(t *testing.T, name, metrics string, re *regexp.Regexp, expect int) {
+func MetricsResponseTest(t testing.TB, name, metrics string, re *regexp.Regexp, expect int) {
+	t.Helper()
+
 	result := re.FindStringSubmatch(metrics)
 
 	if len(result) != 2 {
@@ -25,7 +26,7 @@ func TestMetrics(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	metrics, get := testutil.StartDummyMetricsServer(ctx, t, "landns")
+	metrics, get := StartDummyMetricsServer(ctx, t, "landns")
 
 	for i, test := range []struct {
 		Name           string

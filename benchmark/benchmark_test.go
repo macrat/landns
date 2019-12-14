@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
-	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -15,15 +14,34 @@ var (
 	targets = []string{"8.8.8.8:53", "1.1.1.1:53"}
 )
 
-func NewServer(ctx context.Context, t testutil.FatalFormatter) *net.UDPAddr {
-	metrics := landns.NewMetrics("landns")
+func NewServer(ctx context.Context, t testing.TB) *net.UDPAddr {
+	t.Helper()
 
-	addr := testutil.StartDummyDNSServer(ctx, t, landns.AlternateResolver{
-		landns.NewSimpleResolver([]landns.Record{}),
-		landns.NewLocalCache(landns.NewForwardResolver([]*net.UDPAddr{
-			{IP: net.ParseIP("8.8.8.8"), Port: 53},
-		}, 100*time.Millisecond, metrics), metrics),
-	})
+	metrics := landns.NewMetrics("landns")
+	dyn, err := landns.NewSqliteResolver(":memory:", metrics)
+	if err != nil {
+		t.Fatalf("failed to make sqlite resolver: %#v", err)
+	}
+
+	addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5335}
+
+	server := landns.Server{
+		Metrics: metrics,
+		DynamicResolver: dyn,
+		Resolvers: landns.AlternateResolver{
+			landns.ResolverSet{
+				landns.NewSimpleResolver([]landns.Record{}),
+				dyn,
+			},
+			landns.NewLocalCache(landns.NewForwardResolver([]*net.UDPAddr{
+				{IP: net.ParseIP("8.8.8.8"), Port: 53},
+			}, 100*time.Millisecond, metrics), metrics),
+		},
+	}
+
+	go server.ListenAndServe(ctx, &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5335}, addr, "udp")
+
+	time.Sleep(100*time.Millisecond)  // wait for start server
 
 	return addr
 }

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
-	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -41,23 +40,23 @@ func TestResolverSet(t *testing.T) {
 		t.Errorf(`unexpected resolver string: "%s"`, s)
 	}
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1", "example.com. 24 IN A 127.1.2.1")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("no.such.com.", dns.TypeA, false), true)
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1", "example.com. 24 IN A 127.1.2.1")
+	AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
+	AssertResolve(t, resolver, landns.NewRequest("no.such.com.", dns.TypeA, false), true)
 }
 
 func TestResolverSet_ErrorHandling(t *testing.T) {
-	response := testutil.EmptyResponseWriter{}
+	response := EmptyResponseWriter{}
 	request := landns.NewRequest("example.com.", dns.TypeA, false)
 
-	errorResolver := testutil.DummyResolver{true, false}
+	errorResolver := DummyResolver{true, false}
 	if err := errorResolver.Resolve(response, request); err == nil {
 		t.Fatalf("expected returns error but got nil")
 	} else if err.Error() != "test error" {
 		t.Fatalf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
 	}
 
-	noErrorResolver := testutil.DummyResolver{false, false}
+	noErrorResolver := DummyResolver{false, false}
 	if err := noErrorResolver.Resolve(response, request); err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
@@ -71,25 +70,9 @@ func TestResolverSet_ErrorHandling(t *testing.T) {
 }
 
 func TestResolverSet_RecursionAvailable(t *testing.T) {
-	recursionResolver := testutil.DummyResolver{false, true}
-	if recursionResolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
-	}
-
-	nonRecursionResolver := testutil.DummyResolver{false, false}
-	if nonRecursionResolver.RecursionAvailable() != false {
-		t.Fatalf("unexpected recursion available: %v", nonRecursionResolver.RecursionAvailable())
-	}
-
-	resolver := landns.ResolverSet{nonRecursionResolver, recursionResolver, nonRecursionResolver}
-	if resolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
-	}
-
-	resolver = landns.ResolverSet{nonRecursionResolver, nonRecursionResolver}
-	if resolver.RecursionAvailable() != false {
-		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
-	}
+	CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
+		return landns.ResolverSet(rs)
+	})
 }
 
 func BenchmarkResolverSet(b *testing.B) {
@@ -112,7 +95,7 @@ func BenchmarkResolverSet(b *testing.B) {
 	}
 
 	req := landns.NewRequest("host50.example.com.", dns.TypeA, false)
-	resp := testutil.EmptyResponseWriter{}
+	resp := EmptyResponseWriter{}
 
 	b.ResetTimer()
 
@@ -150,23 +133,23 @@ func TestAlternateResolver(t *testing.T) {
 		}
 	}()
 
-	testutil.AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
-	testutil.AssertResolve(t, resolver, landns.NewRequest("no.such.com.", dns.TypeA, false), true)
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 42 IN A 127.1.1.1")
+	AssertResolve(t, resolver, landns.NewRequest("blanktar.jp.", dns.TypeA, false), true, "blanktar.jp. 4321 IN A 127.1.3.1")
+	AssertResolve(t, resolver, landns.NewRequest("no.such.com.", dns.TypeA, false), true)
 }
 
 func TestAlternateResolver_ErrorHandling(t *testing.T) {
-	response := testutil.EmptyResponseWriter{}
+	response := EmptyResponseWriter{}
 	request := landns.NewRequest("example.com.", dns.TypeA, false)
 
-	errorResolver := testutil.DummyResolver{true, false}
+	errorResolver := DummyResolver{true, false}
 	if err := errorResolver.Resolve(response, request); err == nil {
 		t.Fatalf("expected returns error but got nil")
 	} else if err.Error() != "test error" {
 		t.Fatalf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
 	}
 
-	noErrorResolver := testutil.DummyResolver{false, false}
+	noErrorResolver := DummyResolver{false, false}
 	if err := noErrorResolver.Resolve(response, request); err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
@@ -187,25 +170,9 @@ func TestAlternateResolver_ErrorHandling(t *testing.T) {
 }
 
 func TestAlternateResolver_RecursionAvailable(t *testing.T) {
-	recursionResolver := testutil.DummyResolver{false, true}
-	if recursionResolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
-	}
-
-	nonRecursionResolver := testutil.DummyResolver{false, false}
-	if nonRecursionResolver.RecursionAvailable() != false {
-		t.Fatalf("unexpected recursion available: %v", nonRecursionResolver.RecursionAvailable())
-	}
-
-	resolver := landns.AlternateResolver{nonRecursionResolver, recursionResolver, nonRecursionResolver}
-	if resolver.RecursionAvailable() != true {
-		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
-	}
-
-	resolver = landns.AlternateResolver{nonRecursionResolver, nonRecursionResolver}
-	if resolver.RecursionAvailable() != false {
-		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
-	}
+	CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
+		return landns.AlternateResolver(rs)
+	})
 }
 
 func BenchmarkAlternateResolver(b *testing.B) {
@@ -228,7 +195,7 @@ func BenchmarkAlternateResolver(b *testing.B) {
 	}
 
 	req := landns.NewRequest("host50.example.com.", dns.TypeA, false)
-	resp := testutil.EmptyResponseWriter{}
+	resp := EmptyResponseWriter{}
 
 	b.ResetTimer()
 

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
-	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -48,7 +47,7 @@ func TestForwardResolver(t *testing.T) {
 	for _, rs := range testCases {
 		records = append(records, rs...)
 	}
-	addr := testutil.StartDummyDNSServer(ctx, t, landns.NewSimpleResolver(records))
+	addr := StartDummyDNSServer(ctx, t, landns.NewSimpleResolver(records))
 
 	resolver := landns.NewForwardResolver([]*net.UDPAddr{addr}, 1*time.Second, landns.NewMetrics("landns"))
 	defer func() {
@@ -62,7 +61,7 @@ func TestForwardResolver(t *testing.T) {
 		for _, r := range records {
 			rs = append(rs, r.String())
 		}
-		testutil.AssertResolve(t, resolver, request, !request.RecursionDesired, rs...)
+		AssertResolve(t, resolver, request, !request.RecursionDesired, rs...)
 	}
 
 	if resolver.RecursionAvailable() != true {
