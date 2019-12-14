@@ -222,5 +222,5 @@ func (sr *SqliteResolver) RecursionAvailable() bool {
 }
 
 func (sr *SqliteResolver) Close() error {
-	return r.db.Close()
+	return sr.db.Close()
 }

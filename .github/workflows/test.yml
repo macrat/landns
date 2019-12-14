@@ -50,6 +50,3 @@ jobs:
 
       - name: Build server
         run: go build -v
-
-      - name: Build client
-        run: go build -o ctl ./landnsctl
