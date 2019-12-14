@@ -76,7 +76,7 @@ func (d DynamicAPI) GetRecords(path, req string) (string, *HTTPError) {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
 	}
 
-	items := strings.Split(path[len("/v1/record/"):], "/")
+	items := strings.Split(path[len("/v1/suffix/"):], "/")
 	rev := make([]string, len(items))
 	for i := range items {
 		rev[i] = items[len(items)-1-i]
@@ -138,12 +138,15 @@ func (d DynamicAPI) DeleteRecords(path, req string) (string, *HTTPError) {
 func (d DynamicAPI) Handler() http.Handler {
 	mux := http.NewServeMux()
 
-	mux.Handle("/v1/record", httpHandlerSet{
+	mux.Handle("/v1", httpHandlerSet{
 		"GET":    httpHandler(d.GetAllRecords),
 		"POST":   httpHandler(d.PostRecords),
 		"DELETE": httpHandler(d.DeleteRecords),
 	})
-	mux.Handle("/v1/record/", httpHandlerSet{
+	mux.Handle("/v1/suffix", httpHandlerSet{
+		"GET": httpHandler(d.GetAllRecords),
+	})
+	mux.Handle("/v1/suffix/", httpHandlerSet{
 		"GET": httpHandler(d.GetRecords),
 	})
 

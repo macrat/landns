@@ -94,12 +94,24 @@ REST API will work if not gven it, but settings will lose when the server stoppe
 Then, operate records with API.
 
 ``` shell
-$ curl http://localhost:9353/api/v1/record -d 'router.service. 600 IN A 192.168.1.1'
+$ curl http://localhost:9353/api/v1 -d 'www.example.com 600 IN A 192.168.1.1'
 ; 200: add:1 delete:0
 
-$ curl http://localhost:9353/api/v1/record
-router.service. 600 IN A 192.168.1.1 ; ID:1
-1.1.168.192.in-addr.arpa. 600 IN PTR router.service. ; ID:2
+$ curl http://localhost:9353/api/v1 -d 'ftp.example.com 600 IN CNAME www.example.com'
+; 200: add:1 delete:0
+
+$ curl http://localhost:9353/api/v1
+www.example.com 600 IN A 192.168.1.1 ; ID:1
+1.1.168.192.in-addr.arpa. 600 IN PTR www.example.com ; ID:2
+ftp.example.com 600 IN CNAME www.example.com ; ID:3
+
+$ curl http://localhost:9353/api/v1/suffix/com/example
+www.example.com 600 IN A 192.168.1.1 ; ID:1
+ftp.example.com 600 IN CNAME www.example.com ; ID:3
+
+$ curl http://localhost:9353/api/v1/suffix/example.com
+www.example.com 600 IN A 192.168.1.1 ; ID:1
+ftp.example.com 600 IN CNAME www.example.com ; ID:3
 ```
 
 ```
@@ -108,10 +120,10 @@ router.service. 600 IN A 192.168.1.1
 gateway.service. 600 IN CNAME router.local.
 alice.pc.local. 600 IN A 192.168.1.10
 
-$ curl http://localhost:9353/api/v1/record --data-binary @config.zone
+$ curl http://localhost:9353/api/v1 --data-binary @config.zone
 ; 200: add:3 delete:0
 
-$ curl http://localhost:9353/api/v1/record
+$ curl http://localhost:9353/api/v1
 router.service. 600 IN A 192.168.1.1 ; ID:1
 1.1.168.192.in-addr.arpa. 600 IN PTR router.service. ; ID:2
 gateway.service. 600 IN CNAME router.local. ; ID:3
@@ -122,18 +134,18 @@ alice.pc.local. 600 IN A 192.168.1.10 ; ID:4
 There is two way to remove record.
 
 ``` shell
-$ curl http://localhost:9353/api/v1/record -X DELETE -d 'router.service. 600 IN A 192.168.1.1 ; ID:1'  # Use DELETE method
+$ curl http://localhost:9353/api/v1 -X DELETE -d 'router.service. 600 IN A 192.168.1.1 ; ID:1'  # Use DELETE method
 ; 200: add:0 delete:1
 
-$ curl http://localhost:9353/api/v1/record
+$ curl http://localhost:9353/api/v1
 gateway.service. 600 IN CNAME router.local. ; ID:3
 alice.pc.local. 600 IN A 192.168.1.10 ; ID:4
 10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
 
-$ curl http://localhost:9353/api/v1/record -X POST -d ';gateway.service. 600 IN CNAME router.local. ; ID:3'  # Use comment style
+$ curl http://localhost:9353/api/v1 -X POST -d ';gateway.service. 600 IN CNAME router.local. ; ID:3'  # Use comment style
 ; 200: add:0 delete:1
 
-$ curl http://localhost:9353/api/v1/record
+$ curl http://localhost:9353/api/v1
 alice.pc.local. 600 IN A 192.168.1.10 ; ID:4
 10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
 ```
