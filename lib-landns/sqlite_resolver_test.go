@@ -43,6 +43,7 @@ func TestSqliteResolver(t *testing.T) {
 	}
 	tests := []struct {
 		Records string
+		Delete  []int
 		Tests   []Test
 		Entries map[int]string
 		Suffix  map[landns.Domain][]string
@@ -215,6 +216,14 @@ func TestSqliteResolver(t *testing.T) {
 				},
 			},
 		},
+		{
+			Delete: []int{3, 8, 10},
+			Entries: map[int]string{
+				4: "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				7: "example.com. 300 IN TXT \"hello world\" ; ID:7",
+				9: "new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -225,6 +234,12 @@ func TestSqliteResolver(t *testing.T) {
 
 		if err := resolver.SetRecords(records); err != nil {
 			t.Errorf("failed to set records: %s", err)
+		}
+
+		for _, id := range test.Delete {
+			if err := resolver.RemoveRecord(id); err != nil {
+				t.Errorf("failed to delete record: %s", err)
+			}
 		}
 
 		for id, expect := range test.Entries {

@@ -10,6 +10,7 @@ import (
 var (
 	ErrMultiLineDynamicRecord     = fmt.Errorf("DynamicRecord can't have multi line")
 	ErrInvalidDynamicRecordFormat = fmt.Errorf("DynamicRecord invalid format")
+	ErrNoSuchRecord               = fmt.Errorf("no such record")
 )
 
 type InvalidRecordError struct {
@@ -162,4 +163,5 @@ type DynamicResolver interface {
 	SearchRecords(Domain) (DynamicRecordSet, error)
 	GlobRecords(string) (DynamicRecordSet, error)
 	GetRecord(int) (DynamicRecordSet, error)
+	RemoveRecord(int) error
 }

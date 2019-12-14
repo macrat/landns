@@ -95,6 +95,15 @@ func TestDynamicAPI(t *testing.T) {
 		{"GET", "/v1/suffix/com/example", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:7\n"},
 		{"GET", "/v1/suffix/example.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:7\n"},
 		{"GET", "/v1/glob/*.example.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:7\n"},
+
+		{"DELETE", "/v1/id/7", "", http.StatusOK, "; 200: ok\n"},
+		{"DELETE", "/v1/id/7", "", http.StatusNotFound, "; 404: not found\n"},
+		{"GET", "/v1", "", http.StatusOK, strings.Join([]string{
+			"a.example.com. 42 IN A 127.0.0.1 ; ID:1",
+			"1.0.0.127.in-addr.arpa. 42 IN PTR a.example.com. ; ID:2",
+			"2.1.0.127.in-addr.arpa. 24 IN PTR b.example.com. ; ID:8",
+			"",
+		}, "\n")},
 	}))
 
 	t.Run("error", tester([]Test{

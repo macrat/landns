@@ -172,6 +172,21 @@ func (d DynamicAPI) DeleteRecords(path, req string) (string, *HTTPError) {
 	return d.setRecords(rs)
 }
 
+func (d DynamicAPI) DeleteRecordByID(path, req string) (string, *HTTPError) {
+	id, err := strconv.Atoi(path[len("/v1/id/"):])
+	if err != nil {
+		return "", &HTTPError{http.StatusNotFound, "not found"}
+	}
+
+	if err := d.resolver.RemoveRecord(id); err == ErrNoSuchRecord {
+		return "", &HTTPError{http.StatusNotFound, "not found"}
+	} else if err != nil {
+		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
+	}
+
+	return "; 200: ok", nil
+}
+
 func (d DynamicAPI) Handler() http.Handler {
 	mux := http.NewServeMux()
 
@@ -180,7 +195,10 @@ func (d DynamicAPI) Handler() http.Handler {
 		"POST":   httpHandler(d.PostRecords),
 		"DELETE": httpHandler(d.DeleteRecords),
 	})
-	mux.Handle("/v1/id/", httpHandlerSet{"GET": httpHandler(d.GetRecordByID)})
+	mux.Handle("/v1/id/", httpHandlerSet{
+		"GET":    httpHandler(d.GetRecordByID),
+		"DELETE": httpHandler(d.DeleteRecordByID),
+	})
 	mux.Handle("/v1/suffix/", httpHandlerSet{"GET": httpHandler(d.GetRecordsBySuffix)})
 	mux.Handle("/v1/glob/", httpHandlerSet{"GET": httpHandler(d.GetRecordsByGlob)})
 

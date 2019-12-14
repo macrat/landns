@@ -134,7 +134,7 @@ alice.pc.local. 600 IN A 192.168.1.10 ; ID:4
 10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
 ```
 
-There is two way to remove record.
+There are 3 ways to remove records.
 
 ``` shell
 $ curl http://localhost:9353/api/v1 -X DELETE -d 'router.service. 600 IN A 192.168.1.1 ; ID:1'  # Use DELETE method
@@ -150,6 +150,12 @@ $ curl http://localhost:9353/api/v1 -X POST -d ';gateway.service. 600 IN CNAME r
 
 $ curl http://localhost:9353/api/v1
 alice.pc.local. 600 IN A 192.168.1.10 ; ID:4
+10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
+
+$ curl http://localhost:9353/api/v1/id/4 -X DELETE  # Use DELETE method with ID
+; 200: ok
+
+$ curl http://localhost:9353/api/v1
 10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
 ```
 

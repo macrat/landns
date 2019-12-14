@@ -229,6 +229,21 @@ func (sr *SqliteResolver) GetRecord(id int) (DynamicRecordSet, error) {
 	return scanRecords(rows)
 }
 
+func (sr *SqliteResolver) RemoveRecord(id int) error {
+	result, err := sr.db.Exec(`DELETE FROM records WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrNoSuchRecord
+	}
+	return nil
+}
+
 func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
 	rows, err := sr.db.Query(`SELECT record FROM records WHERE name = ? AND qtype = ?`, r.Name, r.QtypeString())
 	if err != nil {
