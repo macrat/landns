@@ -107,6 +107,8 @@ func TestDynamicAPI(t *testing.T) {
 	}))
 
 	t.Run("error", tester([]Test{
+		{"GET", "/not-found", "", 404, "; 404: not found\n"},
+
 		{"PATCH", "/v1", "", 405, "; 405: method not allowed\n"},
 		{"POST", "/v1/suffix/com", "", 405, "; 405: method not allowed\n"},
 		{"POST", "/v1/glob/*.com", "", 405, "; 405: method not allowed\n"},

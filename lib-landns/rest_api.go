@@ -201,6 +201,7 @@ func (d DynamicAPI) Handler() http.Handler {
 	})
 	mux.Handle("/v1/suffix/", httpHandlerSet{"GET": httpHandler(d.GetRecordsBySuffix)})
 	mux.Handle("/v1/glob/", httpHandlerSet{"GET": httpHandler(d.GetRecordsByGlob)})
+	mux.Handle("/", HTTPError{http.StatusNotFound, "not found"})
 
 	return mux
 }
