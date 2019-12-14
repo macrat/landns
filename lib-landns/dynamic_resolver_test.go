@@ -20,6 +20,8 @@ func TestDynamicRecord(t *testing.T) {
 		{"c.example.com. IN CNAME example.com. ; ID:2", "c.example.com. 3600 IN CNAME example.com. ; ID:2", ""},
 		{"_web._tcp.example.com. SRV 1 2 3 example.com. ; ID:4", "_web._tcp.example.com. 3600 IN SRV 1 2 3 example.com. ; ID:4", ""},
 		{"2.1.0.127.in-arpa.addr. 2 IN PTR example.com. ; ID:987654321", "2.1.0.127.in-arpa.addr. 2 IN PTR example.com. ; ID:987654321", ""},
+		{"; disabled.com. 100 IN A 127.1.2.3", ";disabled.com. 100 IN A 127.1.2.3", ""},
+		{"; disabled.com. 100 IN A 127.1.2.3 ; ID:4", ";disabled.com. 100 IN A 127.1.2.3 ; ID:4", ""},
 		{"a\nb", "", landns.ErrMultiLineDynamicRecord.Error()},
 		{"example.com. 42 IN A 127.0.1.2 ; ID", "", landns.ErrInvalidDynamicRecordFormat.Error()},
 		{"example.com. 42 IN A 127.0.1.2 ; ID: 42", "", landns.ErrInvalidDynamicRecordFormat.Error()},

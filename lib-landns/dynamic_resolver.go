@@ -14,20 +14,35 @@ var (
 )
 
 type DynamicRecord struct {
-	Record Record
-	ID     *int
+	Record   Record
+	ID       *int
+	Disabled bool
 }
 
 func (r DynamicRecord) String() string {
-	if r.ID == nil {
-		return r.Record.String()
+	result := r.Record.String()
+
+	if r.ID != nil {
+		result += " ; ID:" + strconv.Itoa(*r.ID)
 	}
-	return r.Record.String() + " ; ID:" + strconv.Itoa(*r.ID)
+
+	if r.Disabled {
+		result = ";" + result
+	}
+
+	return result
 }
 
 func (r *DynamicRecord) UnmarshalText(text []byte) error {
 	if bytes.Contains(text, []byte("\n")) {
 		return ErrMultiLineDynamicRecord
+	}
+
+	text = bytes.TrimSpace(text)
+	r.Disabled = false
+	if text[0] == ';' {
+		r.Disabled = true
+		text = bytes.TrimSpace(bytes.TrimLeft(text, ";"))
 	}
 
 	xs := bytes.SplitN(text, []byte(";"), 2)
@@ -77,13 +92,17 @@ func (rs *DynamicRecordSet) UnmarshalText(text []byte) error {
 
 	for _, line := range lines {
 		line = bytes.TrimSpace(line)
-		if len(line) == 0 || line[0] == ';' {
+		if len(line) == 0 {
 			continue
 		}
 
 		var r DynamicRecord
 		if err := (&r).UnmarshalText(line); err != nil {
-			return err
+			if line[0] == ';' {
+				continue
+			} else {
+				return err
+			}
 		}
 		*rs = append(*rs, r)
 	}
