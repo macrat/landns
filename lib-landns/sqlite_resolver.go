@@ -217,10 +217,10 @@ func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
 	return nil
 }
 
-func (r *SqliteResolver) RecursionAvailable() bool {
+func (sr *SqliteResolver) RecursionAvailable() bool {
 	return false
 }
 
-func (r *SqliteResolver) Close() error {
+func (sr *SqliteResolver) Close() error {
 	return r.db.Close()
 }
