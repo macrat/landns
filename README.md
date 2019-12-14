@@ -4,7 +4,8 @@ Landns
 [![GitHub Actions](https://github.com/macrat/landns/workflows/Test%20and%20Build/badge.svg)](https://github.com/macrat/landns/actions)
 [![codecov](https://codecov.io/gh/macrat/landns/branch/master/graph/badge.svg)](https://codecov.io/gh/macrat/landns)
 [![Go Report Card](https://goreportcard.com/badge/github.com/macrat/landns)](https://goreportcard.com/report/github.com/macrat/landns)
-![License](https://img.shields.io/github/license/macrat/landns)
+[![License](https://img.shields.io/github/license/macrat/landns)](https://github.com/macrat/landns/blob/master/LICENSE)
+[![Docker Cloud Automated build](https://img.shields.io/docker/cloud/automated/macrat/landns?logo=docker&logoColor=white)](https://hub.docker.com/repository/docker/macrat/landns)
 
 A DNS server for developers for home use.
 
@@ -26,8 +27,16 @@ A DNS server for developers for home use.
 
 ### Install server
 
+Please use `go get`.
+
 ``` shell
 $ go get github.com/macrat/landns
+```
+
+Or, you can use docker.
+
+``` shell
+$ docker run -p 9353:9353/tcp -p 53:53/udp macrat/landns
 ```
 
 ### Use as static DNS server
