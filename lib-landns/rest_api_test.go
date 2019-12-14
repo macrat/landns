@@ -41,7 +41,7 @@ func TestDynamicAPI(t *testing.T) {
 				}
 
 				if got != tt.Expect {
-					t.Errorf("%s %s: unexpected response:\nexpected:\n%s\n\nbut got:\n%s", tt.Method, tt.Path, tt.Expect, got)
+					t.Errorf("%s %s: unexpected response:\nexpected:\n%s\nbut got:\n%s\n", tt.Method, tt.Path, tt.Expect, got)
 				}
 			}
 		}
@@ -60,6 +60,9 @@ func TestDynamicAPI(t *testing.T) {
 		}, "\n")},
 		{"GET", "/v1/suffix/com/example", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:3\n"},
 		{"GET", "/v1/suffix/example.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:3\n"},
+		{"GET", "/v1/glob/*.example.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:3\n"},
+		{"GET", "/v1/glob/*ple.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:3\n"},
+		{"GET", "/v1/glob/a.*", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\n"},
 
 		{"POST", "/v1", "test.com. 100 IN A 127.0.1.1\n;b.example.com. 24 IN A 127.0.1.2", http.StatusOK, "; 200: add:1 delete:1\n"},
 		{"GET", "/v1", "", http.StatusOK, strings.Join([]string{
@@ -72,6 +75,8 @@ func TestDynamicAPI(t *testing.T) {
 		{"GET", "/v1/suffix/com/example", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\n"},
 		{"GET", "/v1/suffix/example.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\n"},
 		{"GET", "/v1/suffix/com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\ntest.com. 100 IN A 127.0.1.1 ; ID:5\n"},
+		{"GET", "/v1/glob/*om", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\ntest.com. 100 IN A 127.0.1.1 ; ID:5\n"},
+		{"GET", "/v1/glob/*e*.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\ntest.com. 100 IN A 127.0.1.1 ; ID:5\n"},
 
 		{"DELETE", "/v1", "test.com. 100 IN A 127.0.1.1\n;b.example.com. 24 IN A 127.0.1.2", http.StatusOK, "; 200: add:1 delete:1\n"},
 		{"GET", "/v1", "", http.StatusOK, strings.Join([]string{
@@ -83,15 +88,19 @@ func TestDynamicAPI(t *testing.T) {
 		}, "\n")},
 		{"GET", "/v1/suffix/com/example", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:7\n"},
 		{"GET", "/v1/suffix/example.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:7\n"},
+		{"GET", "/v1/glob/*.example.com", "", http.StatusOK, "a.example.com. 42 IN A 127.0.0.1 ; ID:1\nb.example.com. 24 IN A 127.0.1.2 ; ID:7\n"},
 	}))
 
 	t.Run("error", tester([]Test{
 		{"PATCH", "/v1", "", 405, "; 405: method not allowed\n"},
 		{"POST", "/v1/suffix/com", "", 405, "; 405: method not allowed\n"},
+		{"POST", "/v1/glob/*.com", "", 405, "; 405: method not allowed\n"},
 
 		{"GET", "/v1/suffix/com/", "", 404, "; 404: not found\n"},
 		{"GET", "/v1/suffix/.com", "", 404, "; 404: not found\n"},
 		{"GET", "/v1/suffix/com/.example", "", 404, "; 404: not found\n"},
+		{"GET", "/v1/glob", "", 404, "; 404: not found\n"},
+		{"GET", "/v1/glob/com/example", "", 404, "; 404: not found\n"},
 
 		{"POST", "/v1", "hello world!\n\ntest", 400, strings.Join([]string{
 			"; 400: line 1: invalid format: hello world!",

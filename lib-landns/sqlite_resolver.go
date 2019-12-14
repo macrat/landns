@@ -177,11 +177,40 @@ func (sr *SqliteResolver) Records() (DynamicRecordSet, error) {
 
 func (sr *SqliteResolver) SearchRecords(suffix Domain) (DynamicRecordSet, error) {
 	suf := suffix.String()
-	for from, to := range map[string]string{`\`: `\\`, `%`: `\%`, `_`: `\_`} {
-		suf = strings.ReplaceAll(suf, from, to)
+	for _, rep := range []struct {
+		From string
+		To   string
+	}{
+		{`\`, `\\`},
+		{`%`, `\%`},
+		{`_`, `\_`},
+	} {
+		suf = strings.ReplaceAll(suf, rep.From, rep.To)
 	}
 
-	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE name = ? OR name like ? ESCAPE '\' ORDER BY id`, suf, "%."+suf)
+	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE name = ? OR name LIKE ? ESCAPE '\' ORDER BY id`, suf, "%."+suf)
+	if err != nil {
+		return DynamicRecordSet{}, err
+	}
+	defer rows.Close()
+
+	return scanRecords(rows)
+}
+
+func (sr *SqliteResolver) GlobRecords(pattern string) (DynamicRecordSet, error) {
+	for _, rep := range []struct {
+		From string
+		To   string
+	}{
+		{`\`, `\\`},
+		{`%`, `\%`},
+		{`_`, `\_`},
+		{`*`, `%`},
+	} {
+		pattern = strings.ReplaceAll(pattern, rep.From, rep.To)
+	}
+
+	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE name LIKE ? ESCAPE '\' ORDER BY id`, pattern)
 	if err != nil {
 		return DynamicRecordSet{}, err
 	}

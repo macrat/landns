@@ -46,6 +46,7 @@ func TestSqliteResolver(t *testing.T) {
 		Tests   []Test
 		Entries []string
 		Suffix  map[landns.Domain][]string
+		Glob    map[string][]string
 	}{
 		{
 			Records: `
@@ -90,6 +91,15 @@ func TestSqliteResolver(t *testing.T) {
 				},
 				"arpa.": {
 					"1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
+					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+					"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
+				},
+			},
+			Glob: map[string][]string{
+				"*.example.com.": {
+					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+				},
+				"2*arpa.": {
 					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
 					"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
 				},
@@ -140,6 +150,23 @@ func TestSqliteResolver(t *testing.T) {
 					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
 				},
 			},
+			Glob: map[string][]string{
+				"*example.com.": {
+					"example.com. 100 IN A 127.0.0.2 ; ID:3",
+					"example.com. 200 IN AAAA 4::2 ; ID:5",
+					"example.com. 300 IN TXT \"hello world\" ; ID:7",
+					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+				},
+				"*.example.com.": {
+					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+				},
+				"2*arpa.": {
+					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+					"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
+				},
+			},
 		},
 		{
 			Records: `
@@ -178,6 +205,15 @@ func TestSqliteResolver(t *testing.T) {
 					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
 				},
 			},
+			Glob: map[string][]string{
+				"*.example.com.": {
+					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+				},
+				"2*arpa.": {
+					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				},
+			},
 		},
 	}
 
@@ -200,6 +236,12 @@ func TestSqliteResolver(t *testing.T) {
 		for suffix, expect := range test.Suffix {
 			ttfuncs = append(ttfuncs, func() ([]string, landns.DynamicRecordSet, error) {
 				rs, err := resolver.SearchRecords(suffix)
+				return expect, rs, err
+			})
+		}
+		for glob, expect := range test.Glob {
+			ttfuncs = append(ttfuncs, func() ([]string, landns.DynamicRecordSet, error) {
+				rs, err := resolver.GlobRecords(glob)
 				return expect, rs, err
 			})
 		}

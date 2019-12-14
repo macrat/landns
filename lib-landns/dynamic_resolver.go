@@ -160,4 +160,5 @@ type DynamicResolver interface {
 	SetRecords(DynamicRecordSet) error
 	Records() (DynamicRecordSet, error)
 	SearchRecords(Domain) (DynamicRecordSet, error)
+	GlobRecords(string) (DynamicRecordSet, error)
 }

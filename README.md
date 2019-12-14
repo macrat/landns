@@ -112,6 +112,9 @@ ftp.example.com 600 IN CNAME www.example.com ; ID:3
 $ curl http://localhost:9353/api/v1/suffix/example.com
 www.example.com 600 IN A 192.168.1.1 ; ID:1
 ftp.example.com 600 IN CNAME www.example.com ; ID:3
+
+$ curl http://localhost:9353/api/v1/glob/w*ample.com
+www.example.com 600 IN A 192.168.1.1 ; ID:1
 ```
 
 ```

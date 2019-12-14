@@ -95,6 +95,24 @@ func (d DynamicAPI) GetRecords(path, req string) (string, *HTTPError) {
 	return records.String(), nil
 }
 
+func (d DynamicAPI) GlobRecords(path, req string) (string, *HTTPError) {
+	glob := path[len("/v1/glob/"):]
+	if strings.Contains(glob, "/") || len(glob) == 0 {
+		return "", &HTTPError{http.StatusNotFound, "not found"}
+	}
+
+	if glob[len(glob)-1] != '.' {
+		glob += "."
+	}
+
+	records, err := d.resolver.GlobRecords(glob)
+	if err != nil {
+		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
+	}
+
+	return records.String(), nil
+}
+
 func (d DynamicAPI) setRecords(rs DynamicRecordSet) (string, *HTTPError) {
 	if err := d.resolver.SetRecords(rs); err != nil {
 		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
@@ -143,12 +161,8 @@ func (d DynamicAPI) Handler() http.Handler {
 		"POST":   httpHandler(d.PostRecords),
 		"DELETE": httpHandler(d.DeleteRecords),
 	})
-	mux.Handle("/v1/suffix", httpHandlerSet{
-		"GET": httpHandler(d.GetAllRecords),
-	})
-	mux.Handle("/v1/suffix/", httpHandlerSet{
-		"GET": httpHandler(d.GetRecords),
-	})
+	mux.Handle("/v1/suffix/", httpHandlerSet{"GET": httpHandler(d.GetRecords)})
+	mux.Handle("/v1/glob/", httpHandlerSet{"GET": httpHandler(d.GlobRecords)})
 
 	return mux
 }
