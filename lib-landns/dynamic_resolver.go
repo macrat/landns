@@ -1,22 +1,45 @@
 package landns
 
 import (
-	"strconv"
 	"bytes"
 	"fmt"
-
-	"github.com/miekg/dns"
+	"strconv"
+	"strings"
 )
 
 var (
-	ErrMultiLineDynamicRecord = fmt.Errorf("DynamicRecord can't have multi line")
+	ErrMultiLineDynamicRecord     = fmt.Errorf("DynamicRecord can't have multi line")
 	ErrInvalidDynamicRecordFormat = fmt.Errorf("DynamicRecord invalid format")
 )
+
+type InvalidRecordError struct {
+	Line int
+	Text string
+}
+
+func (e InvalidRecordError) Error() string {
+	return fmt.Sprintf("line %d: invalid format: %s", e.Line, e.Text)
+}
+
+type ErrorSet []error
+
+func (e ErrorSet) Error() string {
+	xs := make([]string, len(e))
+	for i, x := range e {
+		xs[i] = x.Error()
+	}
+	return strings.Join(xs, "\n")
+}
 
 type DynamicRecord struct {
 	Record   Record
 	ID       *int
 	Disabled bool
+}
+
+func NewDynamicRecord(record string) (DynamicRecord, error) {
+	var d DynamicRecord
+	return d, d.UnmarshalText([]byte(record))
 }
 
 func (r DynamicRecord) String() string {
@@ -66,17 +89,9 @@ func (r *DynamicRecord) UnmarshalText(text []byte) error {
 		}
 	}
 
-	rr, err := dns.NewRR(string(xs[0]))
-	if err != nil {
-		return err
-	}
-
-	r.Record, err = NewRecordFromRR(rr)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	var err error
+	r.Record, err = NewRecord(string(xs[0]))
+	return err
 }
 
 func (r DynamicRecord) MarshalText() ([]byte, error) {
@@ -85,12 +100,19 @@ func (r DynamicRecord) MarshalText() ([]byte, error) {
 
 type DynamicRecordSet []DynamicRecord
 
+func NewDynamicRecordSet(records string) (DynamicRecordSet, error) {
+	var d DynamicRecordSet
+	return d, d.UnmarshalText([]byte(records))
+}
+
 func (rs *DynamicRecordSet) UnmarshalText(text []byte) error {
 	lines := bytes.Split(text, []byte("\n"))
 
 	*rs = make([]DynamicRecord, 0, len(lines))
 
-	for _, line := range lines {
+	errors := ErrorSet{}
+
+	for i, line := range lines {
 		line = bytes.TrimSpace(line)
 		if len(line) == 0 {
 			continue
@@ -101,19 +123,22 @@ func (rs *DynamicRecordSet) UnmarshalText(text []byte) error {
 			if line[0] == ';' {
 				continue
 			} else {
-				return err
+				errors = append(errors, InvalidRecordError{i + 1, string(line)})
 			}
 		}
 		*rs = append(*rs, r)
 	}
 
+	if len(errors) > 0 {
+		return errors
+	}
 	return nil
 }
 
 func (rs DynamicRecordSet) MarshalText() ([]byte, error) {
 	var err error
 
-	bs := make([][]byte, len(rs)+1)  // add +1 element for put \n into last line
+	bs := make([][]byte, len(rs)+1) // add +1 element for put \n into last line
 	for i, r := range rs {
 		bs[i], err = r.MarshalText()
 		if err != nil {
@@ -124,21 +149,15 @@ func (rs DynamicRecordSet) MarshalText() ([]byte, error) {
 	return bytes.Join(bs, []byte("\n")), nil
 }
 
+func (rs DynamicRecordSet) String() string {
+	b, _ := rs.MarshalText()
+	return string(b)
+}
+
 type DynamicResolver interface {
 	Resolver
 
-	UpdateAddresses(AddressesConfig) error
-	GetAddresses() (AddressesConfig, error)
-
-	UpdateCnames(CnamesConfig) error
-	GetCnames() (CnamesConfig, error)
-
-	UpdateTexts(TextsConfig) error
-	GetTexts() (TextsConfig, error)
-
-	UpdateServices(ServicesConfig) error
-	GetServices() (ServicesConfig, error)
-
-	//SetRecords(DynamicRecordSet) error
-	//Records() (DynamicRecordSet, error)
+	SetRecords(DynamicRecordSet) error
+	Records() (DynamicRecordSet, error)
+	SearchRecords(Domain) (DynamicRecordSet, error)
 }

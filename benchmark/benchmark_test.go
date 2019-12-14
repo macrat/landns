@@ -26,7 +26,7 @@ func NewServer(ctx context.Context, t testing.TB) *net.UDPAddr {
 	addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5335}
 
 	server := landns.Server{
-		Metrics: metrics,
+		Metrics:         metrics,
 		DynamicResolver: dyn,
 		Resolvers: landns.AlternateResolver{
 			landns.ResolverSet{
@@ -41,7 +41,7 @@ func NewServer(ctx context.Context, t testing.TB) *net.UDPAddr {
 
 	go server.ListenAndServe(ctx, &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5335}, addr, "udp")
 
-	time.Sleep(100*time.Millisecond)  // wait for start server
+	time.Sleep(100 * time.Millisecond) // wait for start server
 
 	return addr
 }

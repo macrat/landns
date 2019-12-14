@@ -18,9 +18,9 @@ A DNS server for developers for home use.
 
 - Serve addresses from a database that operatable with RESTFUL API.
 
-- Recursion resolve and caching addresses to local memory or Redis server.
+- Recursion resolve and caching addresses to local memory or [Redis server](https://redis.io).
 
-- Built-in metrics exporter for Prometheus.
+- Built-in metrics exporter for [Prometheus](https://prometheus.io).
 
 
 ## How to use
@@ -91,88 +91,53 @@ $ sudo landns --sqlite path/to/database.db
 Dynamic settings that set by REST API will store to specified database if given `--sqlite` option.
 REST API will work if not gven it, but settings will lose when the server stopped.
 
-Then, set records with API.
+Then, operate records with API.
 
 ``` shell
-$ curl http://localhost:9353/api/v1/record/address -H 'Content-Type: application/json' -d '{"router.local": [{"ttl": 600, "address": "192.168.1.1"}]}'
+$ curl http://localhost:9353/api/v1/record -d 'router.service. 600 IN A 192.168.1.1'
+; 200: add:1 delete:0
 
-$ curl http://localhost:9353/api/v1/record/cname -H 'Content-Type: application/json' -d '{"gateway.local": [{"ttl": 600, "target": "router.local"}]}'
-
-$ curl http://localhost:9353/api/v1/record/text -H 'Content-Type: application/json' -d '{"message.local": [{"ttl": 600, "text": "hello_world"}]}'
-
-$ curl http://localhost:9353/api/v1/record/service -H 'Content-Type: application/json' -d '{"_web._tcp.example.com": [{"ttl": 600, "target": "servers.example.com", "port": 80, "priority": 10, "weight": 5}]}'
+$ curl http://localhost:9353/api/v1/record
+router.service. 600 IN A 192.168.1.1 ; ID:1
+1.1.168.192.in-addr.arpa. 600 IN PTR router.service. ; ID:2
 ```
 
-You can get records with API.
+```
+$ cat config.zone
+router.service. 600 IN A 192.168.1.1
+gateway.service. 600 IN CNAME router.local.
+alice.pc.local. 600 IN A 192.168.1.10
 
-``` shell
-$ curl http://localhost:9353/api/v1/record | jq
-{
-  "address": {
-    "router.local.": [
-      {
-        "ttl": 600,
-        "address": "192.168.1.1"
-      }
-    ]
-  },
-  "cname": {
-    "gateway.local.": [
-      {
-        "ttl": 600,
-        "target": "router.local."
-      }
-    ]
-  },
-  "text": {
-    "message.local.": [
-      {
-        "ttl": 600,
-        "text": "hello_world"
-      }
-    ]
-  },
-  "_web._tcp.example.com.": [
-    {
-      "ttl": 3600,
-      "port": 80,
-      "proirity": 10,
-      "weight": 5,
-      "target": "servers.example.com."
-    }
-  ]
-}
+$ curl http://localhost:9353/api/v1/record --data-binary @config.zone
+; 200: add:3 delete:0
 
-$ curl http://localhost:9353/api/v1/record/address | jq
-{
-  "router.local.": [
-    {
-      "ttl": 600,
-      "address": "192.168.1.1"
-    }
-  ]
-}
-
-$ curl http://localhost:9353/api/v1/record/address/router.local. | jq
-[
-  {
-    "ttl": 600,
-    "address": "192.168.1.1"
-  }
-]
+$ curl http://localhost:9353/api/v1/record
+router.service. 600 IN A 192.168.1.1 ; ID:1
+1.1.168.192.in-addr.arpa. 600 IN PTR router.service. ; ID:2
+gateway.service. 600 IN CNAME router.local. ; ID:3
+alice.pc.local. 600 IN A 192.168.1.10 ; ID:4
+10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
 ```
 
-#### CLI client
+There is two way to remove record.
 
 ``` shell
-$ go get github.com/macrat/landns/landnsctl
+$ curl http://localhost:9353/api/v1/record -X DELETE -d 'router.service. 600 IN A 192.168.1.1 ; ID:1'  # Use DELETE method
+; 200: add:0 delete:1
 
-$ landnsctl addr example.com --set 192.168.1.1
-$ landnsctl addr example.com
-- address: 192.168.1.1
-  ttl: 3600
+$ curl http://localhost:9353/api/v1/record
+gateway.service. 600 IN CNAME router.local. ; ID:3
+alice.pc.local. 600 IN A 192.168.1.10 ; ID:4
+10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
+
+$ curl http://localhost:9353/api/v1/record -X POST -d ';gateway.service. 600 IN CNAME router.local. ; ID:3'  # Use comment style
+; 200: add:0 delete:1
+
+$ curl http://localhost:9353/api/v1/record
+alice.pc.local. 600 IN A 192.168.1.10 ; ID:4
+10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
 ```
 
 ### Get metrics (with prometheus)
 
-Landns serve metrics for [Prometheus](https://prometheus.io) by default in port 9353.
+Landns serve metrics for Prometheus by default in port 9353.

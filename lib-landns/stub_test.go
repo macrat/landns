@@ -1,12 +1,14 @@
 package landns_test
 
 import (
-	"fmt"
-	"net"
-	"testing"
 	"context"
+	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
+	"testing"
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
@@ -35,7 +37,7 @@ func (dr DummyResolver) Close() error {
 }
 
 func TestDummyResolver(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		err bool
 		rec bool
 	}{
@@ -178,15 +180,72 @@ func StartDummyDNSServer(ctx context.Context, t testing.TB, resolver landns.Reso
 	return addr
 }
 
-func StartDummyMetricsServer(ctx context.Context, t testing.TB, namespace string) (*landns.Metrics, func() string) {
+type HTTPEndpoint struct {
+	Test testing.TB
+	URL  *url.URL
+}
+
+func (e HTTPEndpoint) Do(method, path, body string) (int, string, error) {
+	e.Test.Helper()
+
+	u, err := e.URL.Parse(path)
+	if err != nil {
+		e.Test.Errorf("failed to %s %s: %s", method, path, err)
+		return 0, "", err
+	}
+
+	req, err := http.NewRequest(method, u.String(), strings.NewReader(body))
+	if err != nil {
+		e.Test.Errorf("failed to %s %s: %s", method, path, err)
+		return 0, "", err
+	}
+
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		e.Test.Errorf("failed to %s %s: %s", method, path, err)
+		return 0, "", err
+	}
+	defer resp.Body.Close()
+
+	rbody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		e.Test.Errorf("failed to %s %s: %s", method, path, err)
+		return 0, "", err
+	}
+
+	return resp.StatusCode, string(rbody), nil
+}
+
+func (e HTTPEndpoint) Get(path string) (string, error) {
+	e.Test.Helper()
+
+	status, body, err := e.Do("GET", path, "")
+	if status != 200 {
+		e.Test.Errorf("failed to get %s: status code %d", path, status)
+	}
+
+	return body, err
+}
+
+func (e HTTPEndpoint) Post(path, body string) (string, error) {
+	e.Test.Helper()
+
+	status, rbody, err := e.Do("POST", path, body)
+	if status != 200 {
+		e.Test.Errorf("failed to get %s: status code %d", path, status)
+	}
+
+	return rbody, err
+}
+
+func StartHTTPServer(ctx context.Context, t testing.TB, handler http.Handler) HTTPEndpoint {
 	t.Helper()
 
 	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5380}
 
-	metrics := landns.NewMetrics("landns")
-	handler, err := metrics.HTTPHandler()
+	u, err := url.Parse(fmt.Sprintf("http://%s", addr))
 	if err != nil {
-		t.Fatalf("failed to serve dummy metrics server: %s", err)
+		t.Fatalf("failed to make URL: %s", err)
 	}
 
 	server := http.Server{
@@ -197,7 +256,7 @@ func StartDummyMetricsServer(ctx context.Context, t testing.TB, namespace string
 	go func() {
 		err := server.ListenAndServe()
 		if ctx.Err() == nil {
-			t.Fatalf("failed to serve dummy metrics server: %s", err)
+			t.Fatalf("failed to serve HTTP server: %s", err)
 		}
 	}()
 
@@ -205,24 +264,27 @@ func StartDummyMetricsServer(ctx context.Context, t testing.TB, namespace string
 		<-ctx.Done()
 		c, _ := context.WithTimeout(context.Background(), 1*time.Second)
 		if err := server.Shutdown(c); err != nil {
-			t.Fatalf("failed to stop dummy metrics server: %s", err)
+			t.Fatalf("failed to stop HTTP server: %s", err)
 		}
 	}()
 
 	time.Sleep(10 * time.Millisecond) // Wait for start DNS server
 
-	return metrics, func() string {
-		resp, err := http.Get(fmt.Sprintf("http://%s", addr))
-		if err != nil {
-			t.Fatalf("failed to get metrics: %s", err)
-		}
-		defer resp.Body.Close()
+	return HTTPEndpoint{URL: u, Test: t}
+}
 
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatalf("failed to get metrics: %s", err)
-		}
+func StartDummyMetricsServer(ctx context.Context, t testing.TB, namespace string) (*landns.Metrics, func() (string, error)) {
+	t.Helper()
 
-		return string(body)
+	metrics := landns.NewMetrics("landns")
+	handler, err := metrics.HTTPHandler()
+	if err != nil {
+		t.Fatalf("failed to serve dummy metrics server: %s", err)
+	}
+
+	u := StartHTTPServer(ctx, t, handler)
+
+	return metrics, func() (string, error) {
+		return u.Get("/")
 	}
 }

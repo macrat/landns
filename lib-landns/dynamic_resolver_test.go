@@ -7,7 +7,7 @@ import (
 )
 
 func TestDynamicRecord(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		Input  string
 		Expect string
 		Error  string
@@ -21,7 +21,7 @@ func TestDynamicRecord(t *testing.T) {
 		{"_web._tcp.example.com. SRV 1 2 3 example.com. ; ID:4", "_web._tcp.example.com. 3600 IN SRV 1 2 3 example.com. ; ID:4", ""},
 		{"2.1.0.127.in-arpa.addr. 2 IN PTR example.com. ; ID:987654321", "2.1.0.127.in-arpa.addr. 2 IN PTR example.com. ; ID:987654321", ""},
 		{"; disabled.com. 100 IN A 127.1.2.3", ";disabled.com. 100 IN A 127.1.2.3", ""},
-		{"; disabled.com. 100 IN A 127.1.2.3 ; ID:4", ";disabled.com. 100 IN A 127.1.2.3 ; ID:4", ""},
+		{";disabled.com. 100 IN A 127.1.2.3 ; ID:4", ";disabled.com. 100 IN A 127.1.2.3 ; ID:4", ""},
 		{"a\nb", "", landns.ErrMultiLineDynamicRecord.Error()},
 		{"example.com. 42 IN A 127.0.1.2 ; ID", "", landns.ErrInvalidDynamicRecordFormat.Error()},
 		{"example.com. 42 IN A 127.0.1.2 ; ID: 42", "", landns.ErrInvalidDynamicRecordFormat.Error()},
@@ -29,10 +29,9 @@ func TestDynamicRecord(t *testing.T) {
 		{"hello world ; ID:1", "", `dns: not a TTL: "world" at line: 1:12`},
 	}
 
-	var r landns.DynamicRecord
-
 	for _, tt := range tests {
-		if err := (&r).UnmarshalText([]byte(tt.Input)); err != nil && tt.Error == "" {
+		r, err := landns.NewDynamicRecord(tt.Input)
+		if err != nil && tt.Error == "" {
 			t.Errorf("failed to unmarshal dynamic record: %v", err)
 			continue
 		} else if err != nil && err.Error() != tt.Error {
@@ -52,7 +51,7 @@ func TestDynamicRecord(t *testing.T) {
 }
 
 func TestDynamicRecordSet(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		Input  string
 		Expect string
 		Error  string
@@ -61,13 +60,12 @@ func TestDynamicRecordSet(t *testing.T) {
 		{"example.com. 42 IN A 127.0.1.2 ; ID:3\nexample.com. 24 IN AAAA 1:2:3::4", "example.com. 42 IN A 127.0.1.2 ; ID:3\nexample.com. 24 IN AAAA 1:2:3::4\n", ""},
 		{"\n\n\nexample.com. 42 IN A 127.0.1.2 ; ID:3\n\n", "example.com. 42 IN A 127.0.1.2 ; ID:3\n", ""},
 		{";this\n  ;is\n\t; comment", "", ""},
-		{"unexpected", "", `dns: not a TTL: "unexpected" at line: 1:10`},
+		{"unexpected\nexample.com. 1 IN A 127.1.2.3\n\naa", "", "line 1: invalid format: unexpected\nline 4: invalid format: aa"},
 	}
 
-	var rs landns.DynamicRecordSet
-
 	for _, tt := range tests {
-		if err := (&rs).UnmarshalText([]byte(tt.Input)); err != nil && tt.Error == "" {
+		rs, err := landns.NewDynamicRecordSet(tt.Input)
+		if err != nil && tt.Error == "" {
 			t.Errorf("failed to unmarshal dynamic record set: %v", err)
 			continue
 		} else if err != nil && err.Error() != tt.Error {

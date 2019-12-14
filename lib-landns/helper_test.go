@@ -18,11 +18,11 @@ func AssertResolve(t testing.TB, resolver landns.Resolver, request landns.Reques
 	}
 
 	if resp.Authoritative != authoritative {
-		t.Errorf(`%s <- %s: unexpected authoritive of response: expected %v but got %v`, resolver, request, authoritative, resp.Authoritative)
+		t.Errorf("%s <- %s: unexpected authoritive of response: expected %v but got %v", resolver, request, authoritative, resp.Authoritative)
 	}
 
 	if len(resp.Records) != len(responses) {
-		t.Errorf(`%s <- %s: unexpected resolve response: expected length %d but got %d`, resolver, request, len(responses), len(resp.Records))
+		t.Errorf("%s <- %s: unexpected resolve response: expected length %d but got %d", resolver, request, len(responses), len(resp.Records))
 		return
 	}
 
@@ -35,7 +35,7 @@ func AssertResolve(t testing.TB, resolver landns.Resolver, request landns.Reques
 
 	for i := range responses {
 		if resp.Records[i].String() != responses[i] {
-			t.Errorf(`%s <- %s: unexpected resolve response: expected "%s" but got "%s"`, resolver, request, responses[i], resp.Records[i])
+			t.Errorf("%s <- %s: unexpected resolve response:\nexpected %#v\nbut got  %#v", resolver, request, responses[i], resp.Records[i].String())
 		}
 	}
 }

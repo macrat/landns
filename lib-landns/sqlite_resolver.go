@@ -3,83 +3,13 @@ package landns
 import (
 	"database/sql"
 	"fmt"
-	"net"
+	"strings"
 
 	"github.com/miekg/dns"
 
 	// sqlite3 driver
 	_ "github.com/mattn/go-sqlite3"
 )
-
-func iterAddresses(rows *sql.Rows, callback func(AddressRecord)) error {
-	for rows.Next() {
-		var name string
-		var addr string
-		var ttl uint32
-
-		if err := rows.Scan(&name, &addr, &ttl); err != nil {
-			return err
-		}
-
-		callback(AddressRecord{Name: Domain(name), TTL: ttl, Address: net.ParseIP(addr)})
-	}
-	return nil
-}
-
-func iterCnames(rows *sql.Rows, callback func(CnameRecord)) error {
-	for rows.Next() {
-		var name string
-		var target string
-		var ttl uint32
-
-		if err := rows.Scan(&name, &target, &ttl); err != nil {
-			return err
-		}
-
-		callback(CnameRecord{Name: Domain(name), TTL: ttl, Target: Domain(target)})
-	}
-	return nil
-}
-
-func iterTexts(rows *sql.Rows, callback func(TxtRecord)) error {
-	for rows.Next() {
-		var name string
-		var text string
-		var ttl uint32
-
-		if err := rows.Scan(&name, &text, &ttl); err != nil {
-			return err
-		}
-
-		callback(TxtRecord{Name: Domain(name), TTL: ttl, Text: text})
-	}
-	return nil
-}
-
-func iterServices(rows *sql.Rows, callback func(SrvRecord)) error {
-	for rows.Next() {
-		var name string
-		var priority uint16
-		var weight uint16
-		var port uint16
-		var target string
-		var ttl uint32
-
-		if err := rows.Scan(&name, &priority, &weight, &port, &target, &ttl); err != nil {
-			return err
-		}
-
-		callback(SrvRecord{
-			Name:     Domain(name),
-			TTL:      ttl,
-			Priority: priority,
-			Weight:   weight,
-			Port:     port,
-			Target:   Domain(target),
-		})
-	}
-	return nil
-}
 
 type SqliteResolver struct {
 	path    string
@@ -93,46 +23,17 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 		return nil, err
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS addresses (
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS records (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT,
-		address TEXT,
-		reverse_address TEXT NOT NULL,
-		ttl INTEGER NOT NULL CHECK(0 <= ttl),
-		PRIMARY KEY (name, address)
+		qtype TEXT,
+		record TEXT UNIQUE
 	)`)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS cnames (
-		name TEXT,
-		target TEXT,
-		ttl INTEGER NOT NULL CHECK(0 <= ttl),
-		PRIMARY KEY (name, target)
-	)`)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS texts (
-		name TEXT,
-		text TEXT,
-		ttl INTEGER NOT NULL CHECK(0 <= ttl),
-		PRIMARY KEY (name, text)
-	)`)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS services (
-		name TEXT,
-		priority INTEGER NOT NULL CHECK(0 <= priority AND priority <= 65535),
-		weight INTEGER NOT NULL CHECK(0 <= weight AND weight <= 65535),
-		port INTEGER CHECK(0 <= port AND port <= 65535),
-		target TEXT,
-		ttl INTEGER NOT NULL CHECK(0 <= ttl),
-		PRIMARY KEY (name, port, target)
-	)`)
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS record_name ON records (name, qtype)`)
 	if err != nil {
 		return nil, err
 	}
@@ -140,326 +41,180 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 	return &SqliteResolver{path, db, metrics}, nil
 }
 
-func (r *SqliteResolver) String() string {
-	return fmt.Sprintf("SqliteResolver[%s]", r.path)
+func (sr *SqliteResolver) String() string {
+	return fmt.Sprintf("SqliteResolver[%s]", sr.path)
 }
 
-func (r *SqliteResolver) UpdateAddresses(config AddressesConfig) error {
-	tx, err := r.db.Begin()
+func insertRecord(search, ins *sql.Stmt, r DynamicRecord) error {
+	result, err := search.Query(r.Record.String())
+	if err != nil {
+		return err
+	}
+	defer result.Close()
+
+	if result.Next() {
+		return nil
+	}
+
+	_, err = ins.Exec(r.Record.GetName(), QtypeToString(r.Record.GetQtype()), r.Record.String())
+	if err != nil {
+		return err
+	}
+
+	if r.Record.GetQtype() == dns.TypeA || r.Record.GetQtype() == dns.TypeAAAA {
+		reverse, err := dns.ReverseAddr(r.Record.(AddressRecord).Address.String())
+		if err != nil {
+			return err
+		}
+		ins.Exec(reverse, "PTR", fmt.Sprintf("%s %d IN PTR %s", reverse, r.Record.GetTTL(), r.Record.GetName()))
+	}
+
+	return nil
+}
+
+func dropRecord(withID, withoutID *sql.Stmt, r DynamicRecord) error {
+	if r.ID == nil {
+		_, err := withoutID.Exec(r.Record.String())
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := withID.Exec(*r.ID, r.Record.String())
+		if err != nil {
+			return err
+		}
+	}
+
+	if r.Record.GetQtype() == dns.TypeA || r.Record.GetQtype() == dns.TypeAAAA {
+		reverse, err := dns.ReverseAddr(r.Record.(AddressRecord).Address.String())
+		if err != nil {
+			return err
+		}
+		withoutID.Exec(fmt.Sprintf("%s %d IN PTR %s", reverse, r.Record.GetTTL(), r.Record.GetName()))
+	}
+
+	return nil
+}
+
+func (sr *SqliteResolver) SetRecords(rs DynamicRecordSet) error {
+	tx, err := sr.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	drop, err := tx.Prepare(`DELETE FROM addresses WHERE name = ?`)
+	dropWithID, err := tx.Prepare(`DELETE FROM records WHERE id = ? AND record = ?`)
 	if err != nil {
 		return err
 	}
-	defer drop.Close()
+	defer dropWithID.Close()
 
-	ins, err := tx.Prepare(`INSERT INTO addresses VALUES (?, ?, ?, ?)`)
+	dropWithoutID, err := tx.Prepare(`DELETE FROM records WHERE record = ?`)
 	if err != nil {
 		return err
 	}
-	defer ins.Close()
+	defer dropWithoutID.Close()
 
-	for name, list := range config {
-		if _, err = drop.Exec(name.String()); err != nil {
-			return err
-		}
-
-		for _, r := range list {
-			rf := r.Normalized()
-
-			reverse, err := dns.ReverseAddr(rf.Address.String())
-			if err != nil {
-				return err
-			}
-
-			if _, err = ins.Exec(name.String(), rf.Address.String(), reverse, rf.TTL); err != nil {
-				return err
-			}
-		}
-	}
-
-	return tx.Commit()
-}
-
-func (r *SqliteResolver) GetAddresses() (AddressesConfig, error) {
-	rows, err := r.db.Query(`SELECT name, address, ttl FROM addresses`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	resp := make(AddressesConfig)
-
-	return resp, iterAddresses(rows, func(r AddressRecord) {
-		resp.RegisterRecord(r)
-	})
-}
-
-func (r *SqliteResolver) UpdateCnames(config CnamesConfig) error {
-	tx, err := r.db.Begin()
+	search, err := tx.Prepare(`SELECT 1 FROM records WHERE record = ? LIMIT 1`)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer search.Close()
 
-	drop, err := tx.Prepare(`DELETE FROM cnames WHERE name = ?`)
-	if err != nil {
-		return err
-	}
-	defer drop.Close()
-
-	ins, err := tx.Prepare(`INSERT INTO cnames VALUES (?, ?, ?)`)
+	ins, err := tx.Prepare(`INSERT INTO records (name, qtype, record) VALUES (?, ?, ?)`)
 	if err != nil {
 		return err
 	}
 	defer ins.Close()
 
-	for name, list := range config {
-		if _, err = drop.Exec(name.String()); err != nil {
-			return err
-		}
-
-		for _, r := range list {
-			rf := r.Normalized()
-			if _, err = ins.Exec(name.String(), rf.Target.String(), rf.TTL); err != nil {
-				return err
-			}
-		}
-	}
-
-	return tx.Commit()
-}
-
-func (r *SqliteResolver) GetCnames() (CnamesConfig, error) {
-	rows, err := r.db.Query(`SELECT name, target, ttl FROM cnames`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	resp := make(CnamesConfig)
-
-	return resp, iterCnames(rows, func(r CnameRecord) {
-		resp.RegisterRecord(r)
-	})
-}
-
-func (r *SqliteResolver) UpdateTexts(config TextsConfig) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	drop, err := tx.Prepare(`DELETE FROM texts WHERE name = ?`)
-	if err != nil {
-		return err
-	}
-	defer drop.Close()
-
-	ins, err := tx.Prepare(`INSERT INTO texts VALUES (?, ?, ?)`)
-	if err != nil {
-		return err
-	}
-	defer ins.Close()
-
-	for name, list := range config {
-		if _, err = drop.Exec(name.String()); err != nil {
-			return err
-		}
-
-		for _, r := range list {
-			rf := r.Normalized()
-			if _, err = ins.Exec(name.String(), rf.Text, rf.TTL); err != nil {
-				return err
-			}
-		}
-	}
-
-	return tx.Commit()
-}
-
-func (r *SqliteResolver) GetTexts() (TextsConfig, error) {
-	rows, err := r.db.Query(`SELECT name, text, ttl FROM texts`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	resp := make(TextsConfig)
-
-	return resp, iterTexts(rows, func(r TxtRecord) {
-		resp.RegisterRecord(r)
-	})
-}
-
-func (r *SqliteResolver) UpdateServices(config ServicesConfig) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	drop, err := tx.Prepare(`DELETE FROM services WHERE name = ?`)
-	if err != nil {
-		return err
-	}
-	defer drop.Close()
-
-	ins, err := tx.Prepare(`INSERT INTO services VALUES (?, ?, ?, ?, ?, ?)`)
-	if err != nil {
-		return err
-	}
-	defer ins.Close()
-
-	for name, list := range config {
-		if _, err = drop.Exec(name.String()); err != nil {
-			return err
-		}
-
-		for _, r := range list {
-			rf := r.Normalized()
-			if _, err = ins.Exec(name.String(), rf.Priority, rf.Weight, rf.Port, rf.Target.String(), rf.TTL); err != nil {
-				return err
-			}
-		}
-	}
-
-	return tx.Commit()
-}
-
-func (r *SqliteResolver) GetServices() (ServicesConfig, error) {
-	rows, err := r.db.Query(`SELECT name, priority, weight, port, target, ttl FROM services`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	resp := make(ServicesConfig)
-
-	return resp, iterServices(rows, func(r SrvRecord) {
-		resp.RegisterRecord(r)
-	})
-}
-
-func (r *SqliteResolver) ResolveAddresses(name string) (resp []AddressRecord, err error) {
-	rows, err := r.db.Query(`SELECT name, address, ttl FROM addresses WHERE name = ?`, name)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return resp, iterAddresses(rows, func(r AddressRecord) {
-		resp = append(resp, r)
-	})
-}
-
-func (r *SqliteResolver) ResolveA(name string) (resp []Record, err error) {
-	ipresp, err := r.ResolveAddresses(name)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, r := range ipresp {
-		if r.IsV4() {
-			resp = append(resp, r)
-		}
-	}
-	return
-}
-
-func (r *SqliteResolver) ResolveAAAA(name string) (resp []Record, err error) {
-	ipresp, err := r.ResolveAddresses(name)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, r := range ipresp {
-		if !r.IsV4() {
-			resp = append(resp, r)
-		}
-	}
-	return
-}
-
-func (r *SqliteResolver) ResolvePTR(addr string) (resp []Record, err error) {
-	rows, err := r.db.Query(`SELECT name, address, ttl FROM addresses WHERE reverse_address = ?`, addr)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return resp, iterAddresses(rows, func(r AddressRecord) {
-		resp = append(resp, PtrRecord{
-			Name:   Domain(addr),
-			TTL:    r.TTL,
-			Domain: r.Name,
-		})
-	})
-}
-
-func (r *SqliteResolver) ResolveCNAME(name string) (resp []Record, err error) {
-	rows, err := r.db.Query(`SELECT name, target, ttl FROM cnames WHERE name = ?`, name)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return resp, iterCnames(rows, func(r CnameRecord) {
-		resp = append(resp, r)
-	})
-}
-
-func (r *SqliteResolver) ResolveTXT(name string) (resp []Record, err error) {
-	rows, err := r.db.Query(`SELECT name, text, ttl FROM texts WHERE name = ?`, name)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return resp, iterTexts(rows, func(r TxtRecord) {
-		resp = append(resp, r)
-	})
-}
-
-func (r *SqliteResolver) ResolveSRV(name string) (resp []Record, err error) {
-	rows, err := r.db.Query(`SELECT name, priority, weight, port, target, ttl FROM services WHERE name = ?`, name)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return resp, iterServices(rows, func(r SrvRecord) {
-		resp = append(resp, r)
-	})
-}
-
-func (r *SqliteResolver) Resolve(resp ResponseWriter, req Request) error {
-	var rs []Record
-	var err error
-
-	switch req.Qtype {
-	case dns.TypeA:
-		rs, err = r.ResolveA(req.Name)
-	case dns.TypeAAAA:
-		rs, err = r.ResolveAAAA(req.Name)
-	case dns.TypePTR:
-		rs, err = r.ResolvePTR(req.Name)
-	case dns.TypeCNAME:
-		rs, err = r.ResolveCNAME(req.Name)
-	case dns.TypeTXT:
-		rs, err = r.ResolveTXT(req.Name)
-	case dns.TypeSRV:
-		rs, err = r.ResolveSRV(req.Name)
-	}
 	for _, r := range rs {
-		resp.Add(r)
+		if r.Disabled {
+			if err := dropRecord(dropWithID, dropWithoutID, r); err != nil {
+				return err
+			}
+		} else {
+			if err := insertRecord(search, ins, r); err != nil {
+				return err
+			}
+		}
 	}
-	return err
+
+	return tx.Commit()
+}
+
+func scanRecords(rows *sql.Rows) (DynamicRecordSet, error) {
+	var text string
+	var result DynamicRecordSet
+
+	for rows.Next() {
+		var dr DynamicRecord
+
+		if err := rows.Scan(&dr.ID, &text); err != nil {
+			return DynamicRecordSet{}, err
+		}
+
+		var err error
+		dr.Record, err = NewRecord(text)
+		if err != nil {
+			return DynamicRecordSet{}, err
+		}
+
+		result = append(result, dr)
+	}
+
+	return result, nil
+}
+
+func (sr *SqliteResolver) Records() (DynamicRecordSet, error) {
+	rows, err := sr.db.Query(`SELECT id, record FROM records ORDER BY id`)
+	if err != nil {
+		return DynamicRecordSet{}, err
+	}
+	defer rows.Close()
+
+	return scanRecords(rows)
+}
+
+func (sr *SqliteResolver) SearchRecords(suffix Domain) (DynamicRecordSet, error) {
+	suf := suffix.String()
+	for from, to := range map[string]string{`\`: `\\`, `%`: `\%`, `_`: `\_`} {
+		suf = strings.ReplaceAll(suf, from, to)
+	}
+
+	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE name = ? OR name like ? ESCAPE '\' ORDER BY id`, suf, "%."+suf)
+	if err != nil {
+		return DynamicRecordSet{}, err
+	}
+	defer rows.Close()
+
+	return scanRecords(rows)
+}
+
+func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
+	rows, err := sr.db.Query(`SELECT record FROM records WHERE name = ? AND qtype = ?`, r.Name, r.QtypeString())
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var text string
+
+	for rows.Next() {
+		if err := rows.Scan(&text); err != nil {
+			return err
+		}
+
+		record, err := NewRecord(text)
+		if err != nil {
+			return err
+		}
+
+		if err := w.Add(record); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *SqliteResolver) RecursionAvailable() bool {

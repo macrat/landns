@@ -1,8 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
 	"context"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"

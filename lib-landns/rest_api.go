@@ -1,16 +1,58 @@
 package landns
 
 import (
-	"log"
+	"fmt"
+	"io/ioutil"
 	"net/http"
-
-	"github.com/labstack/echo"
-	"github.com/miekg/dns"
+	"strings"
 )
 
-var (
-	BadRqeustError = echo.NewHTTPError(http.StatusBadRequest, "invalid request")
-)
+type HTTPError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e HTTPError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(e.StatusCode)
+	fmt.Fprintln(w, e.Error())
+}
+
+func (e HTTPError) Error() string {
+	return fmt.Sprintf("; %d: %s", e.StatusCode, strings.ReplaceAll(e.Message, "\n", "\n;      "))
+}
+
+type httpHandler func(path string, body string) (string, *HTTPError)
+
+func (hh httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		HTTPError{http.StatusBadRequest, "bad request"}.ServeHTTP(w, r)
+		return
+	}
+
+	resp, e := hh(r.URL.Path, string(body))
+	if e != nil {
+		e.ServeHTTP(w, r)
+		return
+	}
+
+	resp = strings.TrimRight(resp, "\n")
+	if len(resp) != 0 {
+		fmt.Fprintln(w, resp)
+	}
+}
+
+type httpHandlerSet map[string]http.Handler
+
+func (hhs httpHandlerSet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h, ok := hhs[r.Method]; ok {
+		h.ServeHTTP(w, r)
+		return
+	}
+
+	HTTPError{http.StatusMethodNotAllowed, "method not allowed"}.ServeHTTP(w, r)
+}
 
 type DynamicAPI struct {
 	resolver DynamicResolver
@@ -20,249 +62,90 @@ func NewDynamicAPI(resolver DynamicResolver) DynamicAPI {
 	return DynamicAPI{resolver}
 }
 
-func (d DynamicAPI) GetAddresses(c echo.Context) error {
-	addrs, err := d.resolver.GetAddresses()
+func (d DynamicAPI) GetAllRecords(path, req string) (string, *HTTPError) {
+	records, err := d.resolver.Records()
 	if err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
+		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
 	}
 
-	return c.JSON(http.StatusOK, addrs)
+	return records.String(), nil
 }
 
-func (d DynamicAPI) UpdateAddresses(c echo.Context) error {
-	var request AddressesConfig
-
-	if err := c.Bind(&request); err != nil {
-		return BadRqeustError
-	} else if err = request.Validate(); err != nil {
-		return BadRqeustError
+func (d DynamicAPI) GetRecords(path, req string) (string, *HTTPError) {
+	if path[len(path)-1] == '/' {
+		return "", &HTTPError{http.StatusNotFound, "not found"}
 	}
 
-	if err := d.resolver.UpdateAddresses(request); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
+	items := strings.Split(path[len("/v1/record/"):], "/")
+	rev := make([]string, len(items))
+	for i := range items {
+		rev[i] = items[len(items)-1-i]
+	}
+	domain := Domain(strings.Join(rev, "."))
+
+	if err := domain.Validate(); err != nil || domain.String()[0] == '.' {
+		return "", &HTTPError{http.StatusNotFound, "not found"}
 	}
 
-	return c.NoContent(http.StatusNoContent)
-}
-
-func (d DynamicAPI) ResolveAddress(c echo.Context) error {
-	name := Domain(c.Param("name"))
-
-	if err := name.Validate(); err != nil {
-		return BadRqeustError
-	}
-
-	resp := make([]Record, 0, 10)
-	writer := NewResponseCallback(func(r Record) error {
-		resp = append(resp, r)
-		return nil
-	})
-
-	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeA, false)); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return nil
-	}
-	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeAAAA, false)); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return nil
-	}
-
-	return c.JSON(http.StatusOK, resp)
-}
-
-func (d DynamicAPI) GetCnames(c echo.Context) error {
-	cnames, err := d.resolver.GetCnames()
+	records, err := d.resolver.SearchRecords(domain)
 	if err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
+		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
 	}
 
-	return c.JSON(http.StatusOK, cnames)
+	return records.String(), nil
 }
 
-func (d DynamicAPI) UpdateCnames(c echo.Context) error {
-	var request CnamesConfig
-
-	if err := c.Bind(&request); err != nil {
-		return BadRqeustError
-	} else if err = request.Validate(); err != nil {
-		return BadRqeustError
+func (d DynamicAPI) setRecords(rs DynamicRecordSet) (string, *HTTPError) {
+	if err := d.resolver.SetRecords(rs); err != nil {
+		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
 	}
 
-	if err := d.resolver.UpdateCnames(request); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
+	add := 0
+	del := 0
+	for _, r := range rs {
+		if r.Disabled {
+			del++
+		} else {
+			add++
+		}
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return fmt.Sprintf("; 200: add:%d delete:%d", add, del), nil
 }
 
-func (d DynamicAPI) ResolveCname(c echo.Context) error {
-	name := Domain(c.Param("name"))
-
-	if err := name.Validate(); err != nil {
-		return BadRqeustError
-	}
-
-	resp := make([]Record, 0, 10)
-	writer := NewResponseCallback(func(r Record) error {
-		resp = append(resp, r)
-		return nil
-	})
-	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeCNAME, false)); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return nil
-	}
-
-	return c.JSON(http.StatusOK, resp)
-}
-
-func (d DynamicAPI) GetTexts(c echo.Context) error {
-	texts, err := d.resolver.GetTexts()
+func (d DynamicAPI) PostRecords(path, req string) (string, *HTTPError) {
+	rs, err := NewDynamicRecordSet(req)
 	if err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
+		return "", &HTTPError{http.StatusBadRequest, err.Error()}
 	}
 
-	return c.JSON(http.StatusOK, texts)
+	return d.setRecords(rs)
 }
 
-func (d DynamicAPI) UpdateTexts(c echo.Context) error {
-	var request TextsConfig
-
-	if err := c.Bind(&request); err != nil {
-		return BadRqeustError
-	} else if err = request.Validate(); err != nil {
-		return BadRqeustError
-	}
-
-	if err := d.resolver.UpdateTexts(request); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
-	}
-
-	return c.NoContent(http.StatusNoContent)
-}
-
-func (d DynamicAPI) ResolveText(c echo.Context) error {
-	name := Domain(c.Param("name"))
-
-	if err := name.Validate(); err != nil {
-		return BadRqeustError
-	}
-
-	resp := make([]Record, 0, 10)
-	writer := NewResponseCallback(func(r Record) error {
-		resp = append(resp, r)
-		return nil
-	})
-	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeTXT, false)); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return nil
-	}
-
-	return c.JSON(http.StatusOK, resp)
-}
-
-func (d DynamicAPI) GetServices(c echo.Context) error {
-	services, err := d.resolver.GetServices()
+func (d DynamicAPI) DeleteRecords(path, req string) (string, *HTTPError) {
+	rs, err := NewDynamicRecordSet(req)
 	if err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
+		return "", &HTTPError{http.StatusBadRequest, err.Error()}
 	}
 
-	return c.JSON(http.StatusOK, services)
-}
-
-func (d DynamicAPI) UpdateServices(c echo.Context) error {
-	var request ServicesConfig
-
-	if err := c.Bind(&request); err != nil {
-		return BadRqeustError
-	} else if err = request.Validate(); err != nil {
-		return BadRqeustError
+	for i := range rs {
+		rs[i].Disabled = !rs[i].Disabled
 	}
 
-	if err := d.resolver.UpdateServices(request); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return err
-	}
-
-	return c.NoContent(http.StatusNoContent)
-}
-
-func (d DynamicAPI) ResolveService(c echo.Context) error {
-	name := Domain(c.Param("name"))
-
-	if err := name.Validate(); err != nil {
-		return BadRqeustError
-	}
-
-	resp := make([]Record, 0, 10)
-	writer := NewResponseCallback(func(r Record) error {
-		resp = append(resp, r)
-		return nil
-	})
-	if err := d.resolver.Resolve(writer, NewRequest(name.String(), dns.TypeSRV, false)); err != nil {
-		log.Printf("dynamic-zone: %s", err)
-		return nil
-	}
-
-	return c.JSON(http.StatusOK, resp)
-}
-
-func (d DynamicAPI) GetAllRecords(c echo.Context) (err error) {
-	resp := ResolverConfig{}
-
-	resp.Addresses, err = d.resolver.GetAddresses()
-	if err != nil {
-		log.Print(err.Error())
-		return
-	}
-
-	resp.Cnames, err = d.resolver.GetCnames()
-	if err != nil {
-		log.Print(err.Error())
-		return
-	}
-
-	resp.Texts, err = d.resolver.GetTexts()
-	if err != nil {
-		log.Print(err.Error())
-		return
-	}
-
-	resp.Services, err = d.resolver.GetServices()
-	if err != nil {
-		log.Print(err.Error())
-		return
-	}
-
-	return c.JSON(http.StatusOK, resp)
+	return d.setRecords(rs)
 }
 
 func (d DynamicAPI) Handler() http.Handler {
-	e := echo.New()
+	mux := http.NewServeMux()
 
-	e.GET("/v1/record/address", d.GetAddresses)
-	e.POST("/v1/record/address", d.UpdateAddresses)
-	e.GET("/v1/record/address/:name", d.ResolveAddress)
+	mux.Handle("/v1/record", httpHandlerSet{
+		"GET":    httpHandler(d.GetAllRecords),
+		"POST":   httpHandler(d.PostRecords),
+		"DELETE": httpHandler(d.DeleteRecords),
+	})
+	mux.Handle("/v1/record/", httpHandlerSet{
+		"GET": httpHandler(d.GetRecords),
+	})
 
-	e.GET("/v1/record/text", d.GetTexts)
-	e.POST("/v1/record/text", d.UpdateTexts)
-	e.GET("/v1/record/text/:name", d.ResolveText)
-
-	e.GET("/v1/record/cname", d.GetCnames)
-	e.POST("/v1/record/cname", d.UpdateCnames)
-	e.GET("/v1/record/cname/:name", d.ResolveCname)
-
-	e.GET("/v1/record/service", d.GetServices)
-	e.POST("/v1/record/service", d.UpdateServices)
-	e.GET("/v1/record/service/:name", d.ResolveService)
-
-	e.GET("/v1/record", d.GetAllRecords)
-
-	return e
+	return mux
 }

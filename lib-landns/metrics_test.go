@@ -26,7 +26,14 @@ func TestMetrics(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	metrics, get := StartDummyMetricsServer(ctx, t, "landns")
+	metrics, rawGet := StartDummyMetricsServer(ctx, t, "landns")
+	get := func() string {
+		m, err := rawGet()
+		if err != nil {
+			t.Fatalf("failed to get metrics")
+		}
+		return m
+	}
 
 	for i, test := range []struct {
 		Name           string

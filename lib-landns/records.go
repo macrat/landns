@@ -64,6 +64,15 @@ type Record interface {
 	Validate() error
 }
 
+func NewRecord(str string) (Record, error) {
+	rr, err := dns.NewRR(str)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewRecordFromRR(rr)
+}
+
 func NewRecordFromRR(rr dns.RR) (Record, error) {
 	switch x := rr.(type) {
 	case *dns.A:
