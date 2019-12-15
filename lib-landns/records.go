@@ -43,6 +43,7 @@ func (d Domain) Normalized() Domain {
 	return Domain(d.String())
 }
 
+// Validate is validator to domain.
 func (d Domain) Validate() error {
 	if len(string(d)) == 0 {
 		return InvalidDomain(string(d))
@@ -53,12 +54,14 @@ func (d Domain) Validate() error {
 	return nil
 }
 
+// UnmarshalText is parse text from bytes.
 func (d *Domain) UnmarshalText(text []byte) error {
 	*d = Domain(dns.Fqdn(string(text)))
 
 	return d.Validate()
 }
 
+// MarshalText is make bytes text.
 func (d Domain) MarshalText() ([]byte, error) {
 	return []byte(d.String()), nil
 }
@@ -123,6 +126,7 @@ func (r AddressRecord) IsV4() bool {
 	return r.Address.To4() != nil
 }
 
+// String is make record string.
 func (r AddressRecord) String() string {
 	qtype := "A"
 	if !r.IsV4() {
@@ -131,14 +135,17 @@ func (r AddressRecord) String() string {
 	return fmt.Sprintf("%s %d IN %s %s", r.Name, r.TTL, qtype, r.Address)
 }
 
+// GetName is getter to name of record.
 func (r AddressRecord) GetName() Domain {
 	return r.Name
 }
 
+// GetTTL is getter to TTL of record.
 func (r AddressRecord) GetTTL() uint32 {
 	return r.TTL
 }
 
+// GetQtype is getter to query type number like dns.TypeA or dns.TypeTXT of package github.com/miekg/dns.
 func (r AddressRecord) GetQtype() uint16 {
 	if r.IsV4() {
 		return dns.TypeA
@@ -147,10 +154,12 @@ func (r AddressRecord) GetQtype() uint16 {
 	return dns.TypeAAAA
 }
 
+// ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r AddressRecord) ToRR() (dns.RR, error) {
 	return dns.NewRR(r.String())
 }
 
+// Validate is validator of record.
 func (r AddressRecord) Validate() error {
 	return r.Name.Validate()
 }
@@ -162,26 +171,32 @@ type CnameRecord struct {
 	Target Domain
 }
 
+// String is make record string.
 func (r CnameRecord) String() string {
 	return fmt.Sprintf("%s %d IN CNAME %s", r.Name, r.TTL, r.Target)
 }
 
+// GetName is getter to name of record.
 func (r CnameRecord) GetName() Domain {
 	return r.Name
 }
 
+// GetTTL is getter to TTL of record.
 func (r CnameRecord) GetTTL() uint32 {
 	return r.TTL
 }
 
+// GetQtype is getter to query type number like dns.TypeA or dns.TypeTXT of package github.com/miekg/dns.
 func (r CnameRecord) GetQtype() uint16 {
 	return dns.TypeCNAME
 }
 
+// ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r CnameRecord) ToRR() (dns.RR, error) {
 	return dns.NewRR(r.String())
 }
 
+// Validate is validator of record.
 func (r CnameRecord) Validate() error {
 	if err := r.Name.Validate(); err != nil {
 		return err
@@ -196,26 +211,32 @@ type PtrRecord struct {
 	Domain Domain
 }
 
+// String is make record string.
 func (r PtrRecord) String() string {
 	return fmt.Sprintf("%s %d IN PTR %s", r.Name, r.TTL, r.Domain)
 }
 
+// GetName is getter to name of record.
 func (r PtrRecord) GetName() Domain {
 	return r.Name
 }
 
+// GetTTL is getter to TTL of record.
 func (r PtrRecord) GetTTL() uint32 {
 	return r.TTL
 }
 
+// GetQtype is getter to query type number like dns.TypeA or dns.TypeTXT of package github.com/miekg/dns.
 func (r PtrRecord) GetQtype() uint16 {
 	return dns.TypePTR
 }
 
+// ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r PtrRecord) ToRR() (dns.RR, error) {
 	return dns.NewRR(r.String())
 }
 
+// Validate is validator of record.
 func (r PtrRecord) Validate() error {
 	if err := r.Name.Validate(); err != nil {
 		return err
@@ -230,26 +251,32 @@ type TxtRecord struct {
 	Text string
 }
 
+// String is make record string.
 func (r TxtRecord) String() string {
 	return fmt.Sprintf("%s %d IN TXT \"%s\"", r.Name, r.TTL, r.Text)
 }
 
+// GetName is getter to name of record.
 func (r TxtRecord) GetName() Domain {
 	return r.Name
 }
 
+// GetTTL is getter to TTL of record.
 func (r TxtRecord) GetTTL() uint32 {
 	return r.TTL
 }
 
+// GetQtype is getter to query type number like dns.TypeA or dns.TypeTXT of package github.com/miekg/dns.
 func (r TxtRecord) GetQtype() uint16 {
 	return dns.TypeTXT
 }
 
+// ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r TxtRecord) ToRR() (dns.RR, error) {
 	return dns.NewRR(r.String())
 }
 
+// Validate is validator of record.
 func (r TxtRecord) Validate() error {
 	return r.Name.Validate()
 }
@@ -264,6 +291,7 @@ type SrvRecord struct {
 	Target   Domain
 }
 
+// String is make record string.
 func (r SrvRecord) String() string {
 	return fmt.Sprintf(
 		"%s %d IN SRV %d %d %d %s",
@@ -276,22 +304,27 @@ func (r SrvRecord) String() string {
 	)
 }
 
+// GetName is getter to name of record.
 func (r SrvRecord) GetName() Domain {
 	return r.Name
 }
 
+// GetTTL is getter to TTL of record.
 func (r SrvRecord) GetTTL() uint32 {
 	return r.TTL
 }
 
+// GetQtype is getter to query type number like dns.TypeA or dns.TypeTXT of package github.com/miekg/dns.
 func (r SrvRecord) GetQtype() uint16 {
 	return dns.TypeSRV
 }
 
+// ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r SrvRecord) ToRR() (dns.RR, error) {
 	return dns.NewRR(r.String())
 }
 
+// Validate is validator of record.
 func (r SrvRecord) Validate() error {
 	if err := r.Name.Validate(); err != nil {
 		return err
