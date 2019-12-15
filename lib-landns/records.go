@@ -111,105 +111,6 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 	}
 }
 
-// TxtRecord is the Record of TXT.
-type TxtRecord struct {
-	Name Domain
-	TTL  uint32
-	Text string
-}
-
-func (r TxtRecord) String() string {
-	return fmt.Sprintf("%s %d IN TXT \"%s\"", r.Name, r.TTL, r.Text)
-}
-
-func (r TxtRecord) GetName() Domain {
-	return r.Name
-}
-
-func (r TxtRecord) GetTTL() uint32 {
-	return r.TTL
-}
-
-func (r TxtRecord) GetQtype() uint16 {
-	return dns.TypeTXT
-}
-
-func (r TxtRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
-}
-
-func (r TxtRecord) Validate() error {
-	return r.Name.Validate()
-}
-
-// PtrRecord is the Record of PTR.
-type PtrRecord struct {
-	Name   Domain
-	TTL    uint32
-	Domain Domain
-}
-
-func (r PtrRecord) String() string {
-	return fmt.Sprintf("%s %d IN PTR %s", r.Name, r.TTL, r.Domain)
-}
-
-func (r PtrRecord) GetName() Domain {
-	return r.Name
-}
-
-func (r PtrRecord) GetTTL() uint32 {
-	return r.TTL
-}
-
-func (r PtrRecord) GetQtype() uint16 {
-	return dns.TypePTR
-}
-
-func (r PtrRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
-}
-
-func (r PtrRecord) Validate() error {
-	if err := r.Name.Validate(); err != nil {
-		return err
-	}
-	return r.Domain.Validate()
-}
-
-// CnameRecord is the Record of CNAME.
-type CnameRecord struct {
-	Name   Domain
-	TTL    uint32
-	Target Domain
-}
-
-func (r CnameRecord) String() string {
-	return fmt.Sprintf("%s %d IN CNAME %s", r.Name, r.TTL, r.Target)
-}
-
-func (r CnameRecord) GetName() Domain {
-	return r.Name
-}
-
-func (r CnameRecord) GetTTL() uint32 {
-	return r.TTL
-}
-
-func (r CnameRecord) GetQtype() uint16 {
-	return dns.TypeCNAME
-}
-
-func (r CnameRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
-}
-
-func (r CnameRecord) Validate() error {
-	if err := r.Name.Validate(); err != nil {
-		return err
-	}
-	return r.Target.Validate()
-}
-
 // AddressRecord is the Record of A or AAAA.
 type AddressRecord struct {
 	Name    Domain
@@ -251,6 +152,105 @@ func (r AddressRecord) ToRR() (dns.RR, error) {
 }
 
 func (r AddressRecord) Validate() error {
+	return r.Name.Validate()
+}
+
+// CnameRecord is the Record of CNAME.
+type CnameRecord struct {
+	Name   Domain
+	TTL    uint32
+	Target Domain
+}
+
+func (r CnameRecord) String() string {
+	return fmt.Sprintf("%s %d IN CNAME %s", r.Name, r.TTL, r.Target)
+}
+
+func (r CnameRecord) GetName() Domain {
+	return r.Name
+}
+
+func (r CnameRecord) GetTTL() uint32 {
+	return r.TTL
+}
+
+func (r CnameRecord) GetQtype() uint16 {
+	return dns.TypeCNAME
+}
+
+func (r CnameRecord) ToRR() (dns.RR, error) {
+	return dns.NewRR(r.String())
+}
+
+func (r CnameRecord) Validate() error {
+	if err := r.Name.Validate(); err != nil {
+		return err
+	}
+	return r.Target.Validate()
+}
+
+// PtrRecord is the Record of PTR.
+type PtrRecord struct {
+	Name   Domain
+	TTL    uint32
+	Domain Domain
+}
+
+func (r PtrRecord) String() string {
+	return fmt.Sprintf("%s %d IN PTR %s", r.Name, r.TTL, r.Domain)
+}
+
+func (r PtrRecord) GetName() Domain {
+	return r.Name
+}
+
+func (r PtrRecord) GetTTL() uint32 {
+	return r.TTL
+}
+
+func (r PtrRecord) GetQtype() uint16 {
+	return dns.TypePTR
+}
+
+func (r PtrRecord) ToRR() (dns.RR, error) {
+	return dns.NewRR(r.String())
+}
+
+func (r PtrRecord) Validate() error {
+	if err := r.Name.Validate(); err != nil {
+		return err
+	}
+	return r.Domain.Validate()
+}
+
+// TxtRecord is the Record of TXT.
+type TxtRecord struct {
+	Name Domain
+	TTL  uint32
+	Text string
+}
+
+func (r TxtRecord) String() string {
+	return fmt.Sprintf("%s %d IN TXT \"%s\"", r.Name, r.TTL, r.Text)
+}
+
+func (r TxtRecord) GetName() Domain {
+	return r.Name
+}
+
+func (r TxtRecord) GetTTL() uint32 {
+	return r.TTL
+}
+
+func (r TxtRecord) GetQtype() uint16 {
+	return dns.TypeTXT
+}
+
+func (r TxtRecord) ToRR() (dns.RR, error) {
+	return dns.NewRR(r.String())
+}
+
+func (r TxtRecord) Validate() error {
 	return r.Name.Validate()
 }
 
