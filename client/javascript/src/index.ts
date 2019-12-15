@@ -8,10 +8,10 @@ export abstract class Record {
         public readonly type: string = 'UNKNOWN',
     ){}
 
-    static parse(str: string): Record | null {
-        const m = str.match(/[^ \t]+[ \t]+[0-9]+[ \t]+IN[ \t]+([A-Z]+)[ \t]+.*/);
+    static parse(str: string): Record {
+        const m = str.match(/[^ \t]+[ \t]+[0-9]+[ \t]+IN[ \t]+([A-Z]+)[ \t]/);
         if (m === null) {
-            return null;
+            throw new Error(`invalid record: ${str}`);
         }
 
         const func = {
@@ -23,11 +23,11 @@ export abstract class Record {
             SRV: SrvRecord.parse,
         }[m[1]];
 
-        if (func !== null) {
-            return func(str);
+        if (func === undefined) {
+            throw new Error(`invalid record: ${str}`);
         }
 
-        return null;
+        return func(str);
     }
 
     abstract toString(): string;
@@ -43,12 +43,13 @@ export class ARecord extends Record {
         super(name, ttl, 'A');
     }
 
-    static parse(str: string): Record | null {
-        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+A[ \t]+([^ \t]+)/);
-        if (m !== null) {
-            return new ARecord(m[1], m[3], parseInt(m[2]));
+    static parse(str: string): ARecord {
+        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+A[ \t]+([^ \t;]+)/);
+        if (m === null) {
+            throw new Error(`invalid record: ${str}`);
         }
-        return null;
+
+        return new ARecord(m[1], m[3], parseInt(m[2]));
     }
 
     toString(): string {
@@ -66,12 +67,13 @@ export class AaaaRecord extends Record {
         super(name, ttl, 'AAAA');
     }
 
-    static parse(str: string): Record | null {
-        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+AAAA[ \t]+([^ \t]+)/);
-        if (m !== null) {
-            return new AaaaRecord(m[1], m[3], parseInt(m[2]));
+    static parse(str: string): AaaaRecord {
+        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+AAAA[ \t]+([^ \t;]+)/);
+        if (m === null) {
+            throw new Error(`invalid record: ${str}`);
         }
-        return null;
+
+        return new AaaaRecord(m[1], m[3], parseInt(m[2]));
     }
 
     toString(): string {
@@ -89,12 +91,13 @@ export class CnameRecord extends Record {
         super(name, ttl, 'CNAME');
     }
 
-    static parse(str: string): Record | null {
-        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+CNAME[ \t]+([^ \t]+)/);
-        if (m !== null) {
-            return new CnameRecord(m[1], m[3], parseInt(m[2]));
+    static parse(str: string): CnameRecord {
+        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+CNAME[ \t]+([^ \t;]+)/);
+        if (m === null) {
+            throw new Error(`invalid record: ${str}`);
         }
-        return null;
+
+        return new CnameRecord(m[1], m[3], parseInt(m[2]));
     }
 
     toString(): string {
@@ -112,12 +115,13 @@ export class PtrRecord extends Record {
         super(name, ttl, 'PTR');
     }
 
-    static parse(str: string): Record | null {
-        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+PTR[ \t]+([^ \t]+)/);
-        if (m !== null) {
-            return new PtrRecord(m[1], m[3], parseInt(m[2]));
+    static parse(str: string): PtrRecord {
+        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+PTR[ \t]+([^ \t;]+)/);
+        if (m === null) {
+            throw new Error(`invalid record: ${str}`);
         }
-        return null;
+
+        return new PtrRecord(m[1], m[3], parseInt(m[2]));
     }
 
     toString(): string {
@@ -135,12 +139,13 @@ export class TxtRecord extends Record {
         super(name, ttl, 'TXT');
     }
 
-    static parse(str: string): Record | null {
-        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+TXT[ \t]+("[^"]*")+/);
-        if (m !== null) {
-            return new TxtRecord(m[1], m[3], parseInt(m[2]));
+    static parse(str: string): TxtRecord {
+        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+TXT[ \t]+"([^"]*)"/);
+        if (m === null) {
+            throw new Error(`invalid record: ${str}`);
         }
-        return null;
+
+        return new TxtRecord(m[1], m[3], parseInt(m[2]));
     }
 
     toString(): string {
@@ -161,12 +166,13 @@ export class SrvRecord extends Record {
         super(name, ttl, 'SRV');
     }
 
-    static parse(str: string): Record | null {
-        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+SRV[ \t]+([0-9]+)[ \t]+([0-9]+)[ \t]+([0-9]+)[ \t]+("[^"]*")+/);
-        if (m !== null) {
-            return new SrvRecord(m[1], m[6], parseInt(m[5]),  parseInt(m[3]), parseInt(m[4]), parseInt(m[2]));
+    static parse(str: string): SrvRecord {
+        const m = str.match(/([^ \t]+)[ \t]+([0-9]+)[ \t]+IN[ \t]+SRV[ \t]+([0-9]+)[ \t]+([0-9]+)[ \t]+([0-9]+)[ \t]+([^ \t;]+)/);
+        if (m === null) {
+            throw new Error(`invalid record: ${str}`);
         }
-        return null;
+
+        return new SrvRecord(m[1], m[6], parseInt(m[5]),  parseInt(m[3]), parseInt(m[4]), parseInt(m[2]));
     }
 
     toString(): string {
@@ -176,7 +182,11 @@ export class SrvRecord extends Record {
 
 
 export function parseRecords(text: string): Record[] {
-    return text.split('\n').map(line => Record.parse(line)).filter(record => record !== null);
+    return text.split('\n')
+        .map(line => line.trim())
+        .filter(line => !line.startsWith(';') && line != '')
+        .map(line => Record.parse(line))
+        .filter(record => record !== null);
 }
 
 

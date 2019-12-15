@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "rollup -c",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "nyc --reporter=html --reporter=text --reporter=lcov --require espower-typescript/guess --include src/**/*.ts --extension .ts mocha test/**/*.ts"
   },
   "repository": {
     "type": "git",
@@ -14,8 +14,18 @@
   "author": "MacRat <m@crat.jp> (https://blanktar.jp)",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.0",
+    "axios": "^0.19.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.12.17",
+    "espower-typescript": "^9.0.2",
+    "mocha": "^6.2.2",
+    "nyc": "^14.1.1",
+    "power-assert": "^1.6.1",
     "rollup": "^1.27.13",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript2": "^0.25.3",
     "typescript": "^3.7.3"
   }
