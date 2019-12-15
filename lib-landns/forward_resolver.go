@@ -7,6 +7,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// ForwardResolver is recursion resolver.
 type ForwardResolver struct {
 	client *dns.Client
 
@@ -14,6 +15,7 @@ type ForwardResolver struct {
 	Metrics   *Metrics
 }
 
+// NewForwardResolver is make new ForwardResolver.
 func NewForwardResolver(upstreams []*net.UDPAddr, timeout time.Duration, metrics *Metrics) ForwardResolver {
 	return ForwardResolver{
 		client: &dns.Client{
@@ -26,6 +28,7 @@ func NewForwardResolver(upstreams []*net.UDPAddr, timeout time.Duration, metrics
 	}
 }
 
+// Resolve is resolver using upstream DNS servers.
 func (fr ForwardResolver) Resolve(w ResponseWriter, r Request) error {
 	if !r.RecursionDesired {
 		return nil
@@ -61,10 +64,12 @@ func (fr ForwardResolver) Resolve(w ResponseWriter, r Request) error {
 	return nil
 }
 
+// RecursionAvailable is always returns true.
 func (fr ForwardResolver) RecursionAvailable() bool {
 	return true
 }
 
+// Close is closer to ForwardResolver.
 func (fr ForwardResolver) Close() error {
 	return nil
 }

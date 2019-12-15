@@ -19,7 +19,7 @@ func TestDynamicAPI(t *testing.T) {
 		t.Fatalf("failed to make sqlite resolver: %s", err)
 	}
 
-	s := StartHTTPServer(ctx, t, landns.NewDynamicAPI(resolver).Handler())
+	s := StartHTTPServer(ctx, t, landns.DynamicAPI{resolver}.Handler())
 
 	type Test struct {
 		Method string

@@ -127,6 +127,10 @@ func TestAlternateResolver(t *testing.T) {
 		},
 	}
 
+	if s := resolver.String(); s != "AlternateResolver[SimpleResolver[1 domains 1 types 1 records] SimpleResolver[2 domains 1 types 2 records]]" {
+		t.Errorf(`unexpected resolver string: "%s"`, s)
+	}
+
 	defer func() {
 		if err := resolver.Close(); err != nil {
 			t.Errorf("failed to close: %s", err)

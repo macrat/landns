@@ -1,6 +1,7 @@
 package landns_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
@@ -82,4 +83,52 @@ func TestDynamicRecordSet(t *testing.T) {
 			t.Errorf("encoded text was unexpected:\n\texpected: %#v\n\tbut got:  %#v", tt.Expect, string(got))
 		}
 	}
+}
+
+func ExampleDynamicRecord() {
+	record, _ := landns.NewDynamicRecord("example.com. 600 IN A 127.0.0.1")
+	fmt.Println("name:", record.Record.GetName(), "disabled:", record.Disabled)
+
+	record, _ = landns.NewDynamicRecord(";test.service 300 IN TXT \"hello world\"")
+	fmt.Println("name:", record.Record.GetName(), "disabled:", record.Disabled)
+
+	// Output:
+	// name: example.com. disabled: false
+	// name: test.service. disabled: true
+}
+
+func ExampleDynamicRecord_String() {
+	record, _ := landns.NewDynamicRecord("example.com. 600 IN A 127.0.0.1")
+
+	fmt.Println(record)
+
+	record.Disabled = true
+	fmt.Println(record)
+
+	id := 10
+	record.ID = &id
+	fmt.Println(record)
+
+	// Output:
+	// example.com. 600 IN A 127.0.0.1
+	// ;example.com. 600 IN A 127.0.0.1
+	// ;example.com. 600 IN A 127.0.0.1 ; ID:10
+}
+
+func ExampleDynamicRecordSet() {
+	records, _ := landns.NewDynamicRecordSet(`
+	a.example.com. 100 IN A 127.0.0.1
+	b.example.com. 200 IN A 127.0.1.2
+`)
+
+	for _, r := range records {
+		fmt.Println(r.Record.GetName())
+		fmt.Println(r)
+	}
+
+	// Output:
+	// a.example.com.
+	// a.example.com. 100 IN A 127.0.0.1
+	// b.example.com.
+	// b.example.com. 200 IN A 127.0.1.2
 }

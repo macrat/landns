@@ -6,12 +6,14 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Handler is the implements of dns.Handler of package github.com/miekg/dns.
 type Handler struct {
 	Resolver           Resolver
 	Metrics            *Metrics
 	RecursionAvailable bool
 }
 
+// NewHandler is constructor of Handler.
 func NewHandler(resolver Resolver, metrics *Metrics) Handler {
 	return Handler{
 		Resolver:           resolver,
@@ -20,6 +22,7 @@ func NewHandler(resolver Resolver, metrics *Metrics) Handler {
 	}
 }
 
+// ServeDNS is the method for resolve record.
 func (h Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	end := h.Metrics.Start(r)
 

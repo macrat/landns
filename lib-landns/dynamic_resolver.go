@@ -13,17 +13,21 @@ var (
 	ErrNoSuchRecord               = fmt.Errorf("no such record")
 )
 
+// InvalidRecordError is error for invalid record line.
 type InvalidRecordError struct {
 	Line int
 	Text string
 }
 
+// Error is getter for description string.
 func (e InvalidRecordError) Error() string {
 	return fmt.Sprintf("line %d: invalid format: %s", e.Line, e.Text)
 }
 
+// ErrorSet is list of errors.
 type ErrorSet []error
 
+// Error is getter for description string.
 func (e ErrorSet) Error() string {
 	xs := make([]string, len(e))
 	for i, x := range e {

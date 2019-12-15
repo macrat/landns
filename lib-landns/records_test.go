@@ -1,9 +1,11 @@
 package landns_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/miekg/dns"
 )
 
 func TestDomain_Validate(t *testing.T) {
@@ -50,4 +52,45 @@ func TestDomain_Encoding(t *testing.T) {
 	} else if err.Error() != `invalid domain: "example.com.."` {
 		t.Errorf(`unexpected error: expected 'invalid domain: "example.com.."' but got '%s'`, err)
 	}
+}
+
+func ExampleDomani() {
+	a := landns.Domain("example.com")
+	b := a.Normalized()
+	fmt.Println(string(a), "->", string(b))
+
+	c := landns.Domain("")
+	d := c.Normalized()
+	fmt.Println(string(c), "->", string(d))
+
+	// Output:
+	// example.com -> example.com.
+	//  -> .
+}
+
+func ExampleNewRecord() {
+	record, _ := landns.NewRecord("example.com. 600 IN A 127.0.0.1")
+
+	fmt.Println(record.GetName())
+	fmt.Println(record.GetTTL())
+	fmt.Println(record.String())
+
+	// Output:
+	// example.com.
+	// 600
+	// example.com. 600 IN A 127.0.0.1
+}
+
+func ExampleNewRecordFromRR() {
+	rr, _ := dns.NewRR("example.com. 600 IN A 127.0.0.1")
+	record, _ := landns.NewRecordFromRR(rr)
+
+	fmt.Println(record.GetName())
+	fmt.Println(record.GetTTL())
+	fmt.Println(record.String())
+
+	// Output:
+	// example.com.
+	// 600
+	// example.com. 600 IN A 127.0.0.1
 }

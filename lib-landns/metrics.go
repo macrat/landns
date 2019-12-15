@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// Metrics is the metrics collector for the Prometheus.
 type Metrics struct {
 	queryCount        prometheus.Counter
 	skipCount         prometheus.Counter
@@ -31,6 +32,7 @@ func newCounter(namespace, name string, labels prometheus.Labels) prometheus.Cou
 	})
 }
 
+// NewMetrics is constructor for Metrics.
 func NewMetrics(namespace string) *Metrics {
 	resolves := map[string]prometheus.Counter{}
 	unauthes := map[string]prometheus.Counter{}
@@ -73,6 +75,7 @@ func NewMetrics(namespace string) *Metrics {
 	}
 }
 
+// HTTPHandler is make http.Handler.
 func (m *Metrics) HTTPHandler() (http.Handler, error) {
 	registry := prometheus.NewRegistry()
 
@@ -83,6 +86,7 @@ func (m *Metrics) HTTPHandler() (http.Handler, error) {
 	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), nil
 }
 
+// Describe is register descriptions to the Prometheus.
 func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
 	m.queryCount.Describe(ch)
 	m.skipCount.Describe(ch)
@@ -110,6 +114,7 @@ func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
 	m.upstreamTime.Describe(ch)
 }
 
+// Collect is collect metrics to the Prometheus.
 func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 	m.queryCount.Collect(ch)
 	m.skipCount.Collect(ch)
@@ -158,6 +163,7 @@ func (m *Metrics) makeTimer(skipped bool) func(*dns.Msg) {
 	}
 }
 
+// Start is starter timer for collect resolve duration.
 func (m *Metrics) Start(request *dns.Msg) func(*dns.Msg) {
 	if request.Opcode != dns.OpcodeQuery {
 		m.skipCount.Inc()
@@ -168,22 +174,26 @@ func (m *Metrics) Start(request *dns.Msg) func(*dns.Msg) {
 	return m.makeTimer(false)
 }
 
+// Error is collector of error.
 func (m *Metrics) Error(req Request, err error) {
 	if counter, ok := m.errorCounters[req.QtypeString()]; ok {
 		counter.Inc()
 	}
 }
 
+// UpstreamTime is collector of recursion resolve.
 func (m *Metrics) UpstreamTime(duration time.Duration) {
 	m.upstreamTime.Observe(duration.Seconds())
 }
 
+// CacheHit is collector of cache hit rate.
 func (m *Metrics) CacheHit(req Request) {
 	if counter, ok := m.cacheHitCounters[req.QtypeString()]; ok {
 		counter.Inc()
 	}
 }
 
+// CacheMiss is collector of cache hit rate.
 func (m *Metrics) CacheMiss(req Request) {
 	if counter, ok := m.cacheMissCounters[req.QtypeString()]; ok {
 		counter.Inc()

@@ -14,6 +14,7 @@ type localCacheEntry struct {
 	Expire  time.Time
 }
 
+// LocalCache is in-memory cache manager for Resolver.
 type LocalCache struct {
 	mutex    sync.Mutex
 	entries  map[uint16]map[Domain][]localCacheEntry
@@ -23,6 +24,9 @@ type LocalCache struct {
 	metrics  *Metrics
 }
 
+// NewLocalCache is constructor of LocalCache.
+//
+// LocalCache will start background goroutine. So you have to ensure to call LocalCache.Close.
 func NewLocalCache(upstream Resolver, metrics *Metrics) *LocalCache {
 	lc := &LocalCache{
 		entries:  make(map[uint16]map[Domain][]localCacheEntry),
@@ -41,6 +45,7 @@ func NewLocalCache(upstream Resolver, metrics *Metrics) *LocalCache {
 	return lc
 }
 
+// String is getter to description string.
 func (lc *LocalCache) String() string {
 	lc.mutex.Lock()
 	defer lc.mutex.Unlock()
@@ -57,6 +62,7 @@ func (lc *LocalCache) String() string {
 	return fmt.Sprintf("LocalCache[%d domains %d records]", len(domains), records)
 }
 
+// Close is closer to LocalCache.
 func (lc *LocalCache) Close() error {
 	close(lc.closer)
 	close(lc.invoke)
@@ -168,6 +174,7 @@ func (lc *LocalCache) resolveFromCache(w ResponseWriter, r Request, records []lo
 	return nil
 }
 
+// Resolve is resolver using cache or the upstream resolver.
 func (lc *LocalCache) Resolve(w ResponseWriter, r Request) error {
 	lc.mutex.Lock()
 	defer lc.mutex.Unlock()
@@ -187,6 +194,7 @@ func (lc *LocalCache) Resolve(w ResponseWriter, r Request) error {
 	return lc.resolveFromCache(w, r, records)
 }
 
+// RecursionAvailable is returns same as upstream.
 func (lc *LocalCache) RecursionAvailable() bool {
 	return lc.upstream.RecursionAvailable()
 }

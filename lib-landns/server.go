@@ -9,12 +9,14 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Server is the Landns server instance.
 type Server struct {
 	Metrics         *Metrics
 	DynamicResolver DynamicResolver
-	Resolvers       Resolver
+	Resolvers       Resolver // Resolvers for this server. Must include DynamicResolver.
 }
 
+// HTTPHandler is getter of http.Handler.
 func (s *Server) HTTPHandler() (http.Handler, error) {
 	mux := http.NewServeMux()
 
@@ -28,15 +30,17 @@ func (s *Server) HTTPHandler() (http.Handler, error) {
 	}
 
 	mux.Handle("/metrics", metrics)
-	mux.Handle("/api/", http.StripPrefix("/api", NewDynamicAPI(s.DynamicResolver).Handler()))
+	mux.Handle("/api/", http.StripPrefix("/api", DynamicAPI{s.DynamicResolver}.Handler()))
 
 	return mux, nil
 }
 
+// DNSHandler is getter of dns.Handler of package github.com/miekg/dns
 func (s *Server) DNSHandler() dns.Handler {
 	return NewHandler(s.Resolvers, s.Metrics)
 }
 
+// ListenAndServe is starter of server.
 func (s *Server) ListenAndServe(ctx context.Context, apiAddress *net.TCPAddr, dnsAddress *net.UDPAddr, dnsProto string) error {
 	httpHandler, err := s.HTTPHandler()
 	if err != nil {

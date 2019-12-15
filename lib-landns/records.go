@@ -12,24 +12,33 @@ var (
 	ErrInvalidRecord   = fmt.Errorf("invalid format record")
 )
 
+// InvalidDomain is error for invalid domain.
 type InvalidDomain string
 
+// Error is getter for description string.
 func (d InvalidDomain) Error() string {
 	return fmt.Sprintf("invalid domain: \"%s\"", string(d))
 }
 
+// InvalidPort is error for invalid port.
 type InvalidPort uint16
 
+// Error is getter for description string.
 func (p InvalidPort) Error() string {
 	return fmt.Sprintf("invalid port: \"%d\"", uint16(p))
 }
 
+// Domain is the type for domain.
 type Domain string
 
+// String is converter to Domain to string.
+//
+// String will convert to FQDN.
 func (d Domain) String() string {
 	return dns.Fqdn(string(d))
 }
 
+// Normalized is normalizer for make FQDN.
 func (d Domain) Normalized() Domain {
 	return Domain(d.String())
 }
@@ -54,16 +63,18 @@ func (d Domain) MarshalText() ([]byte, error) {
 	return []byte(d.String()), nil
 }
 
+// Record is the record entry of DNS.
 type Record interface {
 	fmt.Stringer
 
-	GetQtype() uint16
-	GetName() Domain
-	GetTTL() uint32
-	ToRR() (dns.RR, error)
-	Validate() error
+	GetQtype() uint16      // Get query type like dns.TypeA of package github.com/miekg/dns.
+	GetName() Domain       // Get domain name of the Record.
+	GetTTL() uint32        // Get TTL for the Record.
+	ToRR() (dns.RR, error) // Get response record for dns.Msg of package github.com/miekg/dns.
+	Validate() error       // Validation Record and returns error if invalid.
 }
 
+// NewRecord is make new Record from query string.
 func NewRecord(str string) (Record, error) {
 	rr, err := dns.NewRR(str)
 	if err != nil {
@@ -73,6 +84,7 @@ func NewRecord(str string) (Record, error) {
 	return NewRecordFromRR(rr)
 }
 
+// NewRecordFromRR is make new Record from dns.RR of package github.com/miekg/dns.
 func NewRecordFromRR(rr dns.RR) (Record, error) {
 	switch x := rr.(type) {
 	case *dns.A:
@@ -99,6 +111,7 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 	}
 }
 
+// TxtRecord is the Record of TXT.
 type TxtRecord struct {
 	Name Domain
 	TTL  uint32
@@ -129,6 +142,7 @@ func (r TxtRecord) Validate() error {
 	return r.Name.Validate()
 }
 
+// PtrRecord is the Record of PTR.
 type PtrRecord struct {
 	Name   Domain
 	TTL    uint32
@@ -162,6 +176,7 @@ func (r PtrRecord) Validate() error {
 	return r.Domain.Validate()
 }
 
+// CnameRecord is the Record of CNAME.
 type CnameRecord struct {
 	Name   Domain
 	TTL    uint32
@@ -195,12 +210,14 @@ func (r CnameRecord) Validate() error {
 	return r.Target.Validate()
 }
 
+// AddressRecord is the Record of A or AAAA.
 type AddressRecord struct {
 	Name    Domain
 	TTL     uint32
 	Address net.IP
 }
 
+// IsV4 is checker for guess that which of IPv4 (A record) or IPv6 (AAAA record).
 func (r AddressRecord) IsV4() bool {
 	return r.Address.To4() != nil
 }
@@ -237,6 +254,7 @@ func (r AddressRecord) Validate() error {
 	return r.Name.Validate()
 }
 
+// SrvRecord is the Record of SRV.
 type SrvRecord struct {
 	Name     Domain
 	TTL      uint32

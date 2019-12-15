@@ -11,6 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// SqliteResolver is one implements of DynamicResolver using Sqlite3.
 type SqliteResolver struct {
 	path    string
 	db      *sql.DB

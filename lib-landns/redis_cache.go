@@ -10,12 +10,16 @@ import (
 	"github.com/miekg/dns"
 )
 
+// RedisCache is redis cache manager for Resolver.
 type RedisCache struct {
 	client   *redis.Client
 	upstream Resolver
 	metrics  *Metrics
 }
 
+// NewRedisCache is constructor of RedisCache.
+//
+// RedisCache will make connection to the Redis server. So you have to ensure to call RedisCache.Close.
 func NewRedisCache(addr *net.TCPAddr, database int, password string, upstream Resolver, metrics *Metrics) (RedisCache, error) {
 	rc := RedisCache{
 		client: redis.NewClient(&redis.Options{
@@ -29,6 +33,7 @@ func NewRedisCache(addr *net.TCPAddr, database int, password string, upstream Re
 	return rc, rc.client.Ping().Err()
 }
 
+// Close is disconnect from Redis server.
 func (rc RedisCache) Close() error {
 	return rc.client.Close()
 }
@@ -83,6 +88,7 @@ func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []strin
 	return nil
 }
 
+// Resolve is resolver using cache or the upstream resolver.
 func (rc RedisCache) Resolve(w ResponseWriter, r Request) error {
 	key := fmt.Sprintf("%s:%s", r.QtypeString(), r.Name)
 
@@ -102,6 +108,7 @@ func (rc RedisCache) Resolve(w ResponseWriter, r Request) error {
 	return rc.resolveFromCache(w, r, resp, ttl)
 }
 
+// RecursionAvailable is returns same as upstream.
 func (rc RedisCache) RecursionAvailable() bool {
 	return rc.upstream.RecursionAvailable()
 }

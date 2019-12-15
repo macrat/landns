@@ -8,8 +8,10 @@ import (
 	"github.com/miekg/dns"
 )
 
+// SimpleResolver is a simple static implements of Resolver.
 type SimpleResolver map[uint16]map[Domain][]Record
 
+// NewSimpleResolver is constructor of SimpleResolver.
 func NewSimpleResolver(records []Record) SimpleResolver {
 	sr := make(SimpleResolver)
 
@@ -26,6 +28,7 @@ func NewSimpleResolver(records []Record) SimpleResolver {
 	return sr
 }
 
+// String is returns simple human readable string.
 func (sr SimpleResolver) String() string {
 	domains := make(map[Domain]struct{})
 	records := 0
@@ -38,6 +41,7 @@ func (sr SimpleResolver) String() string {
 	return fmt.Sprintf("SimpleResolver[%d domains %d types %d records]", len(domains), len(sr), records)
 }
 
+// Resolve is resolve matched records.
 func (sr SimpleResolver) Resolve(w ResponseWriter, r Request) error {
 	domains := sr[r.Qtype]
 	if domains == nil {
@@ -49,14 +53,17 @@ func (sr SimpleResolver) Resolve(w ResponseWriter, r Request) error {
 	return nil
 }
 
+// RecursionAvailable is always returns false.
 func (sr SimpleResolver) RecursionAvailable() bool {
 	return false
 }
 
+// Close is closer.
 func (sr SimpleResolver) Close() error {
 	return nil
 }
 
+// Validate is validation all records.
 func (sr SimpleResolver) Validate() error {
 	for _, domains := range sr {
 		for _, records := range domains {
@@ -91,8 +98,9 @@ func makeReverseMap(addresses map[Domain][]net.IP, ttl uint32) ([]Record, error)
 	return reverse, nil
 }
 
+// NewSimpleResolverFromConfig is make SimpleResolver from configuration text.
 func NewSimpleResolverFromConfig(config []byte) (SimpleResolver, error) {
-	var conf ResolverShortConfig
+	var conf ResolverConfig
 	if err := yaml.Unmarshal(config, &conf); err != nil {
 		return SimpleResolver{}, err
 	}

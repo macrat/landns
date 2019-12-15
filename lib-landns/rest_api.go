@@ -8,16 +8,19 @@ import (
 	"strings"
 )
 
+// HTTPError is error message of HTTP method.
 type HTTPError struct {
 	StatusCode int
 	Message    string
 }
 
+// ServeHTTP is behave as http.Handler.
 func (e HTTPError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(e.StatusCode)
 	fmt.Fprintln(w, e.Error())
 }
 
+// Error is make string for response to client.
 func (e HTTPError) Error() string {
 	return fmt.Sprintf("; %d: %s", e.StatusCode, strings.ReplaceAll(e.Message, "\n", "\n;      "))
 }
@@ -55,16 +58,13 @@ func (hhs httpHandlerSet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	HTTPError{http.StatusMethodNotAllowed, "method not allowed"}.ServeHTTP(w, r)
 }
 
+// DynamicAPI is API request handler.
 type DynamicAPI struct {
-	resolver DynamicResolver
-}
-
-func NewDynamicAPI(resolver DynamicResolver) DynamicAPI {
-	return DynamicAPI{resolver}
+	Resolver DynamicResolver
 }
 
 func (d DynamicAPI) GetAllRecords(path, req string) (string, *HTTPError) {
-	records, err := d.resolver.Records()
+	records, err := d.Resolver.Records()
 	if err != nil {
 		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
 	}
@@ -78,7 +78,7 @@ func (d DynamicAPI) GetRecordByID(path, req string) (string, *HTTPError) {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
 	}
 
-	records, err := d.resolver.GetRecord(id)
+	records, err := d.Resolver.GetRecord(id)
 	if err != nil {
 		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
 	}
@@ -106,7 +106,7 @@ func (d DynamicAPI) GetRecordsBySuffix(path, req string) (string, *HTTPError) {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
 	}
 
-	records, err := d.resolver.SearchRecords(domain)
+	records, err := d.Resolver.SearchRecords(domain)
 	if err != nil {
 		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
 	}
@@ -124,7 +124,7 @@ func (d DynamicAPI) GetRecordsByGlob(path, req string) (string, *HTTPError) {
 		glob += "."
 	}
 
-	records, err := d.resolver.GlobRecords(glob)
+	records, err := d.Resolver.GlobRecords(glob)
 	if err != nil {
 		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
 	}
@@ -133,7 +133,7 @@ func (d DynamicAPI) GetRecordsByGlob(path, req string) (string, *HTTPError) {
 }
 
 func (d DynamicAPI) setRecords(rs DynamicRecordSet) (string, *HTTPError) {
-	if err := d.resolver.SetRecords(rs); err != nil {
+	if err := d.Resolver.SetRecords(rs); err != nil {
 		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
 	}
 
@@ -178,7 +178,7 @@ func (d DynamicAPI) DeleteRecordByID(path, req string) (string, *HTTPError) {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
 	}
 
-	if err := d.resolver.RemoveRecord(id); err == ErrNoSuchRecord {
+	if err := d.Resolver.RemoveRecord(id); err == ErrNoSuchRecord {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
 	} else if err != nil {
 		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
