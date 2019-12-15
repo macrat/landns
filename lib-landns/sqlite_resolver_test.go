@@ -210,7 +210,7 @@ func TestSqliteResolver(t *testing.T) {
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
 					"example.com. 500 IN MX 10 mx.example.com. ; ID:9",
 					"example.com. IN NS ns1.example.com. ; ID:10",
-					"new.example.com. 42 IN A 127.0.1.1 ; ID:12",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:11",
 				},
 				"abc.example.com.": {
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
@@ -227,7 +227,7 @@ func TestSqliteResolver(t *testing.T) {
 			Glob: map[string][]string{
 				"*.example.com.": {
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
-					"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:11",
 				},
 				"2*arpa.": {
 					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",

@@ -102,28 +102,31 @@ func (sr *SqliteResolver) SetRecords(rs DynamicRecordSet) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
 
 	dropWithID, err := tx.Prepare(`DELETE FROM records WHERE id = ? AND record = ?`)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	defer dropWithID.Close()
 
 	dropWithoutID, err := tx.Prepare(`DELETE FROM records WHERE record = ?`)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	defer dropWithoutID.Close()
 
 	search, err := tx.Prepare(`SELECT 1 FROM records WHERE record = ? LIMIT 1`)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	defer search.Close()
 
 	ins, err := tx.Prepare(`INSERT INTO records (name, qtype, record) VALUES (?, ?, ?)`)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	defer ins.Close()
@@ -131,10 +134,12 @@ func (sr *SqliteResolver) SetRecords(rs DynamicRecordSet) error {
 	for _, r := range rs {
 		if r.Disabled {
 			if err := dropRecord(dropWithID, dropWithoutID, r); err != nil {
+				tx.Rollback()
 				return err
 			}
 		} else {
 			if err := insertRecord(search, ins, r); err != nil {
+				tx.Rollback()
 				return err
 			}
 		}
