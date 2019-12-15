@@ -1,0 +1,27 @@
+name: Test javascript client
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+
+      - uses: actions/checkout@v1
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./client/js-client
+
+      - name: Test
+        run: npm test
+        working-directory: ./client/js-client
+
+      - uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./client/js-client/coverage/lcov.info
