@@ -1,10 +1,10 @@
 package client_test
 
 import (
-	"testing"
+	"context"
 	"net"
 	"net/url"
-	"context"
+	"testing"
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
@@ -22,9 +22,9 @@ func TestAPIClient(t *testing.T) {
 	}
 
 	server := landns.Server{
-		Metrics: metrics,
+		Metrics:         metrics,
 		DynamicResolver: resolver,
-		Resolvers: resolver,
+		Resolvers:       resolver,
 	}
 	go func() {
 		err := server.ListenAndServe(ctx, &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9353}, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 3553}, "udp")
@@ -32,7 +32,7 @@ func TestAPIClient(t *testing.T) {
 			t.Fatalf("failed to start server: %s", err)
 		}
 	}()
-	time.Sleep(10*time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	u, err := url.Parse("http://127.0.0.1:9353/api/v1/")
 	if err != nil {
 		t.Fatalf("failed to parse URL: %s", err)

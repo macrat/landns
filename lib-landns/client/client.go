@@ -1,12 +1,12 @@
 package client
 
 import (
-	"net/url"
-	"strings"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/macrat/landns/lib-landns"
 )
@@ -19,7 +19,7 @@ type Client struct {
 func New(endpoint *url.URL) Client {
 	return Client{
 		endpoint: endpoint,
-		client: &http.Client{},
+		client:   &http.Client{},
 	}
 }
 

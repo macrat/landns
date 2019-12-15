@@ -18,8 +18,8 @@ type Server struct {
 func (s *Server) HTTPHandler() (http.Handler, error) {
 	mux := http.NewServeMux()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "<h1>Landns</h1><a href=\"/metrics\">metrics</a>")
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, `<h1>Landns</h1><a href="/metrics">metrics</a> <a href="/api/v1">records</a>`)
 	})
 
 	metrics, err := s.Metrics.HTTPHandler()
@@ -60,10 +60,14 @@ func (s *Server) ListenAndServe(ctx context.Context, apiAddress *net.TCPAddr, dn
 	defer close(dnsch)
 
 	go func() {
-		httpch <- httpServer.ListenAndServe()
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			httpch <- err
+		}
 	}()
 	go func() {
-		dnsch <- dnsServer.ListenAndServe()
+		if err := dnsServer.ListenAndServe(); err != nil {
+			dnsch <- err
+		}
 	}()
 
 	select {
