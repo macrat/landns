@@ -2,7 +2,7 @@
   "name": "landns",
   "version": "1.0.0",
   "description": "The API client for The Landns.",
-  "main": "dist/index.js",
+  "main": "dist",
   "scripts": {
     "build": "rollup -c",
     "test": "nyc --reporter=html --reporter=text --reporter=lcov --require espower-typescript/guess --include src/**/*.ts --extension .ts mocha test/**/*.ts"

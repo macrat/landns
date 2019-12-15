@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	client "github.com/macrat/landns/client/golang/landns"
+	"github.com/macrat/landns/client/go-client"
 	"github.com/macrat/landns/lib-landns"
 	"github.com/miekg/dns"
 )
