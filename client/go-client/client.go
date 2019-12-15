@@ -1,3 +1,9 @@
+/*
+Package client is the Landns client library for golang.
+
+This package is a simple helper for use package github.com/macrat/landns/lib-landns in a client.
+Please see also lib-landns document ( https://godoc.org/github.com/macrat/landns/lib-landns ).
+*/
 package client
 
 import (
@@ -11,11 +17,13 @@ import (
 	"github.com/macrat/landns/lib-landns"
 )
 
+// Client is the instance for operate dynamic records.
 type Client struct {
 	endpoint *url.URL
 	client   *http.Client
 }
 
+// New is make new Client instance.
 func New(endpoint *url.URL) Client {
 	return Client{
 		endpoint: endpoint,
@@ -62,20 +70,24 @@ func (c Client) do(method, path string, body fmt.Stringer) (response landns.Dyna
 	return response, response.UnmarshalText(rbody)
 }
 
+// Set do send and register records.
 func (c Client) Set(records landns.DynamicRecordSet) error {
 	_, err := c.do("POST", "", records)
 	return err
 }
 
+// Remove will remove one record from Landns server.
 func (c Client) Remove(id int) error {
 	_, err := c.do("DELETE", fmt.Sprintf("id/%d", id), nil)
 	return err
 }
 
+// Get will receive all records from Landns server.
 func (c Client) Get() (landns.DynamicRecordSet, error) {
 	return c.do("GET", "", nil)
 }
 
+// Glob will receive records that match with given query.
 func (c Client) Glob(query string) (landns.DynamicRecordSet, error) {
 	return c.do("GET", fmt.Sprintf("glob/%s", query), nil)
 }

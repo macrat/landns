@@ -32,12 +32,14 @@ func (e ErrorSet) Error() string {
 	return strings.Join(xs, "\n")
 }
 
+// DynamicRecord is the record information for DynamicResolver.
 type DynamicRecord struct {
 	Record   Record
 	ID       *int
 	Disabled bool
 }
 
+// NewDynamicRecord will parse record text and make new DynamicRecord.
 func NewDynamicRecord(record string) (DynamicRecord, error) {
 	var d DynamicRecord
 	return d, d.UnmarshalText([]byte(record))
@@ -99,8 +101,10 @@ func (r DynamicRecord) MarshalText() ([]byte, error) {
 	return []byte(r.String()), nil
 }
 
+// DynamicRecordSet is list of DynamicRecord
 type DynamicRecordSet []DynamicRecord
 
+// NewDynamicRecordSet will parse record text and make new DynamicRecordSet.
 func NewDynamicRecordSet(records string) (DynamicRecordSet, error) {
 	var d DynamicRecordSet
 	return d, d.UnmarshalText([]byte(records))
