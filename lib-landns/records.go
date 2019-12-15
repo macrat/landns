@@ -94,10 +94,16 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 		return AddressRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Address: x.A}, nil
 	case *dns.AAAA:
 		return AddressRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Address: x.AAAA}, nil
+	case *dns.NS:
+		return NsRecord{Name: Domain(x.Hdr.Name), Target: Domain(x.Ns)}, nil
 	case *dns.CNAME:
 		return CnameRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Target: Domain(x.Target)}, nil
 	case *dns.PTR:
 		return PtrRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Domain: Domain(x.Ptr)}, nil
+	case *dns.MX:
+		return MxRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Preference: x.Preference, Target: Domain(x.Mx)}, nil
+	case *dns.TXT:
+		return TxtRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Text: x.Txt[0]}, nil
 	case *dns.SRV:
 		return SrvRecord{
 			Name:     Domain(x.Hdr.Name),
@@ -107,8 +113,6 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 			Port:     x.Port,
 			Target:   Domain(x.Target),
 		}, nil
-	case *dns.TXT:
-		return TxtRecord{Name: Domain(x.Hdr.Name), TTL: x.Hdr.Ttl, Text: x.Txt[0]}, nil
 	default:
 		return nil, ErrUnsupportedType
 	}
@@ -162,6 +166,45 @@ func (r AddressRecord) ToRR() (dns.RR, error) {
 // Validate is validator of record.
 func (r AddressRecord) Validate() error {
 	return r.Name.Validate()
+}
+
+// NsRecord is the Record of NS.
+type NsRecord struct {
+	Name   Domain
+	Target Domain
+}
+
+// Strings is make record string.
+func (r NsRecord) String() string {
+	return fmt.Sprintf("%s IN NS %s", r.Name, r.Target)
+}
+
+// GetName is getter to name of record.
+func (r NsRecord) GetName() Domain {
+	return r.Name
+}
+
+// GetTTL is always returns 0 because NS record has no TTL.
+func (r NsRecord) GetTTL() uint32 {
+	return 0
+}
+
+// GetQtype is getter to query type number like dns.TypeA or dns.TypeTXT of package github.com/miekg/dns.
+func (r NsRecord) GetQtype() uint16 {
+	return dns.TypeNS
+}
+
+// ToRR is converter to dns.RR of package github.com/miekg/dns
+func (r NsRecord) ToRR() (dns.RR, error) {
+	return dns.NewRR(r.String())
+}
+
+// Validate is validator of record.
+func (r NsRecord) Validate() error {
+	if err := r.Name.Validate(); err != nil {
+		return err
+	}
+	return r.Target.Validate()
 }
 
 // CnameRecord is the Record of CNAME.
@@ -242,6 +285,47 @@ func (r PtrRecord) Validate() error {
 		return err
 	}
 	return r.Domain.Validate()
+}
+
+// MxRecord is the Record of CNAME.
+type MxRecord struct {
+	Name       Domain
+	TTL        uint32
+	Preference uint16
+	Target     Domain
+}
+
+// String is make record string.
+func (r MxRecord) String() string {
+	return fmt.Sprintf("%s %d IN MX %d %s", r.Name, r.TTL, r.Preference, r.Target)
+}
+
+// GetName is getter to name of record.
+func (r MxRecord) GetName() Domain {
+	return r.Name
+}
+
+// GetTTL is getter to TTL of record.
+func (r MxRecord) GetTTL() uint32 {
+	return r.TTL
+}
+
+// GetQtype is getter to query type number like dns.TypeA or dns.TypeTXT of package github.com/miekg/dns.
+func (r MxRecord) GetQtype() uint16 {
+	return dns.TypeMX
+}
+
+// ToRR is converter to dns.RR of package github.com/miekg/dns
+func (r MxRecord) ToRR() (dns.RR, error) {
+	return dns.NewRR(r.String())
+}
+
+// Validate is validator of record.
+func (r MxRecord) Validate() error {
+	if err := r.Name.Validate(); err != nil {
+		return err
+	}
+	return r.Target.Validate()
 }
 
 // TxtRecord is the Record of TXT.

@@ -57,6 +57,8 @@ func TestSqliteResolver(t *testing.T) {
 				example.com. 300 IN TXT "hello world"
 				abc.example.com. 400 IN CNAME example.com.
 				abc.example.com. 400 IN CNAME example.com.
+				example.com. 500 IN MX 10 mx.example.com.
+				example.com. IN NS ns1.example.com.
 			`,
 			Tests: []Test{
 				{landns.NewRequest("example.com.", dns.TypeA, false), true, []string{"example.com. 42 IN A 127.0.0.1", "example.com. 100 IN A 127.0.0.2"}},
@@ -64,16 +66,20 @@ func TestSqliteResolver(t *testing.T) {
 				{landns.NewRequest("example.com.", dns.TypeTXT, false), true, []string{"example.com. 300 IN TXT \"hello world\""}},
 				{landns.NewRequest("abc.example.com.", dns.TypeCNAME, false), true, []string{"abc.example.com. 400 IN CNAME example.com."}},
 				{landns.NewRequest("1.0.0.127.in-addr.arpa.", dns.TypePTR, false), true, []string{"1.0.0.127.in-addr.arpa. 42 IN PTR example.com."}},
+				{landns.NewRequest("example.com.", dns.TypeMX, false), true, []string{"example.com. 500 IN MX 10 mx.example.com."}},
+				{landns.NewRequest("example.com.", dns.TypeNS, false), true, []string{"example.com. IN NS ns1.example.com."}},
 			},
 			Entries: map[int]string{
-				1: "example.com. 42 IN A 127.0.0.1 ; ID:1",
-				2: "1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
-				3: "example.com. 100 IN A 127.0.0.2 ; ID:3",
-				4: "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-				5: "example.com. 200 IN AAAA 4::2 ; ID:5",
-				6: "2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
-				7: "example.com. 300 IN TXT \"hello world\" ; ID:7",
-				8: "abc.example.com. 400 IN CNAME example.com. ; ID:8",
+				1:  "example.com. 42 IN A 127.0.0.1 ; ID:1",
+				2:  "1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
+				3:  "example.com. 100 IN A 127.0.0.2 ; ID:3",
+				4:  "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				5:  "example.com. 200 IN AAAA 4::2 ; ID:5",
+				6:  "2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
+				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
+				8:  "abc.example.com. 400 IN CNAME example.com. ; ID:8",
+				9:  "example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+				10: "example.com. IN NS ns1.example.com. ; ID:10",
 			},
 			Suffix: map[landns.Domain][]string{
 				"example.com.": {
@@ -82,6 +88,8 @@ func TestSqliteResolver(t *testing.T) {
 					"example.com. 200 IN AAAA 4::2 ; ID:5",
 					"example.com. 300 IN TXT \"hello world\" ; ID:7",
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+					"example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+					"example.com. IN NS ns1.example.com. ; ID:10",
 				},
 				"abc.example.com.": {
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
@@ -127,8 +135,10 @@ func TestSqliteResolver(t *testing.T) {
 				6:  "2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
 				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
 				8:  "abc.example.com. 400 IN CNAME example.com. ; ID:8",
-				9:  "new.example.com. 42 IN A 127.0.1.1 ; ID:9",
-				10: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
+				9:  "example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+				10: "example.com. IN NS ns1.example.com. ; ID:10",
+				11: "new.example.com. 42 IN A 127.0.1.1 ; ID:11",
+				12: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 			},
 			Suffix: map[landns.Domain][]string{
 				"example.com.": {
@@ -136,19 +146,21 @@ func TestSqliteResolver(t *testing.T) {
 					"example.com. 200 IN AAAA 4::2 ; ID:5",
 					"example.com. 300 IN TXT \"hello world\" ; ID:7",
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
-					"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+					"example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+					"example.com. IN NS ns1.example.com. ; ID:10",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:11",
 				},
 				"abc.example.com.": {
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
 				},
 				"in-addr.arpa.": {
 					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
+					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 				},
 				"arpa.": {
 					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
 					"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
-					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
+					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 				},
 			},
 			Glob: map[string][]string{
@@ -157,11 +169,13 @@ func TestSqliteResolver(t *testing.T) {
 					"example.com. 200 IN AAAA 4::2 ; ID:5",
 					"example.com. 300 IN TXT \"hello world\" ; ID:7",
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
-					"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+					"example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+					"example.com. IN NS ns1.example.com. ; ID:10",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:11",
 				},
 				"*.example.com.": {
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
-					"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:11",
 				},
 				"2*arpa.": {
 					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
@@ -184,26 +198,30 @@ func TestSqliteResolver(t *testing.T) {
 				4:  "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
 				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
 				8:  "abc.example.com. 400 IN CNAME example.com. ; ID:8",
-				9:  "new.example.com. 42 IN A 127.0.1.1 ; ID:9",
-				10: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
+				9:  "example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+				10: "example.com. IN NS ns1.example.com. ; ID:10",
+				11: "new.example.com. 42 IN A 127.0.1.1 ; ID:11",
+				12: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 			},
 			Suffix: map[landns.Domain][]string{
 				"example.com.": {
 					"example.com. 100 IN A 127.0.0.2 ; ID:3",
 					"example.com. 300 IN TXT \"hello world\" ; ID:7",
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
-					"new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+					"example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+					"example.com. IN NS ns1.example.com. ; ID:10",
+					"new.example.com. 42 IN A 127.0.1.1 ; ID:12",
 				},
 				"abc.example.com.": {
 					"abc.example.com. 400 IN CNAME example.com. ; ID:8",
 				},
 				"in-addr.arpa.": {
 					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
+					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 				},
 				"arpa.": {
 					"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:10",
+					"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 				},
 			},
 			Glob: map[string][]string{
@@ -221,7 +239,9 @@ func TestSqliteResolver(t *testing.T) {
 			Entries: map[int]string{
 				4: "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
 				7: "example.com. 300 IN TXT \"hello world\" ; ID:7",
-				9: "new.example.com. 42 IN A 127.0.1.1 ; ID:9",
+				9:  "example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+				11: "new.example.com. 42 IN A 127.0.1.1 ; ID:11",
+				12: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 			},
 		},
 	}

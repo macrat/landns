@@ -23,6 +23,8 @@ func TestSimpleResolver(t *testing.T) {
 			landns.PtrRecord{Name: landns.Domain("8.7.6.5.4.3.2.1.f.e.d.c.b.a.0.9.8.7.6.5.4.3.2.1.ip6.arpa."), Domain: landns.Domain("target.local.")},
 			landns.CnameRecord{Name: landns.Domain("example.com."), Target: landns.Domain("target.local.")},
 			landns.SrvRecord{Name: landns.Domain("_http._tcp.example.com."), Port: 10, Target: landns.Domain("target.local.")},
+			landns.MxRecord{Name: landns.Domain("example.com."), Preference: 10, Target: landns.Domain("mail.example.com.")},
+			landns.NsRecord{Name: landns.Domain("example.com."), Target: landns.Domain("ns1.example.com.")},
 		},
 	)
 	defer func() {
@@ -54,6 +56,10 @@ func TestSimpleResolver(t *testing.T) {
 
 	AssertResolve(t, resolver, landns.NewRequest("_http._tcp.example.com.", dns.TypeSRV, false), true, "_http._tcp.example.com. 0 IN SRV 0 0 10 target.local.")
 	AssertResolve(t, resolver, landns.NewRequest("empty.example.com.", dns.TypeSRV, false), true)
+
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeMX, false), true, "example.com. 0 IN MX 10 mail.example.com.")
+
+	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeNS, false), true, "example.com. IN NS ns1.example.com.")
 }
 
 func BenchmarkSimpleResolver(b *testing.B) {
