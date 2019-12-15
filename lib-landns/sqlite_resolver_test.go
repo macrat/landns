@@ -237,8 +237,8 @@ func TestSqliteResolver(t *testing.T) {
 		{
 			Delete: []int{3, 8, 10},
 			Entries: map[int]string{
-				4: "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-				7: "example.com. 300 IN TXT \"hello world\" ; ID:7",
+				4:  "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
 				9:  "example.com. 500 IN MX 10 mx.example.com. ; ID:9",
 				11: "new.example.com. 42 IN A 127.0.1.1 ; ID:11",
 				12: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
