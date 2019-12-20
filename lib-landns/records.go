@@ -3,6 +3,7 @@ package landns
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/miekg/dns"
 )
@@ -64,6 +65,16 @@ func (d *Domain) UnmarshalText(text []byte) error {
 // MarshalText is make bytes text.
 func (d Domain) MarshalText() ([]byte, error) {
 	return []byte(d.String()), nil
+}
+
+// ToPath is make reversed path string like /com/example.
+func (d Domain) ToPath() string {
+	labels := dns.SplitDomainName(d.String())
+	rev := make([]string, len(labels))
+	for i, x := range labels {
+		rev[len(labels)-i-1] = x
+	}
+	return "/" + strings.Join(rev, "/")
 }
 
 // Record is the record entry of DNS.

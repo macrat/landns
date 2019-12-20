@@ -1,6 +1,7 @@
 package landns_test
 
 import (
+	"fmt"
 	"net"
 	"sort"
 	"strings"
@@ -23,11 +24,6 @@ func AssertResolve(t testing.TB, resolver landns.Resolver, request landns.Reques
 		t.Errorf("%s <- %s: unexpected authoritive of response: expected %v but got %v", resolver, request, authoritative, resp.Authoritative)
 	}
 
-	if len(resp.Records) != len(responses) {
-		t.Errorf("%s <- %s: unexpected resolve response: expected length %d but got %d", resolver, request, len(responses), len(resp.Records))
-		return
-	}
-
 	sort.Slice(resp.Records, func(i, j int) bool {
 		return strings.Compare(resp.Records[i].String(), resp.Records[j].String()) == 1
 	})
@@ -35,10 +31,27 @@ func AssertResolve(t testing.TB, resolver landns.Resolver, request landns.Reques
 		return strings.Compare(responses[i], responses[j]) == 1
 	})
 
-	for i := range responses {
-		if resp.Records[i].String() != responses[i] {
-			t.Errorf("%s <- %s: unexpected resolve response:\nexpected %#v\nbut got  %#v", resolver, request, responses[i], resp.Records[i].String())
+	ok := len(resp.Records) == len(responses)
+
+	if ok {
+		for i := range responses {
+			if resp.Records[i].String() != responses[i] {
+				ok = false
+				break
+			}
 		}
+	}
+
+	if !ok {
+		msg := fmt.Sprintf("%s <- %s: unexpected resolve response:\nexpected:\n", resolver, request)
+		for _, x := range responses {
+			msg += "\t" + x + "\n"
+		}
+		msg += "but got:\n"
+		for _, x := range resp.Records {
+			msg += "\t" + x.String() + "\n"
+		}
+		t.Errorf("%s", msg)
 	}
 }
 

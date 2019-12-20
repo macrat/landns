@@ -54,7 +54,24 @@ func TestDomain_Encoding(t *testing.T) {
 	}
 }
 
-func ExampleDomani() {
+func TestDomain_ToPath(t *testing.T) {
+	tests := []struct {
+		Input  landns.Domain
+		Expect string
+	}{
+		{"example.com.", "/com/example"},
+		{"", "/"},
+		{"a.b.c.d", "/d/c/b/a"},
+	}
+
+	for _, tt := range tests {
+		if p := tt.Input.ToPath(); p != tt.Expect {
+			t.Errorf("unexpected path:\nexpected: %s\nbut got:  %s", tt.Expect, p)
+		}
+	}
+}
+
+func ExampleDomain() {
 	a := landns.Domain("example.com")
 	b := a.Normalized()
 	fmt.Println(string(a), "->", string(b))
