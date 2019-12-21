@@ -139,7 +139,9 @@ func makeServer(args []string) (*service, error) {
 func main() {
 	service, err := makeServer(os.Args[1:])
 	service.App.FatalIfError(err, "")
-	defer service.App.FatalIfError(service.Stop(), "")
+	defer func() {
+		service.App.FatalIfError(service.Stop(), "")
+	}()
 
 	log.Printf("API server listen on %s", service.APIListen)
 	log.Printf("DNS server listen on %s", service.DNSListen)
