@@ -4,11 +4,45 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis"
 	"github.com/miekg/dns"
 )
+
+type redisCacheEntry struct {
+	Record  Record
+	Created time.Time
+}
+
+func parseRedisCacheEntry(str string) (redisCacheEntry, error) {
+	xs := strings.Split(str, "\n")
+
+	rr, err := dns.NewRR(xs[0])
+	if err != nil {
+		return redisCacheEntry{}, err
+	}
+
+	i, err := strconv.Atoi(xs[1])
+	if err != nil {
+		return redisCacheEntry{}, err
+	}
+	t := time.Unix(int64(i), 0)
+
+	rr.Header().Ttl -= uint32(time.Now().Sub(t).Seconds())
+
+	record, err := NewRecordFromRR(rr)
+	return redisCacheEntry{
+		Record:  record,
+		Created: t,
+	}, err
+}
+
+func (e redisCacheEntry) String() string {
+	return fmt.Sprintf("%s\n%d", e.Record, e.Created.Unix())
+}
 
 // RedisCache is redis cache manager for Resolver.
 type RedisCache struct {
@@ -33,6 +67,11 @@ func NewRedisCache(addr *net.TCPAddr, database int, password string, upstream Re
 	return rc, rc.client.Ping().Err()
 }
 
+// String is description string getter.
+func (rc RedisCache) String() string {
+	return fmt.Sprintf("RedisCache[%s]", rc.client)
+}
+
 // Close is disconnect from Redis server.
 func (rc RedisCache) Close() error {
 	return rc.client.Close()
@@ -45,7 +84,7 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 	wh := ResponseWriterHook{
 		Writer: w,
 		OnAdd: func(record Record) {
-			rc.client.RPush(key, record.String())
+			rc.client.RPush(key, redisCacheEntry{record, time.Now()}.String())
 			if ttl > record.GetTTL() {
 				ttl = record.GetTTL()
 			}
@@ -65,20 +104,16 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 	return nil
 }
 
-func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []string, ttl time.Duration) error {
+func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []string) error {
 	rc.metrics.CacheMiss(r)
 
 	for _, str := range cache {
-		rr, err := dns.NewRR(str)
+		entry, err := parseRedisCacheEntry(str)
 		if err != nil {
 			return err
 		}
 
-		rr.Header().Ttl = uint32(ttl.Seconds())
-
-		if record, err := NewRecordFromRR(rr); err != nil {
-			return err
-		} else if err := w.Add(record); err != nil {
+		if err := w.Add(entry.Record); err != nil {
 			return err
 		}
 
@@ -100,12 +135,7 @@ func (rc RedisCache) Resolve(w ResponseWriter, r Request) error {
 		return rc.resolveFromUpstream(w, r, key)
 	}
 
-	ttl, err := rc.client.TTL(key).Result()
-	if err != nil {
-		return err
-	}
-
-	return rc.resolveFromCache(w, r, resp, ttl)
+	return rc.resolveFromCache(w, r, resp)
 }
 
 // RecursionAvailable is returns same as upstream.
