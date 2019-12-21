@@ -16,7 +16,7 @@ A DNS server for developers for home use.
 
 - Serve addresses from the YAML style configuration file.
 
-- Serve addresses from a database that operatable with RESTFUL API.
+- Serve addresses from a [SQlite](https://www.sqlite.org/) or [etcd](https://etcd.io) database that operatable with REST API.
 
 - Recursion resolve and caching addresses to local memory or [Redis server](https://redis.io).
 
@@ -85,10 +85,12 @@ $ sudo landns --config path/to/config.yml
 First, execute server.
 
 ``` shell
-$ sudo landns --sqlite path/to/database.db
+$ sudo landns --sqlite path/to/database.db  # use SQlite database.
+
+$ sudo landns --etcd 127.0.0.1:2379  # use etcd database.
 ```
 
-Dynamic settings that set by REST API will store to specified database if given `--sqlite` option.
+Dynamic settings that set by REST API will store to specified database if given `--sqlite` or `--etcd` option.
 REST API will work if not gven it, but settings will lose when the server stopped.
 
 Then, operate records with API.

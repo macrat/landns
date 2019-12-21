@@ -16,6 +16,9 @@ var (
 	app              = kingpin.New("landns", "A DNS server for developers for home use.")
 	configFiles      = app.Flag("config", "Path to static-zone configuration file.").Short('c').PlaceHolder("PATH").ExistingFiles()
 	sqlitePath       = app.Flag("sqlite", "Path to dynamic-zone sqlite3 database path. In default, dynamic-zone will not save to disk.").Short('s').PlaceHolder("PATH").String()
+	etcdAddrs        = app.Flag("etcd", "Address to dynamic-zone etcd database server. (e.g. localhost:2379)").PlaceHolder("ADDRESS").Strings()
+	etcdPrefix       = app.Flag("etcd-prefix", "Prefix of etcd records.").Default("/landns").String()
+	etcdTimeout      = app.Flag("etcd-timeout", "Timeout for etcd connection.").Default("100ms").Duration()
 	apiListen        = app.Flag("api-listen", "Address for API and metrics.").Short('l').Default(":9353").TCP()
 	dnsListen        = app.Flag("dns-listen", "Address for listen.").Short('L').Default(":53").TCP()
 	dnsProtocol      = app.Flag("dns-protocol", "Protocol for listen.").Default("udp").Enum("udp", "tcp")
@@ -58,15 +61,21 @@ func main() {
 
 	metrics := landns.NewMetrics(*metricsNamespace)
 
-	if *sqlitePath == "" {
-		*sqlitePath = ":memory:"
-	}
-	dynamicResolver, err := landns.NewSqliteResolver(*sqlitePath, metrics)
-	app.FatalIfError(err, "dynamic-zone")
-
 	resolvers, err := loadStatisResolvers(*configFiles)
 	app.FatalIfError(err, "static-zone")
 
+	var dynamicResolver landns.DynamicResolver
+	if *sqlitePath != "" && len(*etcdAddrs) != 0 {
+		app.Fatalf("dynamic-zone: can't use both of sqlite and etcd.")
+	} else if len(*etcdAddrs) > 0 {
+		dynamicResolver, err = landns.NewEtcdResolver(*etcdAddrs, *etcdPrefix, *etcdTimeout, metrics)
+	} else {
+		if *sqlitePath == "" {
+			*sqlitePath = ":memory:"
+		}
+		dynamicResolver, err = landns.NewSqliteResolver(*sqlitePath, metrics)
+	}
+	app.FatalIfError(err, "dynamic-zone")
 	resolvers = append(resolvers, dynamicResolver)
 
 	var resolver landns.Resolver = resolvers
