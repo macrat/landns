@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -10,25 +11,6 @@ import (
 	"github.com/alecthomas/kingpin"
 
 	"github.com/macrat/landns/lib-landns"
-)
-
-var (
-	app              = kingpin.New("landns", "A DNS server for developers for home use.")
-	configFiles      = app.Flag("config", "Path to static-zone configuration file.").Short('c').PlaceHolder("PATH").ExistingFiles()
-	sqlitePath       = app.Flag("sqlite", "Path to dynamic-zone sqlite3 database path. In default, dynamic-zone will not save to disk.").Short('s').PlaceHolder("PATH").String()
-	etcdAddrs        = app.Flag("etcd", "Address to dynamic-zone etcd database server. (e.g. localhost:2379)").PlaceHolder("ADDRESS").Strings()
-	etcdPrefix       = app.Flag("etcd-prefix", "Prefix of etcd records.").Default("/landns").String()
-	etcdTimeout      = app.Flag("etcd-timeout", "Timeout for etcd connection.").Default("100ms").Duration()
-	apiListen        = app.Flag("api-listen", "Address for API and metrics.").Short('l').Default(":9353").TCP()
-	dnsListen        = app.Flag("dns-listen", "Address for listen.").Short('L').Default(":53").TCP()
-	dnsProtocol      = app.Flag("dns-protocol", "Protocol for listen.").Default("udp").Enum("udp", "tcp")
-	upstreams        = app.Flag("upstream", "Upstream DNS server for recursive resolve. (e.g. 8.8.8.8:53)").Short('u').PlaceHolder("ADDRESS").TCPList()
-	upstreamTimeout  = app.Flag("upstream-timeout", "Timeout for recursive resolve.").Default("100ms").Duration()
-	cacheDisabled    = app.Flag("disable-cache", "Disable cache for recursive resolve.").Bool()
-	redisAddr        = app.Flag("redis", "Address of Redis server for sharing recursive resolver's cache. (e.g. 127.0.0.1:6379)").PlaceHolder("ADDRESS").TCP()
-	redisPassword    = app.Flag("redis-password", "Password of Redis server.").PlaceHolder("PASSWORD").String()
-	redisDatabase    = app.Flag("redis-database", "Database ID of Redis server.").PlaceHolder("ID").Int()
-	metricsNamespace = app.Flag("metrics-namespace", "Namespace of prometheus metrics.").Default("landns").String()
 )
 
 func loadStatisResolvers(files []string) (resolver landns.ResolverSet, err error) {
@@ -55,18 +37,47 @@ func loadStatisResolvers(files []string) (resolver landns.ResolverSet, err error
 	return resolver, nil
 }
 
-func main() {
-	_, err := app.Parse(os.Args[1:])
-	app.FatalIfError(err, "")
+type Service struct {
+	App       *kingpin.Application
+	Start     func(context.Context) error
+	Stop      func() error
+	DNSListen *net.TCPAddr
+	APIListen *net.TCPAddr
+}
+
+func makeServer(args []string) (*Service, error) {
+	app := kingpin.New("landns", "A DNS server for developers for home use.")
+	configFiles := app.Flag("config", "Path to static-zone configuration file.").Short('c').PlaceHolder("PATH").ExistingFiles()
+	sqlitePath := app.Flag("sqlite", "Path to dynamic-zone sqlite3 database path. In default, dynamic-zone will not save to disk.").Short('s').PlaceHolder("PATH").String()
+	etcdAddrs := app.Flag("etcd", "Address to dynamic-zone etcd database server. (e.g. localhost:2379)").PlaceHolder("ADDRESS").Strings()
+	etcdPrefix := app.Flag("etcd-prefix", "Prefix of etcd records.").Default("/landns").String()
+	etcdTimeout := app.Flag("etcd-timeout", "Timeout for etcd connection.").Default("100ms").Duration()
+	apiListen := app.Flag("api-listen", "Address for API and metrics.").Short('l').Default(":9353").TCP()
+	dnsListen := app.Flag("dns-listen", "Address for listen.").Short('L').Default(":53").TCP()
+	dnsProtocol := app.Flag("dns-protocol", "Protocol for listen.").Default("udp").Enum("udp", "tcp")
+	upstreams := app.Flag("upstream", "Upstream DNS server for recursive resolve. (e.g. 8.8.8.8:53)").Short('u').PlaceHolder("ADDRESS").TCPList()
+	upstreamTimeout := app.Flag("upstream-timeout", "Timeout for recursive resolve.").Default("100ms").Duration()
+	cacheDisabled := app.Flag("disable-cache", "Disable cache for recursive resolve.").Bool()
+	redisAddr := app.Flag("redis", "Address of Redis server for sharing recursive resolver's cache. (e.g. 127.0.0.1:6379)").PlaceHolder("ADDRESS").TCP()
+	redisPassword := app.Flag("redis-password", "Password of Redis server.").PlaceHolder("PASSWORD").String()
+	redisDatabase := app.Flag("redis-database", "Database ID of Redis server.").PlaceHolder("ID").Int()
+	metricsNamespace := app.Flag("metrics-namespace", "Namespace of prometheus metrics.").Default("landns").String()
+
+	_, err := app.Parse(args)
+	if err != nil {
+		return nil, err
+	}
 
 	metrics := landns.NewMetrics(*metricsNamespace)
 
 	resolvers, err := loadStatisResolvers(*configFiles)
-	app.FatalIfError(err, "static-zone")
+	if err != nil {
+		return nil, fmt.Errorf("static-zone: %s", err)
+	}
 
 	var dynamicResolver landns.DynamicResolver
 	if *sqlitePath != "" && len(*etcdAddrs) != 0 {
-		app.Fatalf("dynamic-zone: can't use both of sqlite and etcd.")
+		return nil, fmt.Errorf("dynamic-zone: can't use both of sqlite and etcd.")
 	} else if len(*etcdAddrs) > 0 {
 		dynamicResolver, err = landns.NewEtcdResolver(*etcdAddrs, *etcdPrefix, *etcdTimeout, metrics)
 	} else {
@@ -75,7 +86,9 @@ func main() {
 		}
 		dynamicResolver, err = landns.NewSqliteResolver(*sqlitePath, metrics)
 	}
-	app.FatalIfError(err, "dynamic-zone")
+	if err != nil {
+		return nil, fmt.Errorf("dynamic-zone: %s", err)
+	}
 	resolvers = append(resolvers, dynamicResolver)
 
 	var resolver landns.Resolver = resolvers
@@ -92,7 +105,9 @@ func main() {
 		if !*cacheDisabled {
 			if *redisAddr != nil {
 				forwardResolver, err = landns.NewRedisCache(*redisAddr, *redisDatabase, *redisPassword, forwardResolver, metrics)
-				app.FatalIfError(err, "recursive: Redis cache")
+				if err != nil {
+					return nil, fmt.Errorf("recursive: Redis cache: %s", err)
+				}
 			} else {
 				forwardResolver = landns.NewLocalCache(forwardResolver, metrics)
 			}
@@ -100,18 +115,33 @@ func main() {
 		resolver = landns.AlternateResolver{resolver, forwardResolver}
 	}
 
-	defer func() {
-		err := resolver.Close()
-		app.FatalIfError(err, "failed to close")
-	}()
-
 	server := landns.Server{
 		Metrics:         metrics,
 		DynamicResolver: dynamicResolver,
 		Resolvers:       resolver,
 	}
+	return &Service{
+		App: app,
+		Start: func(ctx context.Context) error {
+			return server.ListenAndServe(
+				ctx,
+				*apiListen,
+				&net.UDPAddr{IP: (*dnsListen).IP, Port: (*dnsListen).Port},
+				*dnsProtocol,
+			)
+		},
+		Stop:      resolver.Close,
+		DNSListen: *dnsListen,
+		APIListen: *apiListen,
+	}, nil
+}
 
-	log.Printf("API server listen on %s", *apiListen)
-	log.Printf("DNS server listen on %s", *dnsListen)
-	log.Fatalf(server.ListenAndServe(context.Background(), *apiListen, &net.UDPAddr{IP: (*dnsListen).IP, Port: (*dnsListen).Port}, *dnsProtocol).Error())
+func main() {
+	service, err := makeServer(os.Args[1:])
+	service.App.FatalIfError(err, "")
+	defer service.App.FatalIfError(service.Stop(), "")
+
+	log.Printf("API server listen on %s", service.APIListen)
+	log.Printf("DNS server listen on %s", service.DNSListen)
+	log.Fatalf("%s", service.Start(context.Background()))
 }

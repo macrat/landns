@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/macrat/landns/lib-landns"
 	"github.com/miekg/dns"
@@ -70,4 +72,97 @@ address:
 	if records[1].String() != "example.com. 20 IN A 127.1.2.3" {
 		t.Errorf("unexpected response: %s", records[1])
 	}
+}
+
+func TestMakeServer(t *testing.T) {
+	t.Run("simple/make", func(t *testing.T) {
+		service, err := makeServer([]string{})
+		if err != nil {
+			t.Fatalf("failed to make server: %s", err)
+		}
+		if err := service.Stop(); err != nil {
+			t.Fatalf("failed to close resolver: %s", err)
+		}
+	})
+	t.Run("simple/run", func(t *testing.T) {
+		service, err := makeServer([]string{"-l", "127.0.0.1:9353", "-L", ":1053"})
+		if err != nil {
+			t.Fatalf("failed to make server: %s", err)
+		}
+		defer func() {
+			if err := service.Stop(); err != nil {
+				t.Fatalf("failed to close resolver: %s", err)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go service.Start(ctx)
+		time.Sleep(100 * time.Millisecond)
+	})
+	t.Run("static", func(t *testing.T) {
+		closer, path, err := MakeDummyFile("ttl: 10\naddress:\n  example.com.: [127.0.1.2]\n")
+		if err != nil {
+			t.Fatalf("failed to make dummy file: %s", err)
+		}
+		defer closer()
+
+		service, err := makeServer([]string{"-l", "127.0.0.1:9353", "-L", "127.0.0.1:1053", "-c", path})
+		if err != nil {
+			t.Fatalf("failed to make server: %s", err)
+		}
+		defer func() {
+			if err := service.Stop(); err != nil {
+				t.Fatalf("failed to close resolver: %s", err)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go service.Start(ctx)
+		time.Sleep(100 * time.Millisecond)
+
+		msg := &dns.Msg{
+			MsgHdr: dns.MsgHdr{Id: dns.Id()},
+			Question: []dns.Question{
+				{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET},
+			},
+		}
+		in, err := dns.Exchange(msg, "127.0.0.1:1053")
+		if err != nil {
+			t.Errorf("failed to resolve google.com.: %s", err)
+		}
+
+		expected := "example.com.\t10\tIN\tA\t127.0.1.2"
+		if len(in.Answer) != 1 || in.Answer[0].String() != expected {
+			t.Errorf("unexpected response:\nexpected: [%s]\nbut got:  %s", expected, in.Answer)
+		}
+	})
+	t.Run("upstream", func(t *testing.T) {
+		service, err := makeServer([]string{"-l", "127.0.0.1:9353", "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
+		if err != nil {
+			t.Fatalf("failed to make server: %s", err)
+		}
+		defer func() {
+			if err := service.Stop(); err != nil {
+				t.Fatalf("failed to close resolver: %s", err)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go service.Start(ctx)
+		time.Sleep(100 * time.Millisecond)
+
+		msg := &dns.Msg{
+			MsgHdr: dns.MsgHdr{Id: dns.Id()},
+			Question: []dns.Question{
+				{Name: "google.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET},
+			},
+		}
+		_, err = dns.Exchange(msg, "127.0.0.1:1053")
+		if err != nil {
+			t.Errorf("failed to resolve google.com.: %s", err)
+		}
+	})
 }
