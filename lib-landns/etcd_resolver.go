@@ -323,7 +323,7 @@ func (er *EtcdResolver) GetRecord(id int) (DynamicRecordSet, error) {
 	return DynamicRecordSet{}, nil
 }
 
-// GetRecord is remove record by id.
+// RemoveRecord is remove record by id.
 func (er *EtcdResolver) RemoveRecord(id int) error {
 	ctx, cancel := er.makeContext()
 	defer cancel()

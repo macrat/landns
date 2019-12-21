@@ -37,7 +37,7 @@ func loadStatisResolvers(files []string) (resolver landns.ResolverSet, err error
 	return resolver, nil
 }
 
-type Service struct {
+type service struct {
 	App       *kingpin.Application
 	Start     func(context.Context) error
 	Stop      func() error
@@ -45,7 +45,7 @@ type Service struct {
 	APIListen *net.TCPAddr
 }
 
-func makeServer(args []string) (*Service, error) {
+func makeServer(args []string) (*service, error) {
 	app := kingpin.New("landns", "A DNS server for developers for home use.")
 	configFiles := app.Flag("config", "Path to static-zone configuration file.").Short('c').PlaceHolder("PATH").ExistingFiles()
 	sqlitePath := app.Flag("sqlite", "Path to dynamic-zone sqlite3 database path. In default, dynamic-zone will not save to disk.").Short('s').PlaceHolder("PATH").String()
@@ -77,7 +77,7 @@ func makeServer(args []string) (*Service, error) {
 
 	var dynamicResolver landns.DynamicResolver
 	if *sqlitePath != "" && len(*etcdAddrs) != 0 {
-		return nil, fmt.Errorf("dynamic-zone: can't use both of sqlite and etcd.")
+		return nil, fmt.Errorf("dynamic-zone: can't use both of sqlite and etcd")
 	} else if len(*etcdAddrs) > 0 {
 		dynamicResolver, err = landns.NewEtcdResolver(*etcdAddrs, *etcdPrefix, *etcdTimeout, metrics)
 	} else {
@@ -120,7 +120,7 @@ func makeServer(args []string) (*Service, error) {
 		DynamicResolver: dynamicResolver,
 		Resolvers:       resolver,
 	}
-	return &Service{
+	return &service{
 		App: app,
 		Start: func(ctx context.Context) error {
 			return server.ListenAndServe(
