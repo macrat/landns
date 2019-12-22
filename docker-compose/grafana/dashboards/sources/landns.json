@@ -15,7 +15,6 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 1,
   "links": [],
   "panels": [
     {
@@ -207,7 +206,7 @@
         "y": 8
       },
       "id": 10,
-      "interval": "1m",
+      "interval": "",
       "legend": {
         "avg": false,
         "current": false,
@@ -219,7 +218,7 @@
       },
       "lines": true,
       "linewidth": 1,
-      "nullPointMode": "null",
+      "nullPointMode": "null as zero",
       "options": {
         "dataLinks": []
       },
@@ -233,7 +232,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum by (type) (delta(landns_cache_count{cache=\"hit\"}[$__interval])) / sum by (type) (delta(landns_cache_count[$__interval]))",
+          "expr": "sum by (type) (delta(landns_cache_count{cache=\"hit\"}[5m])) / sum by (type) (delta(landns_cache_count[5m]))",
           "legendFormat": "{{ type }}",
           "refId": "A"
         }
@@ -242,7 +241,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Cache Hit Rate",
+      "title": "Cache Hit Rate (In 5 minutes)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -261,7 +260,7 @@
           "format": "percentunit",
           "label": null,
           "logBase": 1,
-          "max": null,
+          "max": "1",
           "min": "0",
           "show": true
         },
@@ -348,7 +347,7 @@
           "format": "none",
           "label": null,
           "logBase": 1,
-          "max": null,
+          "max": "100",
           "min": "0",
           "show": true
         },
@@ -682,7 +681,7 @@
       },
       "lines": true,
       "linewidth": 1,
-      "nullPointMode": "null",
+      "nullPointMode": "null as zero",
       "options": {
         "dataLinks": []
       },
@@ -751,7 +750,7 @@
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -771,5 +770,5 @@
   "timezone": "",
   "title": "Landns Dashboard",
   "uid": "5vjpowBZk",
-  "version": 2
+  "version": 4
 }
