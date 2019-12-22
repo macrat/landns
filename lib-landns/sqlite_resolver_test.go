@@ -33,6 +33,17 @@ func TestSqliteResolver(t *testing.T) {
 	DynamicResolverTest(t, resolver)
 }
 
+func TestSqliteResolver_Parallel(t *testing.T) {
+	resolver := CreateSqliteResolver(t)
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
+
+	ParallelResolveTest(t, resolver)
+}
+
 func BenchmarkSqliteResolver(b *testing.B) {
 	resolver := CreateSqliteResolver(b)
 	defer func() {

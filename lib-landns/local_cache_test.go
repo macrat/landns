@@ -27,6 +27,17 @@ func TestLocalCache(t *testing.T) {
 	}
 }
 
+func TestLocalCache_Parallel(t *testing.T) {
+	resolver := landns.NewLocalCache(CacheTestUpstream(t), landns.NewMetrics("landns"))
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
+
+	ParallelResolveTest(t, resolver)
+}
+
 func TestLocalCache_RecursionAvailable(t *testing.T) {
 	CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
 		return landns.NewLocalCache(landns.ResolverSet(rs), landns.NewMetrics("landns"))

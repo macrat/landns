@@ -62,6 +62,12 @@ func TestSimpleResolver(t *testing.T) {
 	AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeNS, false), true, "example.com. IN NS ns1.example.com.")
 }
 
+func TestSimpleResolver_Parallel(t *testing.T) {
+	resolver := landns.NewSimpleResolver([]landns.Record{})
+
+	ParallelResolveTest(t, resolver)
+}
+
 func BenchmarkSimpleResolver(b *testing.B) {
 	records := []landns.Record{}
 

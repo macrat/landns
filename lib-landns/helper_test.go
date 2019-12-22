@@ -120,3 +120,37 @@ func CheckRecursionAvailable(t testing.TB, makeResolver func([]landns.Resolver) 
 		t.Fatalf("unexpected recursion available: %v", recursionResolver.RecursionAvailable())
 	}
 }
+
+func ParallelResolveTest(t testing.TB, resolver landns.Resolver) {
+	errors := make([]chan string, 5)
+	loop := 100
+
+	for i := range errors {
+		errors[i] = make(chan string)
+		go func(ch chan string) {
+			defer close(ch)
+			for i := 0; i < loop; i++ {
+				err := resolver.Resolve(EmptyResponseWriter{}, landns.NewRequest("example.com.", dns.TypeA, false))
+				if err != nil {
+					ch <- err.Error()
+				}
+			}
+		}(errors[i])
+	}
+
+	errorSet := make(map[string]struct{})
+	errorCount := 0
+	for _, ch := range errors {
+		for err := range ch {
+			errorSet[err] = struct{}{}
+			errorCount++
+		}
+	}
+	errorList := []string{}
+	for err := range errorSet {
+		errorList = append(errorList, err)
+	}
+	if len(errorList) != 0 {
+		t.Errorf("pararell resolve errors: rate: %.2f%%\n%s", float64(errorCount) * 100 / float64(loop * len(errors)), strings.Join(errorList, "\n"))
+	}
+}

@@ -68,3 +68,19 @@ func TestForwardResolver(t *testing.T) {
 		t.Fatalf("unexpected recursion available: %v", resolver.RecursionAvailable())
 	}
 }
+
+func TestForwardResolver_Parallel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	addr := StartDummyDNSServer(ctx, t, landns.NewSimpleResolver([]landns.Record{}))
+
+	resolver := landns.NewForwardResolver([]*net.UDPAddr{addr}, 1*time.Second, landns.NewMetrics("landns"))
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
+
+	ParallelResolveTest(t, resolver)
+}

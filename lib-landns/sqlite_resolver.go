@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/miekg/dns"
 
@@ -13,6 +14,7 @@ import (
 
 // SqliteResolver is one implements of DynamicResolver using Sqlite3.
 type SqliteResolver struct {
+	mutex   sync.Mutex
 	path    string
 	db      *sql.DB
 	metrics *Metrics
@@ -39,7 +41,7 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 		return nil, err
 	}
 
-	return &SqliteResolver{path, db, metrics}, nil
+	return &SqliteResolver{path: path, db: db, metrics: metrics}, nil
 }
 
 func (sr *SqliteResolver) String() string {
@@ -98,6 +100,9 @@ func dropRecord(withID, withoutID *sql.Stmt, r DynamicRecord) error {
 }
 
 func (sr *SqliteResolver) SetRecords(rs DynamicRecordSet) error {
+	sr.mutex.Lock()
+	defer sr.mutex.Unlock()
+
 	tx, err := sr.db.Begin()
 	if err != nil {
 		return err
@@ -172,6 +177,9 @@ func scanRecords(rows *sql.Rows) (DynamicRecordSet, error) {
 }
 
 func (sr *SqliteResolver) Records() (DynamicRecordSet, error) {
+	sr.mutex.Lock()
+	defer sr.mutex.Unlock()
+
 	rows, err := sr.db.Query(`SELECT id, record FROM records ORDER BY id`)
 	if err != nil {
 		return DynamicRecordSet{}, err
@@ -182,6 +190,9 @@ func (sr *SqliteResolver) Records() (DynamicRecordSet, error) {
 }
 
 func (sr *SqliteResolver) SearchRecords(suffix Domain) (DynamicRecordSet, error) {
+	sr.mutex.Lock()
+	defer sr.mutex.Unlock()
+
 	suf := suffix.String()
 	for _, rep := range []struct {
 		From string
@@ -204,6 +215,9 @@ func (sr *SqliteResolver) SearchRecords(suffix Domain) (DynamicRecordSet, error)
 }
 
 func (sr *SqliteResolver) GlobRecords(pattern string) (DynamicRecordSet, error) {
+	sr.mutex.Lock()
+	defer sr.mutex.Unlock()
+
 	for _, rep := range []struct {
 		From string
 		To   string
@@ -226,6 +240,9 @@ func (sr *SqliteResolver) GlobRecords(pattern string) (DynamicRecordSet, error) 
 }
 
 func (sr *SqliteResolver) GetRecord(id int) (DynamicRecordSet, error) {
+	sr.mutex.Lock()
+	defer sr.mutex.Unlock()
+
 	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE id = ?`, id)
 	if err != nil {
 		return DynamicRecordSet{}, err
@@ -236,6 +253,9 @@ func (sr *SqliteResolver) GetRecord(id int) (DynamicRecordSet, error) {
 }
 
 func (sr *SqliteResolver) RemoveRecord(id int) error {
+	sr.mutex.Lock()
+	defer sr.mutex.Unlock()
+
 	result, err := sr.db.Exec(`DELETE FROM records WHERE id = ?`, id)
 	if err != nil {
 		return err
@@ -251,6 +271,9 @@ func (sr *SqliteResolver) RemoveRecord(id int) error {
 }
 
 func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
+	sr.mutex.Lock()
+	defer sr.mutex.Unlock()
+
 	rows, err := sr.db.Query(`SELECT record FROM records WHERE name = ? AND qtype = ?`, r.Name, r.QtypeString())
 	if err != nil {
 		return err
@@ -282,5 +305,8 @@ func (sr *SqliteResolver) RecursionAvailable() bool {
 }
 
 func (sr *SqliteResolver) Close() error {
+	sr.mutex.Lock()
+	defer sr.mutex.Unlock()
+
 	return sr.db.Close()
 }

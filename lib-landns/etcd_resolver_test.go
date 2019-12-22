@@ -42,6 +42,13 @@ func TestEtcdResolver(t *testing.T) {
 	DynamicResolverTest(t, resolver)
 }
 
+func TestEtcdResolver_Parallel(t *testing.T) {
+	resolver, _, closer := CreateEtcdResolver(t)
+	defer closer()
+
+	ParallelResolveTest(t, resolver)
+}
+
 func BenchmarkEtcdResolver(b *testing.B) {
 	resolver, _, closer := CreateEtcdResolver(b)
 	defer closer()

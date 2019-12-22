@@ -45,6 +45,22 @@ func TestRedisCache(t *testing.T) {
 	CacheTest(t, resolver)
 }
 
+func TestRedisCache_Parallel(t *testing.T) {
+	prepareRedisDB(t)
+
+	resolver, err := landns.NewRedisCache(redisAddr, 0, "", CacheTestUpstream(t), landns.NewMetrics("landns"))
+	if err != nil {
+		t.Fatalf("failed to connect redis server: %s", err)
+	}
+	defer func() {
+		if err := resolver.Close(); err != nil {
+			t.Fatalf("failed to close: %s", err)
+		}
+	}()
+
+	ParallelResolveTest(t, resolver)
+}
+
 func TestRedisCache_RecursionAvailable(t *testing.T) {
 	prepareRedisDB(t)
 
