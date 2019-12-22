@@ -19,20 +19,20 @@ import (
 
 // Client is the instance for operate dynamic records.
 type Client struct {
-	endpoint *url.URL
+	Endpoint *url.URL  // The Landns API endpoint URL.
 	client   *http.Client
 }
 
 // New is make new Client instance.
 func New(endpoint *url.URL) Client {
 	return Client{
-		endpoint: endpoint,
+		Endpoint: endpoint,
 		client:   &http.Client{},
 	}
 }
 
 func (c Client) do(method, path string, body fmt.Stringer) (response landns.DynamicRecordSet, err error) {
-	u, err := c.endpoint.Parse(path)
+	u, err := c.Endpoint.Parse(path)
 	if err != nil {
 		return
 	}

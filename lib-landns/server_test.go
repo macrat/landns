@@ -28,7 +28,7 @@ func StartServer(ctx context.Context, t testing.TB) (client.Client, *net.UDPAddr
 		Resolvers:       dyn,
 	}
 
-	apiAddr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9353}
+	apiAddr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: FindEmptyPort()}
 	dnsAddr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 3553}
 	go func() {
 		if err := s.ListenAndServe(ctx, apiAddr, dnsAddr, "udp"); err != nil {
@@ -68,7 +68,9 @@ func TestServer(t *testing.T) {
 		{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET},
 	}, "example.com.\t300\tIN\tA\t127.0.1.2")
 
-	if resp, err := http.Get("http://127.0.0.1:9353"); err != nil {
+	if u, err := c.Endpoint.Parse("/"); err != nil {
+		t.Errorf("failed to make root url: %s", err)
+	} else if resp, err := http.Get(u.String()); err != nil {
 		t.Errorf("failed to get index page: %s", err)
 	} else {
 		defer resp.Body.Close()
@@ -86,7 +88,9 @@ func TestServer(t *testing.T) {
 		}
 	}
 
-	if resp, err := http.Get("http://127.0.0.1:9353/metrics"); err != nil {
+	if u, err := c.Endpoint.Parse("/metrics"); err != nil {
+		t.Errorf("failed to make metrics url: %s", err)
+	} else if resp, err := http.Get(u.String()); err != nil {
 		t.Errorf("failed to get metrics: %s", err)
 	} else if resp.StatusCode != 200 {
 		t.Errorf("unexpected status code: %d", resp.StatusCode)

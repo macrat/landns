@@ -11,6 +11,17 @@ import (
 	"github.com/miekg/dns"
 )
 
+func FindEmptyPort() int {
+	for port := 49152; port <= 65535; port++ {
+		l, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+		if err == nil {
+			l.Close()
+			return port
+		}
+	}
+	return -1
+}
+
 func AssertResolve(t testing.TB, resolver landns.Resolver, request landns.Request, authoritative bool, responses ...string) {
 	t.Helper()
 

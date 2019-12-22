@@ -154,7 +154,7 @@ func TestEmptyResponseWriter(t *testing.T) {
 func StartDummyDNSServer(ctx context.Context, t testing.TB, resolver landns.Resolver) *net.UDPAddr {
 	t.Helper()
 
-	addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 3553}
+	addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: FindEmptyPort()}
 
 	server := dns.Server{
 		Addr:      addr.String(),
@@ -241,7 +241,7 @@ func (e HTTPEndpoint) Post(path, body string) (string, error) {
 func StartHTTPServer(ctx context.Context, t testing.TB, handler http.Handler) HTTPEndpoint {
 	t.Helper()
 
-	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5380}
+	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: FindEmptyPort()}
 
 	u, err := url.Parse(fmt.Sprintf("http://%s", addr))
 	if err != nil {
