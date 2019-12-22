@@ -142,7 +142,7 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": true,
+      "stack": false,
       "steppedLine": false,
       "targets": [
         {
@@ -207,7 +207,7 @@
         "y": 8
       },
       "id": 10,
-      "interval": "",
+      "interval": "1m",
       "legend": {
         "avg": false,
         "current": false,
@@ -233,7 +233,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum by (type) (landns_cache_count{cache=\"hit\"}) / sum by (type) (landns_cache_count)",
+          "expr": "sum by (type) (delta(landns_cache_count{cache=\"hit\"}[$__interval])) / sum by (type) (delta(landns_cache_count[$__interval]))",
           "legendFormat": "{{ type }}",
           "refId": "A"
         }
@@ -294,7 +294,7 @@
         "y": 8
       },
       "id": 15,
-      "interval": "",
+      "interval": "1m",
       "legend": {
         "avg": false,
         "current": false,
@@ -320,26 +320,16 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum by (type) (landns_resolve_count{source=\"local\"}) / sum by (type) (landns_resolve_count)",
-          "legendFormat": "local ({{ type }})",
+          "expr": "sum by (source) (delta(landns_resolve_count[$__interval]))",
+          "legendFormat": "{{ source }}",
           "refId": "A"
-        },
-        {
-          "expr": "sum by (type) (landns_resolve_count{source=\"upstream\"}) / sum by (type) (landns_resolve_count)",
-          "legendFormat": "forward ({{ type }})",
-          "refId": "B"
-        },
-        {
-          "expr": "sum by (type) (landns_resolve_count{source=\"not-found\"}) / sum by (type) (landns_resolve_count)",
-          "legendFormat": "not found ({{ type }})",
-          "refId": "C"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Resolve Type Rate",
+      "title": "Resolve Type",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -355,7 +345,7 @@
       },
       "yaxes": [
         {
-          "format": "percentunit",
+          "format": "none",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -607,5 +597,5 @@
   "timezone": "",
   "title": "Landns Dashboard",
   "uid": "5vjpowBZk",
-  "version": 1
+  "version": 2
 }
