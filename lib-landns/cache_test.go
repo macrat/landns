@@ -2,9 +2,9 @@ package landns_test
 
 import (
 	"net"
+	"sync"
 	"testing"
 	"time"
-	"sync"
 
 	"github.com/macrat/landns/lib-landns"
 	"github.com/miekg/dns"

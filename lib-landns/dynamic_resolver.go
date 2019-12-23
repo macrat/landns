@@ -107,7 +107,7 @@ func (rs *DynamicRecordSet) UnmarshalText(text []byte) error {
 			if line[0] == ';' {
 				continue
 			} else {
-				errors = append(errors, newError(TypeArgumentError, nil, "line %d: invalid format: %s", i + 1, string(line))) // unused original error because useless.
+				errors = append(errors, newError(TypeArgumentError, nil, "line %d: invalid format: %s", i+1, string(line))) // unused original error because useless.
 			}
 		}
 		*rs = append(*rs, r)

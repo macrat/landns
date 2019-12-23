@@ -43,8 +43,8 @@ type Error struct {
 // newError is make new Error by format string.
 func newError(typ ErrorType, original error, format string, args ...interface{}) Error {
 	return Error{
-		Type: typ,
-		Message: fmt.Sprintf(format, args...),
+		Type:     typ,
+		Message:  fmt.Sprintf(format, args...),
 		Original: original,
 	}
 }

@@ -151,6 +151,6 @@ func ParallelResolveTest(t testing.TB, resolver landns.Resolver) {
 		errorList = append(errorList, err)
 	}
 	if len(errorList) != 0 {
-		t.Errorf("pararell resolve errors: rate: %.2f%%\n%s", float64(errorCount) * 100 / float64(loop * len(errors)), strings.Join(errorList, "\n"))
+		t.Errorf("pararell resolve errors: rate: %.2f%%\n%s", float64(errorCount)*100/float64(loop*len(errors)), strings.Join(errorList, "\n"))
 	}
 }

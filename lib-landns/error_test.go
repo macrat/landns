@@ -12,10 +12,10 @@ func TestErrorType(t *testing.T) {
 		}
 	}
 
-	for _, tt := range []struct{
+	for _, tt := range []struct {
 		Type   ErrorType
 		Expect string
-	} {
+	}{
 		{TypeInternalError, "InternalError"},
 		{TypeExternalError, "ExternalError"},
 		{TypeArgumentError, "ArgumentError"},
@@ -27,10 +27,10 @@ func TestErrorType(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	for _, tt := range []struct{
+	for _, tt := range []struct {
 		Err    Error
 		Expect string
-	} {
+	}{
 		{Error{TypeInternalError, nil, "some error"}, "some error"},
 		{Error{TypeExternalError, fmt.Errorf("world"), "hello"}, "hello: world"},
 	} {
