@@ -80,7 +80,7 @@ func (m *Metrics) HTTPHandler() (http.Handler, error) {
 	registry := prometheus.NewRegistry()
 
 	if err := registry.Register(m); err != nil {
-		return nil, err
+		return nil, Error{TypeExternalError, err, "failed to register prometheus handler"}
 	}
 
 	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), nil

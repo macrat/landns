@@ -27,7 +27,7 @@ func NewEtcdResolver(endpoints []string, prefix string, timeout time.Duration, m
 		DialTimeout: timeout,
 	})
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeExternalError, err, "failed to connect etcd"}
 	}
 
 	return &EtcdResolver{
@@ -50,14 +50,14 @@ func (er *EtcdResolver) makeKey(ctx context.Context, r DynamicRecord) (DynamicRe
 	if r.ID == nil {
 		resp, err := er.client.Get(ctx, er.Prefix+"/lastID")
 		if err != nil {
-			return r, "", err
+			return r, "", Error{TypeExternalError, err, "failed to get last ID"}
 		}
 
 		id := 0
 		if len(resp.Kvs) > 0 {
 			id, err = strconv.Atoi(string(resp.Kvs[0].Value))
 			if err != nil {
-				return r, "", err
+				return r, "", Error{TypeInternalError, err, "failed to parse last ID"}
 			}
 		}
 		id++
@@ -76,19 +76,19 @@ func (er *EtcdResolver) findKey(ctx context.Context, r DynamicRecord) (DynamicRe
 
 	resp, err := er.client.Get(ctx, er.Prefix+"/records"+r.Record.GetName().ToPath()+"/", clientv3.WithPrefix())
 	if err != nil {
-		return DynamicRecord{}, "", err
+		return DynamicRecord{}, "", Error{TypeExternalError, err, "failed to get records"}
 	}
 	var r2 DynamicRecord
 	for _, x := range resp.Kvs {
 		if err := r2.UnmarshalText(x.Value); err != nil {
-			return DynamicRecord{}, "", err
+			return DynamicRecord{}, "", Error{TypeInternalError, err, "failed to parse records"}
 		}
 
 		if r.Record.String() == r2.Record.String() {
 			ks := strings.Split(string(x.Key), "/")
 			id, err := strconv.Atoi(ks[len(ks)-1])
 			if err != nil {
-				return DynamicRecord{}, "", err
+				return DynamicRecord{}, "", Error{TypeInternalError, err, "failed to parse record ID"}
 			}
 			r2.ID = &id
 			return er.makeKey(ctx, r2)
@@ -108,7 +108,7 @@ func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecord
 
 	for i, r := range resp.Kvs {
 		if err := rs[i].UnmarshalText(r.Value); err != nil {
-			return nil, err
+			return nil, Error{TypeInternalError, err, "faield to parse records"}
 		}
 
 		id, err := er.getIDbyKey(string(r.Key))
@@ -124,7 +124,7 @@ func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecord
 func (er *EtcdResolver) findSameRecord(ctx context.Context, r DynamicRecord) (bool, error) {
 	resp, err := er.client.Get(ctx, er.Prefix+"/records"+r.Record.GetName().ToPath(), clientv3.WithPrefix())
 	if err != nil {
-		return false, err
+		return false, Error{TypeExternalError, err, "failed to get records"}
 	}
 	for _, r2 := range resp.Kvs {
 		if r.String() == string(r2.Value) {
@@ -142,7 +142,7 @@ func (er *EtcdResolver) dropRecord(ctx context.Context, r DynamicRecord) error {
 
 	if key != "" {
 		if _, err = er.client.Delete(ctx, key); err != nil {
-			return err
+			return Error{TypeExternalError, err, "failed to delete record"}
 		}
 	}
 
@@ -152,7 +152,7 @@ func (er *EtcdResolver) dropRecord(ctx context.Context, r DynamicRecord) error {
 
 	reverse, err := dns.ReverseAddr(r.Record.(AddressRecord).Address.String())
 	if err != nil {
-		return err
+		return Error{TypeExternalError, err, "failed to make reverse address"}
 	}
 	_, key, err = er.findKey(ctx, DynamicRecord{
 		Record: PtrRecord{
@@ -167,7 +167,7 @@ func (er *EtcdResolver) dropRecord(ctx context.Context, r DynamicRecord) error {
 		return nil
 	}
 	if _, err := er.client.Delete(ctx, key); err != nil {
-		return err
+		return Error{TypeExternalError, err, "failed to delete record"}
 	}
 
 	return nil
@@ -186,13 +186,13 @@ func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error
 	}
 
 	if _, err := er.client.Put(ctx, key, r.Record.String()); err != nil {
-		return err
+		return Error{TypeExternalError, err, "failed to put record"}
 	}
 
 	if r.Record.GetQtype() == dns.TypeA || r.Record.GetQtype() == dns.TypeAAAA {
 		reverse, err := dns.ReverseAddr(r.Record.(AddressRecord).Address.String())
 		if err != nil {
-			return err
+			return Error{TypeExternalError, err, "failed to make reverse address"}
 		}
 		r, key, err = er.makeKey(ctx, DynamicRecord{
 			Record: PtrRecord{
@@ -205,7 +205,7 @@ func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error
 			return err
 		}
 		if _, err := er.client.Put(ctx, key, r.Record.String()); err != nil {
-			return err
+			return Error{TypeExternalError, err, "failed to put record"}
 		}
 	}
 
@@ -241,7 +241,7 @@ func (er *EtcdResolver) Records() (DynamicRecordSet, error) {
 
 	resp, err := er.client.Get(ctx, er.Prefix+"/records/", clientv3.WithPrefix())
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeExternalError, err, "failed to get records"}
 	}
 
 	return er.readResponses(resp)
@@ -254,7 +254,7 @@ func (er *EtcdResolver) SearchRecords(d Domain) (DynamicRecordSet, error) {
 
 	resp, err := er.client.Get(ctx, er.Prefix+"/records"+d.ToPath(), clientv3.WithPrefix())
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeExternalError, err, "failed to get records"}
 	}
 
 	return er.readResponses(resp)
@@ -281,7 +281,7 @@ func compileGlob(glob string) (func(string) bool, error) {
 
 	re, err := regexp.Compile("^" + glob + "$")
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeInternalError, err, "failed to parse glob"}
 	}
 
 	return re.MatchString, nil
@@ -340,7 +340,9 @@ func (er *EtcdResolver) RemoveRecord(id int) error {
 				return err
 			}
 			_, err = er.client.Delete(ctx, key)
-			return err
+			if err != nil {
+				return Error{TypeExternalError, err, "failed to delete record"}
+			}
 		}
 	}
 	return nil
@@ -353,7 +355,11 @@ func (er *EtcdResolver) RecursionAvailable() bool {
 
 // Close is disconnector from etcd server.
 func (er *EtcdResolver) Close() error {
-	return er.client.Close()
+	err := er.client.Close()
+	if err != nil {
+		return Error{TypeExternalError, err, "failed to close etcd connection"}
+	}
+	return nil
 }
 
 // Resolve is resolver using etcd.

@@ -26,7 +26,7 @@ func (s *Server) HTTPHandler() (http.Handler, error) {
 
 	metrics, err := s.Metrics.HTTPHandler()
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeExternalError, err, "failed to get Prometheus HTTP handler"}
 	}
 
 	mux.Handle("/metrics", metrics)
@@ -77,10 +77,10 @@ func (s *Server) ListenAndServe(ctx context.Context, apiAddress *net.TCPAddr, dn
 	select {
 	case err = <-httpch:
 		dnsServer.ShutdownContext(ctx)
-		return err
+		return Error{TypeInternalError, err, "fatal error on HTTP server"}
 	case err = <-dnsch:
 		httpServer.Shutdown(ctx)
-		return err
+		return Error{TypeInternalError, err, "fatal error on DNS server"}
 	case <-ctx.Done():
 		dnsServer.ShutdownContext(ctx)
 		httpServer.Shutdown(ctx)

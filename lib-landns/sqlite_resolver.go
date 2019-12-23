@@ -23,7 +23,7 @@ type SqliteResolver struct {
 func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeExternalError, err, "failed to open SQlite database"}
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS records (
@@ -33,12 +33,12 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 		record TEXT UNIQUE
 	)`)
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeExternalError, err, "failed to create table"}
 	}
 
 	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS record_name ON records (name, qtype)`)
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeExternalError, err, "failed to create index"}
 	}
 
 	return &SqliteResolver{path: path, db: db, metrics: metrics}, nil
@@ -51,7 +51,7 @@ func (sr *SqliteResolver) String() string {
 func insertRecord(search, ins *sql.Stmt, r DynamicRecord) error {
 	result, err := search.Query(r.Record.String())
 	if err != nil {
-		return err
+		return Error{TypeExternalError, err, "failed to search exists record"}
 	}
 	defer result.Close()
 
@@ -61,15 +61,18 @@ func insertRecord(search, ins *sql.Stmt, r DynamicRecord) error {
 
 	_, err = ins.Exec(r.Record.GetName(), QtypeToString(r.Record.GetQtype()), r.Record.String())
 	if err != nil {
-		return err
+		return Error{TypeExternalError, err, "failed to insert record"}
 	}
 
 	if r.Record.GetQtype() == dns.TypeA || r.Record.GetQtype() == dns.TypeAAAA {
 		reverse, err := dns.ReverseAddr(r.Record.(AddressRecord).Address.String())
 		if err != nil {
-			return err
+			return newError(TypeArgumentError, err, "failed to convert to reverse address: %s", r.Record.(AddressRecord).Address)
 		}
-		ins.Exec(reverse, "PTR", fmt.Sprintf("%s %d IN PTR %s", reverse, r.Record.GetTTL(), r.Record.GetName()))
+		_, err = ins.Exec(reverse, "PTR", fmt.Sprintf("%s %d IN PTR %s", reverse, r.Record.GetTTL(), r.Record.GetName()))
+		if err != nil {
+			return Error{TypeExternalError, err, "failed to insert reverse record"}
+		}
 	}
 
 	return nil
@@ -79,21 +82,24 @@ func dropRecord(withID, withoutID *sql.Stmt, r DynamicRecord) error {
 	if r.ID == nil {
 		_, err := withoutID.Exec(r.Record.String())
 		if err != nil {
-			return err
+			return Error{TypeExternalError, err, "failed to drop record"}
 		}
 	} else {
 		_, err := withID.Exec(*r.ID, r.Record.String())
 		if err != nil {
-			return err
+			return Error{TypeExternalError, err, "failed to drop record"}
 		}
 	}
 
 	if r.Record.GetQtype() == dns.TypeA || r.Record.GetQtype() == dns.TypeAAAA {
 		reverse, err := dns.ReverseAddr(r.Record.(AddressRecord).Address.String())
 		if err != nil {
-			return err
+			return newError(TypeArgumentError, err, "failed to convert to reverse address: %s", r.Record.(AddressRecord).Address)
 		}
-		withoutID.Exec(fmt.Sprintf("%s %d IN PTR %s", reverse, r.Record.GetTTL(), r.Record.GetName()))
+		_, err = withoutID.Exec(fmt.Sprintf("%s %d IN PTR %s", reverse, r.Record.GetTTL(), r.Record.GetName()))
+		if err != nil {
+			return Error{TypeExternalError, err, "failed to drop reverse record"}
+		}
 	}
 
 	return nil
@@ -105,34 +111,34 @@ func (sr *SqliteResolver) SetRecords(rs DynamicRecordSet) error {
 
 	tx, err := sr.db.Begin()
 	if err != nil {
-		return err
+		return Error{TypeExternalError, err, "failed to begin transaction"}
 	}
 
 	dropWithID, err := tx.Prepare(`DELETE FROM records WHERE id = ? AND record = ?`)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer dropWithID.Close()
 
 	dropWithoutID, err := tx.Prepare(`DELETE FROM records WHERE record = ?`)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer dropWithoutID.Close()
 
 	search, err := tx.Prepare(`SELECT 1 FROM records WHERE record = ? LIMIT 1`)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer search.Close()
 
 	ins, err := tx.Prepare(`INSERT INTO records (name, qtype, record) VALUES (?, ?, ?)`)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer ins.Close()
 
@@ -161,7 +167,7 @@ func scanRecords(rows *sql.Rows) (DynamicRecordSet, error) {
 		var dr DynamicRecord
 
 		if err := rows.Scan(&dr.ID, &text); err != nil {
-			return DynamicRecordSet{}, err
+			return DynamicRecordSet{}, Error{TypeExternalError, err, "failed to scan record row"}
 		}
 
 		var err error
@@ -182,7 +188,7 @@ func (sr *SqliteResolver) Records() (DynamicRecordSet, error) {
 
 	rows, err := sr.db.Query(`SELECT id, record FROM records ORDER BY id`)
 	if err != nil {
-		return DynamicRecordSet{}, err
+		return DynamicRecordSet{}, Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer rows.Close()
 
@@ -207,7 +213,7 @@ func (sr *SqliteResolver) SearchRecords(suffix Domain) (DynamicRecordSet, error)
 
 	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE name = ? OR name LIKE ? ESCAPE '\' ORDER BY id`, suf, "%."+suf)
 	if err != nil {
-		return DynamicRecordSet{}, err
+		return DynamicRecordSet{}, Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer rows.Close()
 
@@ -232,7 +238,7 @@ func (sr *SqliteResolver) GlobRecords(pattern string) (DynamicRecordSet, error) 
 
 	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE name LIKE ? ESCAPE '\' ORDER BY id`, pattern)
 	if err != nil {
-		return DynamicRecordSet{}, err
+		return DynamicRecordSet{}, Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer rows.Close()
 
@@ -245,7 +251,7 @@ func (sr *SqliteResolver) GetRecord(id int) (DynamicRecordSet, error) {
 
 	rows, err := sr.db.Query(`SELECT id, record FROM records WHERE id = ?`, id)
 	if err != nil {
-		return DynamicRecordSet{}, err
+		return DynamicRecordSet{}, Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer rows.Close()
 
@@ -258,11 +264,11 @@ func (sr *SqliteResolver) RemoveRecord(id int) error {
 
 	result, err := sr.db.Exec(`DELETE FROM records WHERE id = ?`, id)
 	if err != nil {
-		return err
+		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return Error{TypeInternalError, err, "failed to get removed record ID"}
 	}
 	if affected == 0 {
 		return ErrNoSuchRecord
@@ -276,7 +282,7 @@ func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
 
 	rows, err := sr.db.Query(`SELECT record FROM records WHERE name = ? AND qtype = ?`, r.Name, r.QtypeString())
 	if err != nil {
-		return err
+		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer rows.Close()
 
@@ -284,7 +290,7 @@ func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
 
 	for rows.Next() {
 		if err := rows.Scan(&text); err != nil {
-			return err
+			return Error{TypeExternalError, err, "failed to scan record row"}
 		}
 
 		record, err := NewRecord(text)

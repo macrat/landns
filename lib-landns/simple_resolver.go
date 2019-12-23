@@ -48,7 +48,9 @@ func (sr SimpleResolver) Resolve(w ResponseWriter, r Request) error {
 		return nil
 	}
 	for _, record := range domains[Domain(r.Name)] {
-		w.Add(record)
+		if err := w.Add(record); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -84,7 +86,7 @@ func makeReverseMap(addresses map[Domain][]net.IP, ttl uint32) ([]Record, error)
 		for _, ip := range ips {
 			key, err := dns.ReverseAddr(ip.String())
 			if err != nil {
-				return nil, err
+				return nil, newError(TypeArgumentError, err, "failed to convert to reverse address: %s", ip.String())
 			}
 
 			reverse = append(reverse, PtrRecord{
@@ -102,7 +104,7 @@ func makeReverseMap(addresses map[Domain][]net.IP, ttl uint32) ([]Record, error)
 func NewSimpleResolverFromConfig(config []byte) (SimpleResolver, error) {
 	var conf ResolverConfig
 	if err := yaml.Unmarshal(config, &conf); err != nil {
-		return SimpleResolver{}, err
+		return SimpleResolver{}, Error{TypeArgumentError, err, "failed to unmarshal configuration file"}
 	}
 
 	ttl := uint32(3600)

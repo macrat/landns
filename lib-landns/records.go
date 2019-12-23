@@ -8,27 +8,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-var (
-	ErrUnsupportedType = fmt.Errorf("unsupported record type")
-	ErrInvalidRecord   = fmt.Errorf("invalid format record")
-)
-
-// InvalidDomain is error for invalid domain.
-type InvalidDomain string
-
-// Error is getter for description string.
-func (d InvalidDomain) Error() string {
-	return fmt.Sprintf("invalid domain: \"%s\"", string(d))
-}
-
-// InvalidPort is error for invalid port.
-type InvalidPort uint16
-
-// Error is getter for description string.
-func (p InvalidPort) Error() string {
-	return fmt.Sprintf("invalid port: \"%d\"", uint16(p))
-}
-
 // Domain is the type for domain.
 type Domain string
 
@@ -47,10 +26,10 @@ func (d Domain) Normalized() Domain {
 // Validate is validator to domain.
 func (d Domain) Validate() error {
 	if len(string(d)) == 0 {
-		return InvalidDomain(string(d))
+		return newError(TypeArgumentError, nil, "invalid domain: %#v", string(d))
 	}
 	if _, ok := dns.IsDomainName(string(d)); !ok {
-		return InvalidDomain(string(d))
+		return newError(TypeArgumentError, nil, "invalid domain: %#v", string(d))
 	}
 	return nil
 }
@@ -92,7 +71,7 @@ type Record interface {
 func NewRecord(str string) (Record, error) {
 	rr, err := dns.NewRR(str)
 	if err != nil {
-		return nil, err
+		return nil, Error{TypeArgumentError, err, "failed to parse record"}
 	}
 
 	return NewRecordFromRR(rr)
@@ -125,7 +104,7 @@ func NewRecordFromRR(rr dns.RR) (Record, error) {
 			Target:   Domain(x.Target),
 		}, nil
 	default:
-		return nil, ErrUnsupportedType
+		return nil, newError(TypeArgumentError, nil, "unsupported record type: %d", rr.Header().Rrtype)
 	}
 }
 
@@ -171,7 +150,11 @@ func (r AddressRecord) GetQtype() uint16 {
 
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r AddressRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
+	rr, err := dns.NewRR(r.String())
+	if err != nil {
+		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
+	}
+	return rr, nil
 }
 
 // Validate is validator of record.
@@ -207,7 +190,11 @@ func (r NsRecord) GetQtype() uint16 {
 
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r NsRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
+	rr, err := dns.NewRR(r.String())
+	if err != nil {
+		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
+	}
+	return rr, nil
 }
 
 // Validate is validator of record.
@@ -247,7 +234,11 @@ func (r CnameRecord) GetQtype() uint16 {
 
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r CnameRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
+	rr, err := dns.NewRR(r.String())
+	if err != nil {
+		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
+	}
+	return rr, nil
 }
 
 // Validate is validator of record.
@@ -287,7 +278,11 @@ func (r PtrRecord) GetQtype() uint16 {
 
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r PtrRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
+	rr, err := dns.NewRR(r.String())
+	if err != nil {
+		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
+	}
+	return rr, nil
 }
 
 // Validate is validator of record.
@@ -328,7 +323,11 @@ func (r MxRecord) GetQtype() uint16 {
 
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r MxRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
+	rr, err := dns.NewRR(r.String())
+	if err != nil {
+		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
+	}
+	return rr, nil
 }
 
 // Validate is validator of record.
@@ -368,7 +367,11 @@ func (r TxtRecord) GetQtype() uint16 {
 
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r TxtRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
+	rr, err := dns.NewRR(r.String())
+	if err != nil {
+		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
+	}
+	return rr, nil
 }
 
 // Validate is validator of record.
@@ -416,7 +419,11 @@ func (r SrvRecord) GetQtype() uint16 {
 
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r SrvRecord) ToRR() (dns.RR, error) {
-	return dns.NewRR(r.String())
+	rr, err := dns.NewRR(r.String())
+	if err != nil {
+		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
+	}
+	return rr, nil
 }
 
 // Validate is validator of record.
@@ -425,7 +432,7 @@ func (r SrvRecord) Validate() error {
 		return err
 	}
 	if r.Port == 0 {
-		return InvalidPort(r.Port)
+		return newError(TypeArgumentError, nil, "invalid port: %d", uint16(r.Port))
 	}
 	return r.Target.Validate()
 }

@@ -22,7 +22,7 @@ type DummyResolver struct {
 
 func (dr DummyResolver) Resolve(w landns.ResponseWriter, r landns.Request) error {
 	if dr.Error {
-		return fmt.Errorf("test error")
+		return landns.Error{Type: landns.TypeInternalError, Message: "test error"}
 	} else {
 		return nil
 	}

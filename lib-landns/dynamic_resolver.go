@@ -2,39 +2,14 @@ package landns
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
-	"strings"
 )
 
 var (
-	ErrMultiLineDynamicRecord     = fmt.Errorf("DynamicRecord can't have multi line")
-	ErrInvalidDynamicRecordFormat = fmt.Errorf("DynamicRecord invalid format")
-	ErrNoSuchRecord               = fmt.Errorf("no such record")
+	ErrMultiLineDynamicRecord     = Error{Type: TypeArgumentError, Message: "DynamicRecord can't have multi line"}
+	ErrInvalidDynamicRecordFormat = Error{Type: TypeArgumentError, Message: "DynamicRecord invalid format"}
+	ErrNoSuchRecord               = Error{Type: TypeArgumentError, Message: "no such record"}
 )
-
-// InvalidRecordError is error for invalid record line.
-type InvalidRecordError struct {
-	Line int
-	Text string
-}
-
-// Error is getter for description string.
-func (e InvalidRecordError) Error() string {
-	return fmt.Sprintf("line %d: invalid format: %s", e.Line, e.Text)
-}
-
-// ErrorSet is list of errors.
-type ErrorSet []error
-
-// Error is getter for description string.
-func (e ErrorSet) Error() string {
-	xs := make([]string, len(e))
-	for i, x := range e {
-		xs[i] = x.Error()
-	}
-	return strings.Join(xs, "\n")
-}
 
 // DynamicRecord is the record information for DynamicResolver.
 type DynamicRecord struct {
@@ -132,7 +107,7 @@ func (rs *DynamicRecordSet) UnmarshalText(text []byte) error {
 			if line[0] == ';' {
 				continue
 			} else {
-				errors = append(errors, InvalidRecordError{i + 1, string(line)})
+				errors = append(errors, newError(TypeArgumentError, nil, "line %d: invalid format: %s", i + 1, string(line))) // unused original error because useless.
 			}
 		}
 		*rs = append(*rs, r)
@@ -151,7 +126,7 @@ func (rs DynamicRecordSet) MarshalText() ([]byte, error) {
 	for i, r := range rs {
 		bs[i], err = r.MarshalText()
 		if err != nil {
-			return nil, err
+			return nil, Error{TypeArgumentError, err, "failed to marshal record"}
 		}
 	}
 

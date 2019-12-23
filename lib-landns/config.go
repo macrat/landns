@@ -10,14 +10,6 @@ const (
 	DefaultTTL uint32 = 3600
 )
 
-// InvalidProto is error for invalid protocol.
-type InvalidProto string
-
-// Error is getter for description string.
-func (p InvalidProto) Error() string {
-	return fmt.Sprintf("invalid proto: \"%s\"", string(p))
-}
-
 // Proto is type of protocol ("tcp" or "udp").
 type Proto string
 
@@ -41,7 +33,7 @@ func (p Proto) Normalized() Proto {
 // Returns error if value is not "tcp", "udp", or empty string.
 func (p Proto) Validate() error {
 	if p.String() != "" && p.String() != "tcp" && p.String() != "udp" {
-		return InvalidProto(p.String())
+		return newError(TypeArgumentError, nil, "invalid protocol: %s", p)
 	}
 	return nil
 }

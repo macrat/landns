@@ -22,12 +22,12 @@ func parseRedisCacheEntry(str string) (redisCacheEntry, error) {
 
 	rr, err := dns.NewRR(xs[0])
 	if err != nil {
-		return redisCacheEntry{}, err
+		return redisCacheEntry{}, Error{TypeInternalError, err, "failed to parse record"}
 	}
 
 	i, err := strconv.Atoi(xs[1])
 	if err != nil {
-		return redisCacheEntry{}, err
+		return redisCacheEntry{}, Error{TypeInternalError, err, "failed to parse record"}
 	}
 	t := time.Unix(int64(i), 0)
 
@@ -64,7 +64,13 @@ func NewRedisCache(addr *net.TCPAddr, database int, password string, upstream Re
 		upstream: upstream,
 		metrics:  metrics,
 	}
-	return rc, rc.client.Ping().Err()
+
+	if err := rc.client.Ping().Err(); err != nil {
+		rc.client.Close()
+		return RedisCache{}, Error{TypeExternalError, err, "failed to connect to Redis server"}
+	}
+
+	return rc, nil
 }
 
 // String is description string getter.
@@ -74,7 +80,10 @@ func (rc RedisCache) String() string {
 
 // Close is disconnect from Redis server.
 func (rc RedisCache) Close() error {
-	return rc.client.Close()
+	if err := rc.client.Close(); err != nil {
+		return Error{TypeExternalError, err, "failed to close Redis connection"}
+	}
+	return nil
 }
 
 func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string) error {
@@ -129,7 +138,7 @@ func (rc RedisCache) Resolve(w ResponseWriter, r Request) error {
 
 	resp, err := rc.client.LRange(key, 0, -1).Result()
 	if err != nil {
-		return err
+		return Error{TypeExternalError, err, "failed to get records"}
 	}
 	if len(resp) == 0 {
 		return rc.resolveFromUpstream(w, r, key)

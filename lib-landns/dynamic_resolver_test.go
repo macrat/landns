@@ -29,7 +29,7 @@ func TestDynamicRecord(t *testing.T) {
 		{"example.com. 42 IN A 127.0.1.2 ; ID", "", landns.ErrInvalidDynamicRecordFormat.Error()},
 		{"example.com. 42 IN A 127.0.1.2 ; ID: 42", "", landns.ErrInvalidDynamicRecordFormat.Error()},
 		{"example.com. 42 IN A 127.0.1.2 ; ID:foobar", "", landns.ErrInvalidDynamicRecordFormat.Error()},
-		{"hello world ; ID:1", "", `dns: not a TTL: "world" at line: 1:12`},
+		{"hello world ; ID:1", "", `failed to parse record: dns: not a TTL: "world" at line: 1:12`},
 	}
 
 	for _, tt := range tests {

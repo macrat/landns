@@ -15,7 +15,7 @@ func TestProto_Validate(t *testing.T) {
 	b := landns.Proto("foobar")
 	if err := b.Validate(); err == nil {
 		t.Errorf("failed to invalid proto validation: <nil>")
-	} else if err.Error() != `invalid proto: "foobar"` {
+	} else if err.Error() != `invalid protocol: foobar` {
 		t.Errorf("failed to invalid proto validation: %#v", err.Error())
 	}
 
@@ -45,7 +45,7 @@ func TestProto_Encoding(t *testing.T) {
 
 	if err := (&p).UnmarshalText([]byte("foo")); err == nil {
 		t.Errorf("expected error but got nil")
-	} else if err.Error() != `invalid proto: "foo"` {
-		t.Errorf(`unexpected error: expected 'invalid proto: "foo"' but got '%s'`, err)
+	} else if err.Error() != `invalid protocol: foo` {
+		t.Errorf(`unexpected error: expected 'invalid protocol: foo' but got '%s'`, err)
 	}
 }
