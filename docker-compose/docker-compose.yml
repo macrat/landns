@@ -10,7 +10,7 @@ services:
 
     restart: always
 
-    command: --upstream 8.8.8.8:53 --upstream 8.8.4.4:53
+    command: --upstream 8.8.8.8:53 --upstream 8.8.4.4:53 --verbose
 
   prometheus:
     image: prom/prometheus
