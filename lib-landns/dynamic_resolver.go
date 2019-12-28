@@ -3,6 +3,7 @@ package landns
 import (
 	"bytes"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -24,6 +25,7 @@ func NewDynamicRecord(record string) (DynamicRecord, error) {
 	return d, d.UnmarshalText([]byte(record))
 }
 
+// String is get printable string.
 func (r DynamicRecord) String() string {
 	result := r.Record.String()
 
@@ -38,6 +40,29 @@ func (r DynamicRecord) String() string {
 	return result
 }
 
+func (r *DynamicRecord) unmarshalAnnotation(text []byte) error {
+	r.ID = nil
+
+	for _, x := range bytes.Split(bytes.TrimSpace(text), []byte(" ")) {
+		kvs := bytes.SplitN(x, []byte(":"), 2)
+
+		switch strings.ToUpper(string(bytes.TrimSpace(kvs[0]))) {
+		case "ID":
+			if len(kvs) != 2 {
+				return ErrInvalidDynamicRecordFormat
+			}
+			id, err := strconv.Atoi(string(bytes.TrimSpace(kvs[1])))
+			if err != nil {
+				return ErrInvalidDynamicRecordFormat
+			}
+			r.ID = &id
+		}
+	}
+
+	return nil
+}
+
+// UnmarshalText is unmarshal DynamicRecord from text.
 func (r *DynamicRecord) UnmarshalText(text []byte) error {
 	if bytes.Contains(text, []byte("\n")) {
 		return ErrMultiLineDynamicRecord
@@ -54,21 +79,7 @@ func (r *DynamicRecord) UnmarshalText(text []byte) error {
 	if len(xs) != 2 {
 		r.ID = nil
 	} else {
-		for _, x := range bytes.Split(bytes.TrimSpace(xs[1]), []byte(" ")) {
-			kvs := bytes.SplitN(x, []byte(":"), 2)
-			if len(kvs) != 2 {
-				return ErrInvalidDynamicRecordFormat
-			}
-
-			switch string(bytes.TrimSpace(kvs[0])) {
-			case "ID":
-				id, err := strconv.Atoi(string(bytes.TrimSpace(kvs[1])))
-				if err != nil {
-					return ErrInvalidDynamicRecordFormat
-				}
-				r.ID = &id
-			}
-		}
+		r.unmarshalAnnotation(xs[1])
 	}
 
 	var err error
@@ -76,6 +87,7 @@ func (r *DynamicRecord) UnmarshalText(text []byte) error {
 	return err
 }
 
+// MarshalText is marshal DynamicRecord to text.
 func (r DynamicRecord) MarshalText() ([]byte, error) {
 	return []byte(r.String()), nil
 }
