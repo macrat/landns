@@ -2,8 +2,10 @@ package landns
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/miekg/dns"
 )
@@ -73,6 +75,22 @@ func NewRecord(str string) (Record, error) {
 	if err != nil {
 		return nil, Error{TypeArgumentError, err, "failed to parse record"}
 	}
+
+	return NewRecordFromRR(rr)
+}
+
+// NewRecordWithExpire is make new Record from query string with expire time.
+func NewRecordWithExpire(str string, expire time.Time) (Record, error) {
+	rr, err := dns.NewRR(str)
+	if err != nil {
+		return nil, Error{TypeArgumentError, err, "failed to parse record"}
+	}
+
+	if expire.Before(time.Now()) {
+		return nil, Error{TypeArgumentError, nil, "expire can't be past time."}
+	}
+
+	rr.Header().Ttl = uint32(math.Round(expire.Sub(time.Now()).Seconds()))
 
 	return NewRecordFromRR(rr)
 }

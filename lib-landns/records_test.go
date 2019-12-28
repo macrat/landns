@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/macrat/landns/lib-landns"
 	"github.com/miekg/dns"
@@ -68,6 +69,38 @@ func TestDomain_ToPath(t *testing.T) {
 	for _, tt := range tests {
 		if p := tt.Input.ToPath(); p != tt.Expect {
 			t.Errorf("unexpected path:\nexpected: %s\nbut got:  %s", tt.Expect, p)
+		}
+	}
+}
+
+func TestNewRecordWithExpire(t *testing.T) {
+	tests := []struct {
+		String string
+		Offset time.Duration
+		Expect string
+		Error  string
+	}{
+		{"example.com. 600 IN A 127.0.0.1", 42 * time.Second, "example.com. 42 IN A 127.0.0.1", ""},
+		{"example.com. 500 IN A 127.0.0.2", 42 * time.Second, "example.com. 42 IN A 127.0.0.2", ""},
+		{"example.com. 400 IN A 127.0.0.3", 400 * time.Second, "example.com. 400 IN A 127.0.0.3", ""},
+		{"example.com. 300 IN A 127.0.0.3", time.Millisecond, "example.com. 0 IN A 127.0.0.3", ""},
+		{"example.com. 400 IN A 127.0.0.3", -time.Second, "", "expire can't be past time."},
+	}
+
+	for _, tt := range tests {
+		r, err := landns.NewRecordWithExpire(tt.String, time.Now().Add(tt.Offset))
+
+		if err != nil {
+			if tt.Error == "" {
+				t.Errorf("failed to parse record: %s", err)
+			} else if err.Error() != tt.Error {
+				t.Errorf("unexpected error:\nexpected: %#v\nbut got:  %#v", tt.Error, err.Error())
+			}
+			continue
+		}
+
+		if r.String() != tt.Expect {
+			t.Errorf("unexpected parse result:\nexpected: %#v\nbut got:  %#v", tt.Expect, r.String())
 		}
 	}
 }
@@ -186,6 +219,19 @@ func ExampleNewRecord() {
 	// example.com.
 	// 600
 	// example.com. 600 IN A 127.0.0.1
+}
+
+func ExampleNewRecordWithExpire() {
+	record, _ := landns.NewRecordWithExpire("example.com. 600 IN A 127.0.0.1", time.Now().Add(10*time.Second))
+
+	fmt.Println(record.GetName())
+	fmt.Println(record.GetTTL())
+	fmt.Println(record.String())
+
+	// Output:
+	// example.com.
+	// 10
+	// example.com. 10 IN A 127.0.0.1
 }
 
 func ExampleNewRecordFromRR() {

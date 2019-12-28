@@ -9,39 +9,39 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/miekg/dns"
 )
 
 type redisCacheEntry struct {
-	Record  Record
-	Created time.Time
+	Record Record
+	Expire time.Time
 }
 
 func parseRedisCacheEntry(str string) (redisCacheEntry, error) {
 	xs := strings.Split(str, "\n")
+	if len(xs) != 2 {
+		return redisCacheEntry{}, Error{TypeInternalError, nil, "failed to parse record"}
+	}
 
-	rr, err := dns.NewRR(xs[0])
+	i, err := strconv.ParseInt(xs[1], 10, 64)
 	if err != nil {
 		return redisCacheEntry{}, Error{TypeInternalError, err, "failed to parse record"}
 	}
 
-	i, err := strconv.Atoi(xs[1])
+	expire := time.Unix(i, 0)
+
+	record, err := NewRecordWithExpire(xs[0], expire)
 	if err != nil {
 		return redisCacheEntry{}, Error{TypeInternalError, err, "failed to parse record"}
 	}
-	t := time.Unix(int64(i), 0)
 
-	rr.Header().Ttl -= uint32(time.Now().Sub(t).Seconds())
-
-	record, err := NewRecordFromRR(rr)
 	return redisCacheEntry{
-		Record:  record,
-		Created: t,
-	}, err
+		Record: record,
+		Expire: expire,
+	}, nil
 }
 
 func (e redisCacheEntry) String() string {
-	return fmt.Sprintf("%s\n%d", e.Record, e.Created.Unix())
+	return fmt.Sprintf("%s\n%d", e.Record, int64(math.Round(float64(e.Expire.UnixNano())/1000/1000/1000)))
 }
 
 // RedisCache is redis cache manager for Resolver.
@@ -93,7 +93,10 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 	wh := ResponseWriterHook{
 		Writer: w,
 		OnAdd: func(record Record) {
-			rc.client.RPush(key, redisCacheEntry{record, time.Now()}.String())
+			rc.client.RPush(key, redisCacheEntry{
+				record,
+				time.Now().Add(time.Duration(record.GetTTL()) * time.Second),
+			}.String())
 			if ttl > record.GetTTL() {
 				ttl = record.GetTTL()
 			}
