@@ -34,14 +34,14 @@ func CacheTest(t *testing.T, resolver landns.Resolver) {
 	tests := []func(){
 		func() {
 			AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 100 IN A 127.1.2.3", "example.com. 10 IN A 127.2.3.4")
-			time.Sleep(1 * time.Second)
+			time.Sleep(500 * time.Millisecond)
 			AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), false, "example.com. 99 IN A 127.1.2.3", "example.com. 9 IN A 127.2.3.4")
 		},
 		func() {
 			AssertResolve(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), true, "short.example.com. 10 IN A 127.3.4.5", "short.example.com. 2 IN A 127.4.5.6")
-			time.Sleep(1 * time.Second)
+			time.Sleep(500 * time.Millisecond)
 			AssertResolve(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), false, "short.example.com. 9 IN A 127.3.4.5", "short.example.com. 1 IN A 127.4.5.6")
-			time.Sleep(1200 * time.Millisecond)
+			time.Sleep(1500 * time.Millisecond)
 			AssertResolve(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), true, "short.example.com. 10 IN A 127.3.4.5", "short.example.com. 2 IN A 127.4.5.6")
 		},
 		func() {
@@ -50,7 +50,7 @@ func CacheTest(t *testing.T, resolver landns.Resolver) {
 		},
 		func() {
 			AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, "example.com. 100 IN TXT \"hello world\"")
-			time.Sleep(1 * time.Second)
+			time.Sleep(500 * time.Millisecond)
 			AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), false, "example.com. 99 IN TXT \"hello world\"")
 		},
 	}

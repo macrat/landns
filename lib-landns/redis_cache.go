@@ -90,7 +90,7 @@ func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []strin
 		}
 
 		if rec, err := entry.Record(); err != nil {
-			return err
+			continue
 		} else if err := w.Add(rec); err != nil {
 			return err
 		}
