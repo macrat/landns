@@ -44,6 +44,15 @@ func TestEtcdResolver(t *testing.T) {
 	DynamicResolverTest(t, resolver)
 }
 
+func TestEtcdResolver_Volatile(t *testing.T) {
+	t.Parallel()
+
+	resolver, _, closer := CreateEtcdResolver(t)
+	defer closer()
+
+	DynamicResolverTest_Volatile(t, resolver)
+}
+
 func TestEtcdResolver_Parallel(t *testing.T) {
 	t.Parallel()
 

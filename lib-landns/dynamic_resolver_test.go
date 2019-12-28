@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/macrat/landns/lib-landns"
 	"github.com/miekg/dns"
@@ -387,6 +388,34 @@ func DynamicResolverTest(t *testing.T, resolver landns.DynamicResolver) {
 			AssertResolve(t, resolver, tt.Request, tt.Authoritative, tt.Expect...)
 		}
 	}
+}
+
+func DynamicResolverTest_Volatile(t *testing.T, resolver landns.DynamicResolver) {
+	records, err := landns.NewDynamicRecordSet(`
+		fixed.example.com. 100 IN TXT "fixed"
+		long.example.com. 100 IN TXT "long" ; Volatile
+		short.example.com. 1 IN TXT "short" ; Volatile
+	`)
+	if err != nil {
+		t.Fatalf("failed to make dynamic records: %s", err)
+	}
+
+	if err := resolver.SetRecords(records); err != nil {
+		t.Errorf("failed to set records: %s", err)
+	}
+
+	time.Sleep(1500 * time.Millisecond)
+
+	rs, err := resolver.Records()
+	if err != nil {
+		t.Errorf("failed to get records: %s", err)
+	}
+	AssertDynamicRecordSet(t, "volatile records", []string{
+		`fixed.example.com. 100 IN TXT "fixed" ; ID:1`,
+		`long.example.com. 98 IN TXT "long" ; ID:2 Volatile`,
+	}, rs)
+
+	AssertResolve(t, resolver, landns.NewRequest("long.example.com.", dns.TypeTXT, false), true, `long.example.com. 98 IN TXT "long"`)
 }
 
 func DynamicResolverBenchmark(b *testing.B, resolver landns.DynamicResolver) {

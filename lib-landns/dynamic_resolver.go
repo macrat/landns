@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -107,6 +108,21 @@ func (r *DynamicRecord) UnmarshalText(text []byte) error {
 // MarshalText is marshal DynamicRecord to text.
 func (r DynamicRecord) MarshalText() ([]byte, error) {
 	return []byte(r.String()), nil
+}
+
+// ExpiredRecord is make ExpiredRecord from DynamicRecord.
+func (r DynamicRecord) ExpiredRecord() (ExpiredRecord, error) {
+	var ttl time.Time
+	if r.Volatile {
+		ttl = time.Now().Add(time.Duration(r.Record.GetTTL()) * time.Second)
+	}
+
+	rr, err := r.Record.ToRR()
+	if err != nil {
+		return ExpiredRecord{}, err
+	}
+
+	return ExpiredRecord{rr, ttl}, nil
 }
 
 // DynamicRecordSet is list of DynamicRecord

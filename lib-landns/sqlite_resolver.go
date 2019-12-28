@@ -229,6 +229,7 @@ func scanRecords(rows *sql.Rows) (DynamicRecordSet, error) {
 		var err error
 		if expire != 0 {
 			dr.Record, err = NewRecordWithExpire(text, time.Unix(expire, 0))
+			dr.Volatile = true
 		} else {
 			dr.Record, err = NewRecord(text)
 		}

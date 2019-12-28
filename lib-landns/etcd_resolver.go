@@ -107,9 +107,18 @@ func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecord
 	rs := make(DynamicRecordSet, len(resp.Kvs))
 
 	for i, r := range resp.Kvs {
-		if err := rs[i].UnmarshalText(r.Value); err != nil {
+		var expired ExpiredRecord
+		err := expired.UnmarshalText(r.Value)
+		if err != nil {
 			return nil, Error{TypeInternalError, err, "faield to parse records"}
 		}
+
+		rs[i].Record, err = expired.Record()
+		if err != nil {
+			return nil, err
+		}
+
+		rs[i].Volatile = expired.Expire.Unix() > 0
 
 		id, err := er.getIDbyKey(string(r.Key))
 		if err != nil {
@@ -185,7 +194,25 @@ func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error
 		return err
 	}
 
-	if _, err := er.client.Put(ctx, key, r.Record.String()); err != nil {
+	options := []clientv3.OpOption{}
+	if r.Volatile {
+		resp, err := er.client.Grant(ctx, int64(r.Record.GetTTL()))
+		if err != nil {
+			return Error{TypeExternalError, err, "failed to grant TTL"}
+		}
+		options = append(options, clientv3.WithLease(resp.ID))
+	}
+
+	expired, err := r.ExpiredRecord()
+	if err != nil {
+		return err
+	}
+	value, err := expired.MarshalText()
+	if err != nil {
+		return err
+	}
+
+	if _, err := er.client.Put(ctx, key, string(value), options...); err != nil {
 		return Error{TypeExternalError, err, "failed to put record"}
 	}
 
@@ -204,7 +231,17 @@ func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error
 		if err != nil {
 			return err
 		}
-		if _, err := er.client.Put(ctx, key, r.Record.String()); err != nil {
+
+		expired, err = r.ExpiredRecord()
+		if err != nil {
+			return err
+		}
+		value, err = expired.MarshalText()
+		if err != nil {
+			return err
+		}
+
+		if _, err := er.client.Put(ctx, key, string(value), options...); err != nil {
 			return Error{TypeExternalError, err, "failed to put record"}
 		}
 	}
