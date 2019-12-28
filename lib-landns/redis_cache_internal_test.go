@@ -2,6 +2,7 @@ package landns
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -41,7 +42,7 @@ func TestParseRedisCacheEntry(t *testing.T) {
 		}{
 			{
 				"example.com. 600 IN A 127.0.0.1\n12345",
-				"failed to parse record: expire can't be past time: 1970-01-01 12:25:45 +0900 JST",
+				"failed to parse record: expire can't be past time: 1970-01-01 ..:..:.. [+-].... ...",
 			},
 			{
 				"hello world\n4294967295",
@@ -49,7 +50,7 @@ func TestParseRedisCacheEntry(t *testing.T) {
 			},
 			{
 				"example.com. 600 IN A 127.0.0.1\n",
-				"failed to parse record: strconv.ParseInt: parsing \"\": invalid syntax",
+				"failed to parse record: strconv\\.ParseInt: parsing \"\": invalid syntax",
 			},
 			{
 				"example.com. 600 IN A 127.0.0.1",
@@ -62,7 +63,7 @@ func TestParseRedisCacheEntry(t *testing.T) {
 
 			if err == nil {
 				t.Errorf("expected error but got nil")
-			} else if err.Error() != tt.Error {
+			} else if ok, e := regexp.MatchString("^"+tt.Error+"$", err.Error()); e != nil || !ok {
 				t.Errorf("unexpected error:\nexpected: %#v\nbut got:  %#v", tt.Error, err.Error())
 			}
 		}
