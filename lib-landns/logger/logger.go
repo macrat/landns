@@ -20,7 +20,7 @@ const (
 	// FatalLevel is log level for critical error.
 	FatalLevel = Level(logrus.FatalLevel)
 
-	// ErrorLevel is log level for normaly error.
+	// ErrorLevel is log level for normally error.
 	ErrorLevel = Level(logrus.ErrorLevel)
 
 	// WarnLevel is log level for need a little of attention error.
