@@ -87,7 +87,7 @@ func NewRecordWithExpire(str string, expire time.Time) (Record, error) {
 	}
 
 	if expire.Before(time.Now()) {
-		return nil, Error{TypeArgumentError, nil, "expire can't be past time."}
+		return nil, newError(TypeArgumentError, nil, "expire can't be past time: %s", expire)
 	}
 
 	rr.Header().Ttl = uint32(math.Round(expire.Sub(time.Now()).Seconds()))

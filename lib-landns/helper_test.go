@@ -104,6 +104,31 @@ func AssertExchange(t *testing.T, addr *net.UDPAddr, question []dns.Question, ex
 	}
 }
 
+func AssertDynamicRecordSet(t testing.TB, name string, expect []string, got landns.DynamicRecordSet) {
+	t.Helper()
+
+	ok := len(expect) == len(got)
+	if ok {
+		for i := range got {
+			if got[i].String() != expect[i] {
+				ok = false
+			}
+		}
+	}
+	if !ok {
+		txt := "unexpected entries: " + name + ":\nexpected:\n"
+		for _, t := range expect {
+			txt += "\t" + t + "\n"
+		}
+		txt += "\nbut got:\n"
+
+		for _, r := range got {
+			txt += "\t" + r.String() + "\n"
+		}
+		t.Errorf(txt)
+	}
+}
+
 func CheckRecursionAvailable(t testing.TB, makeResolver func([]landns.Resolver) landns.Resolver) {
 	t.Helper()
 

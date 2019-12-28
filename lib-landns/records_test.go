@@ -3,6 +3,7 @@ package landns_test
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"testing"
 	"time"
 
@@ -84,7 +85,7 @@ func TestNewRecordWithExpire(t *testing.T) {
 		{"example.com. 500 IN A 127.0.0.2", 42 * time.Second, "example.com. 42 IN A 127.0.0.2", ""},
 		{"example.com. 400 IN A 127.0.0.3", 400 * time.Second, "example.com. 400 IN A 127.0.0.3", ""},
 		{"example.com. 300 IN A 127.0.0.3", time.Millisecond, "example.com. 0 IN A 127.0.0.3", ""},
-		{"example.com. 400 IN A 127.0.0.3", -time.Second, "", "expire can't be past time."},
+		{"example.com. 400 IN A 127.0.0.3", -time.Second, "", `expire can't be past time: 20..-..-.. ..:..:..\.[0-9]+ .*`},
 	}
 
 	for _, tt := range tests {
@@ -93,7 +94,7 @@ func TestNewRecordWithExpire(t *testing.T) {
 		if err != nil {
 			if tt.Error == "" {
 				t.Errorf("failed to parse record: %s", err)
-			} else if err.Error() != tt.Error {
+			} else if ok, e := regexp.MatchString("^"+tt.Error+"$", err.Error()); e != nil || !ok {
 				t.Errorf("unexpected error:\nexpected: %#v\nbut got:  %#v", tt.Error, err.Error())
 			}
 			continue

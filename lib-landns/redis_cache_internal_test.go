@@ -41,7 +41,7 @@ func TestParseRedisCacheEntry(t *testing.T) {
 		}{
 			{
 				"example.com. 600 IN A 127.0.0.1\n12345",
-				"failed to parse record: expire can't be past time.",
+				"failed to parse record: expire can't be past time: 1970-01-01 12:25:45 +0900 JST",
 			},
 			{
 				"hello world\n4294967295",

@@ -376,26 +376,7 @@ func DynamicResolverTest(t *testing.T, resolver landns.DynamicResolver) {
 				continue
 			}
 
-			ok := len(expect) == len(got)
-			if ok {
-				for i := range got {
-					if got[i].String() != expect[i] {
-						ok = false
-					}
-				}
-			}
-			if !ok {
-				txt := "unexpected entries: " + name + ":\nexpected:\n"
-				for _, t := range expect {
-					txt += "\t" + t + "\n"
-				}
-				txt += "\nbut got:\n"
-
-				for _, r := range got {
-					txt += "\t" + r.String() + "\n"
-				}
-				t.Errorf(txt)
-			}
+			AssertDynamicRecordSet(t, name, expect, got)
 		}
 
 		for _, tt := range test.Tests {
