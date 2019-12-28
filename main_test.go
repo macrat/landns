@@ -86,7 +86,7 @@ func TestMakeServer(t *testing.T) {
 		}
 	})
 	t.Run("simple/run", func(t *testing.T) {
-		service, err := makeServer([]string{"-l", "127.0.0.1:9353", "-L", ":1053"})
+		service, err := makeServer([]string{"-l", "127.0.0.1:19353", "-L", ":1053"})
 		if err != nil {
 			t.Fatalf("failed to make server: %s", err)
 		}
@@ -98,7 +98,11 @@ func TestMakeServer(t *testing.T) {
 		}()
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		go service.Start(ctx)
+		go func() {
+			if err := service.Start(ctx); err != nil {
+				t.Fatalf("failed to start server: %s", err)
+			}
+		}()
 		time.Sleep(100 * time.Millisecond)
 	})
 	t.Run("static", func(t *testing.T) {
@@ -108,7 +112,7 @@ func TestMakeServer(t *testing.T) {
 		}
 		defer closer()
 
-		service, err := makeServer([]string{"-l", "127.0.0.1:9353", "-L", "127.0.0.1:1053", "-c", path})
+		service, err := makeServer([]string{"-l", "127.0.0.1:19353", "-L", "127.0.0.1:1053", "-c", path})
 		if err != nil {
 			t.Fatalf("failed to make server: %s", err)
 		}
@@ -120,7 +124,11 @@ func TestMakeServer(t *testing.T) {
 		}()
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		go service.Start(ctx)
+		go func() {
+			if err := service.Start(ctx); err != nil {
+				t.Fatalf("failed to start server: %s", err)
+			}
+		}()
 		time.Sleep(100 * time.Millisecond)
 
 		msg := &dns.Msg{
@@ -131,7 +139,10 @@ func TestMakeServer(t *testing.T) {
 		}
 		in, err := dns.Exchange(msg, "127.0.0.1:1053")
 		if err != nil {
-			t.Errorf("failed to resolve google.com.: %s", err)
+			t.Fatalf("failed to resolve google.com.: %s", err)
+		}
+		if in == nil {
+			t.Fatalf("failed to resolve google.com.: returns nil")
 		}
 
 		expected := "example.com.\t10\tIN\tA\t127.0.1.2"
@@ -140,7 +151,7 @@ func TestMakeServer(t *testing.T) {
 		}
 	})
 	t.Run("upstream", func(t *testing.T) {
-		service, err := makeServer([]string{"-l", "127.0.0.1:9353", "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
+		service, err := makeServer([]string{"-l", "127.0.0.1:19353", "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
 		if err != nil {
 			t.Fatalf("failed to make server: %s", err)
 		}
@@ -152,7 +163,11 @@ func TestMakeServer(t *testing.T) {
 		}()
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		go service.Start(ctx)
+		go func() {
+			if err := service.Start(ctx); err != nil {
+				t.Fatalf("failed to start server: %s", err)
+			}
+		}()
 		time.Sleep(100 * time.Millisecond)
 
 		msg := &dns.Msg{
