@@ -19,7 +19,7 @@ import (
 
 // Client is the instance for operate dynamic records.
 type Client struct {
-	Endpoint *url.URL  // The Landns API endpoint URL.
+	Endpoint *url.URL // The Landns API endpoint URL.
 	client   *http.Client
 }
 
