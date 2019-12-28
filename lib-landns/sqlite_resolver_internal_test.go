@@ -46,12 +46,11 @@ func TestSqliteResolver_manageExpire(t *testing.T) {
 		t.Fatalf("failed to set records: %s", err)
 	}
 
-
 	if num := recordsNum(); num != 3 {
 		t.Errorf("unexpected number of records: expected 3 but got %d", num)
 	}
 
-	time.Sleep(3*time.Second)
+	time.Sleep(3 * time.Second)
 
 	if num := recordsNum(); num != 2 {
 		t.Errorf("unexpected number of records: expected 2 but got %d", num)
