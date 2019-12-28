@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/logger"
 	"github.com/miekg/dns"
 )
 
@@ -165,4 +166,27 @@ func TestMakeServer(t *testing.T) {
 			t.Errorf("failed to resolve google.com.: %s", err)
 		}
 	})
+}
+
+func TestLogging(t *testing.T) {
+	tests := []struct {
+		Args   []string
+		Expect logger.Level
+	}{
+		{[]string{}, logger.WarnLevel},
+		{[]string{"-v"}, logger.InfoLevel},
+		{[]string{"--verbose"}, logger.InfoLevel},
+	}
+
+	for _, tt := range tests {
+		_, err := makeServer(tt.Args)
+		if err != nil {
+			t.Fatalf("failed to make server: %s", err)
+		}
+
+		level := logger.Level(logger.GetLogger().(*logger.BasicLogger).Logger.GetLevel())
+		if level != tt.Expect {
+			t.Errorf("unexpected logging level: expected %s but got %s", tt.Expect, level)
+		}
+	}
 }

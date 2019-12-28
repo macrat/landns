@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 
 	"github.com/alecthomas/kingpin"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/logger"
 )
 
 func loadStatisResolvers(files []string) (resolver landns.ResolverSet, err error) {
@@ -62,11 +62,18 @@ func makeServer(args []string) (*service, error) {
 	redisPassword := app.Flag("redis-password", "Password of Redis server.").PlaceHolder("PASSWORD").String()
 	redisDatabase := app.Flag("redis-database", "Database ID of Redis server.").PlaceHolder("ID").Int()
 	metricsNamespace := app.Flag("metrics-namespace", "Namespace of prometheus metrics.").Default("landns").String()
+	verbose := app.Flag("verbose", "Show verbose logs.").Short('v').Bool()
 
 	_, err := app.Parse(args)
 	if err != nil {
 		return nil, err
 	}
+
+	level := logger.WarnLevel
+	if *verbose {
+		level = logger.InfoLevel
+	}
+	logger.SetLogger(logger.New(os.Stdout, level))
 
 	metrics := landns.NewMetrics(*metricsNamespace)
 
@@ -138,12 +145,18 @@ func makeServer(args []string) (*service, error) {
 
 func main() {
 	service, err := makeServer(os.Args[1:])
-	service.App.FatalIfError(err, "")
+	if err != nil {
+		logger.Fatal("failed to start server", logger.Fields{"reason": err})
+	}
 	defer func() {
-		service.App.FatalIfError(service.Stop(), "")
+		if err := service.Stop(); err != nil {
+			logger.Fatal("failed to stop server", logger.Fields{"reason": err})
+		}
 	}()
 
-	log.Printf("API server listen on %s", service.APIListen)
-	log.Printf("DNS server listen on %s", service.DNSListen)
-	log.Fatalf("%s", service.Start(context.Background()))
+	logger.Info("starting API server", logger.Fields{"address": service.APIListen})
+	logger.Info("starting DNS server", logger.Fields{"address": service.DNSListen})
+	if err := service.Start(context.Background()); err != nil {
+		logger.Fatal("failed to running server", logger.Fields{"reason": err})
+	}
 }

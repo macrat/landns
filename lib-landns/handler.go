@@ -1,8 +1,7 @@
 package landns
 
 import (
-	"log"
-
+	"github.com/macrat/landns/lib-landns/logger"
 	"github.com/miekg/dns"
 )
 
@@ -29,20 +28,26 @@ func (h Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	req := Request{RecursionDesired: r.RecursionDesired}
 	resp := NewMessageBuilder(r, h.RecursionAvailable)
 
-	defer func() {
-		msg := resp.Build()
-		w.WriteMsg(msg)
-		end(msg)
-	}()
+	errored := false
 
 	if r.Opcode == dns.OpcodeQuery {
 		for _, q := range r.Question {
 			req.Question = q
 
 			if err := h.Resolver.Resolve(resp, req); err != nil {
-				log.Print(err.Error())
+				logger.Warn("failed to resolve", logger.Fields{"name": q.Name, "type": QtypeToString(q.Qtype), "reason": err})
 				h.Metrics.Error(req, err)
+				errored = true
 			}
 		}
+	}
+
+	msg := resp.Build()
+	w.WriteMsg(msg)
+	end(msg)
+
+	if !errored && len(msg.Answer) == 0 && len(msg.Question) > 0 {
+		q := msg.Question[0]
+		logger.Info("not found", logger.Fields{"name": q.Name, "type": QtypeToString(q.Qtype)})
 	}
 }

@@ -1,15 +1,13 @@
 package landns_test
 
 import (
-	"bytes"
 	"context"
-	"log"
 	"net"
-	"os"
-	"regexp"
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/logger"
+	"github.com/macrat/landns/lib-landns/logger/logtest"
 	"github.com/miekg/dns"
 )
 
@@ -26,13 +24,32 @@ func TestHandler(t *testing.T) {
 
 	addr := StartDummyDNSServer(ctx, t, resolver)
 
+	lt := logtest.Start()
+	defer lt.Close()
+
 	AssertExchange(t, addr, []dns.Question{
 		{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET},
 	}, "example.com.\t123\tIN\tA\t127.0.0.1")
 
+	if err := lt.TestAll([]logtest.Entry{}); err != nil {
+		t.Error(err)
+	}
+
 	AssertExchange(t, addr, []dns.Question{
 		{Name: "notfound.example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET},
 	})
+
+	if err := lt.Test([]logtest.Entry{{logger.InfoLevel, "not found", logger.Fields{"name": "notfound.example.com.", "type": "A"}}}); err != nil {
+		t.Error(err)
+	}
+
+	AssertExchange(t, addr, []dns.Question{
+		{Name: "notfound.example.com.", Qtype: dns.TypeAAAA, Qclass: dns.ClassINET},
+	})
+
+	if err := lt.Test([]logtest.Entry{{logger.InfoLevel, "not found", logger.Fields{"name": "notfound.example.com.", "type": "AAAA"}}}); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestHandler_ErrorHandling(t *testing.T) {
@@ -42,18 +59,15 @@ func TestHandler_ErrorHandling(t *testing.T) {
 	resolver := &DummyResolver{false, false}
 	addr := StartDummyDNSServer(ctx, t, resolver)
 
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	defer func() {
-		log.SetOutput(os.Stderr)
-	}()
+	lt := logtest.Start()
+	defer lt.Close()
 
 	AssertExchange(t, addr, []dns.Question{
 		{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET},
 	})
 
-	if len(buf.String()) != 0 {
-		t.Errorf("unexpected log: %s", buf.String())
+	if err := lt.Test([]logtest.Entry{{logger.InfoLevel, "not found", logger.Fields{"name": "example.com.", "type": "A"}}}); err != nil {
+		t.Error(err)
 	}
 
 	resolver.Error = true
@@ -62,7 +76,7 @@ func TestHandler_ErrorHandling(t *testing.T) {
 		{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET},
 	})
 
-	if regexp.MustCompile(`20[0-9]{2}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} test error\r`).MatchString(buf.String()) {
-		t.Errorf("unexpected log:\n%s", buf.String())
+	if err := lt.Test([]logtest.Entry{{logger.WarnLevel, "failed to resolve", logger.Fields{"reason": "test error", "name": "example.com.", "type": "A"}}}); err != nil {
+		t.Error(err)
 	}
 }
