@@ -50,7 +50,7 @@ func (tests LoggerTest) Run(t *testing.T, buf *bytes.Buffer, l *logger.BasicLogg
 			"id":     1,
 		})
 
-		expect := fmt.Sprintf(`time="20..-..-..T..:..:..+..:.." level=%s msg=hello id=1 target=world\n`, tt.Level)
+		expect := fmt.Sprintf(`time="20..-..-..T..:..:..([+-]..:..|Z)" level=%s msg=hello id=1 target=world\n`, tt.Level)
 
 		if ok, err := regexp.MatchString("^"+expect+"$", buf.String()); err != nil {
 			t.Errorf("failed to compare: %s", err)
