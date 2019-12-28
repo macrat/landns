@@ -12,6 +12,8 @@ import (
 )
 
 func TestDomain_Validate(t *testing.T) {
+	t.Parallel()
+
 	a := landns.Domain("")
 	if err := a.Validate(); err == nil {
 		t.Errorf("failed to empty domain validation: <nil>")
@@ -38,6 +40,8 @@ func TestDomain_Validate(t *testing.T) {
 }
 
 func TestDomain_Encoding(t *testing.T) {
+	t.Parallel()
+
 	var d landns.Domain
 
 	for input, expect := range map[string]string{"": ".", "example.com": "example.com.", "blanktar.jp.": "blanktar.jp."} {
@@ -58,6 +62,8 @@ func TestDomain_Encoding(t *testing.T) {
 }
 
 func TestDomain_ToPath(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Input  landns.Domain
 		Expect string
@@ -75,6 +81,8 @@ func TestDomain_ToPath(t *testing.T) {
 }
 
 func TestNewRecordWithExpire(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		String string
 		Offset time.Duration
@@ -107,6 +115,8 @@ func TestNewRecordWithExpire(t *testing.T) {
 }
 
 func TestRecords(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Record landns.Record
 		String string

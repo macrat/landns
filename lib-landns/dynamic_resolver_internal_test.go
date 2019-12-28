@@ -5,6 +5,8 @@ import (
 )
 
 func TestDynamicRecord_unmarshalAnnotation(t *testing.T) {
+	t.Parallel()
+
 	I := func(i int) *int {
 		return &i
 	}

@@ -10,6 +10,8 @@ import (
 )
 
 func TestDynamicAPI(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

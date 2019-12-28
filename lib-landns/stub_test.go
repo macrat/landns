@@ -37,6 +37,8 @@ func (dr DummyResolver) Close() error {
 }
 
 func TestDummyResolver(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		err bool
 		rec bool
@@ -108,6 +110,8 @@ func (rw EmptyResponseWriter) SetNoAuthoritative() {
 }
 
 func TestDummyResponseWriter(t *testing.T) {
+	t.Parallel()
+
 	w := NewDummyResponseWriter()
 
 	if w.IsAuthoritative() != true {
@@ -136,6 +140,8 @@ func TestDummyResponseWriter(t *testing.T) {
 }
 
 func TestEmptyResponseWriter(t *testing.T) {
+	t.Parallel()
+
 	w := EmptyResponseWriter{}
 
 	if w.IsAuthoritative() != true {

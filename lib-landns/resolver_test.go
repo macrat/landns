@@ -10,6 +10,8 @@ import (
 )
 
 func TestResolverSet(t *testing.T) {
+	t.Parallel()
+
 	resolver := landns.ResolverSet{
 		landns.SimpleResolver{
 			dns.TypeA: {
@@ -46,6 +48,8 @@ func TestResolverSet(t *testing.T) {
 }
 
 func TestResolverSet_ErrorHandling(t *testing.T) {
+	t.Parallel()
+
 	response := EmptyResponseWriter{}
 	request := landns.NewRequest("example.com.", dns.TypeA, false)
 
@@ -70,6 +74,8 @@ func TestResolverSet_ErrorHandling(t *testing.T) {
 }
 
 func TestResolverSet_RecursionAvailable(t *testing.T) {
+	t.Parallel()
+
 	CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
 		return landns.ResolverSet(rs)
 	})
@@ -107,6 +113,8 @@ func BenchmarkResolverSet(b *testing.B) {
 }
 
 func TestAlternateResolver(t *testing.T) {
+	t.Parallel()
+
 	resolver := landns.AlternateResolver{
 		landns.SimpleResolver{
 			dns.TypeA: {
@@ -143,6 +151,8 @@ func TestAlternateResolver(t *testing.T) {
 }
 
 func TestAlternateResolver_ErrorHandling(t *testing.T) {
+	t.Parallel()
+
 	response := EmptyResponseWriter{}
 	request := landns.NewRequest("example.com.", dns.TypeA, false)
 
@@ -174,6 +184,8 @@ func TestAlternateResolver_ErrorHandling(t *testing.T) {
 }
 
 func TestAlternateResolver_RecursionAvailable(t *testing.T) {
+	t.Parallel()
+
 	CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
 		return landns.AlternateResolver(rs)
 	})

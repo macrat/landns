@@ -5,6 +5,8 @@ import (
 )
 
 func TestCompileGlob(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Glob string
 		Str  string

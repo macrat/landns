@@ -6,6 +6,8 @@ import (
 )
 
 func TestErrorType(t *testing.T) {
+	t.Parallel()
+
 	for i, tt := range []string{"UnknownError", "InternalError", "ExternalError", "ArgumentError", "UnknownError"} {
 		if s := ErrorType(i).String(); s != tt {
 			t.Errorf("unexpected error string: expected %#v but got %#v", tt, s)
@@ -27,6 +29,8 @@ func TestErrorType(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range []struct {
 		Err    Error
 		Expect string
@@ -45,6 +49,8 @@ func TestError(t *testing.T) {
 }
 
 func TestErrorf(t *testing.T) {
+	t.Parallel()
+
 	orig := fmt.Errorf("original")
 	err := newError(TypeInternalError, orig, "hello %s", "world")
 
@@ -55,6 +61,8 @@ func TestErrorf(t *testing.T) {
 }
 
 func TestErrorSet(t *testing.T) {
+	t.Parallel()
+
 	err := ErrorSet{
 		fmt.Errorf("hello"),
 		fmt.Errorf("world"),

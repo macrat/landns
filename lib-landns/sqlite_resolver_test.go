@@ -21,6 +21,8 @@ func CreateSqliteResolver(t testing.TB) *landns.SqliteResolver {
 }
 
 func TestSqliteResolver(t *testing.T) {
+	t.Parallel()
+
 	resolver := CreateSqliteResolver(t)
 	defer func() {
 		if err := resolver.Close(); err != nil {
@@ -36,6 +38,8 @@ func TestSqliteResolver(t *testing.T) {
 }
 
 func TestSqliteResolver_Volatile(t *testing.T) {
+	t.Parallel()
+
 	resolver := CreateSqliteResolver(t)
 	defer func() {
 		if err := resolver.Close(); err != nil {
@@ -71,6 +75,8 @@ func TestSqliteResolver_Volatile(t *testing.T) {
 }
 
 func TestSqliteResolver_Parallel(t *testing.T) {
+	t.Parallel()
+
 	resolver := CreateSqliteResolver(t)
 	defer func() {
 		if err := resolver.Close(); err != nil {

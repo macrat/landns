@@ -9,6 +9,8 @@ import (
 )
 
 func TestLocalCache(t *testing.T) {
+	t.Parallel()
+
 	resolver := landns.NewLocalCache(CacheTestUpstream(t), landns.NewMetrics("landns"))
 	defer func() {
 		if err := resolver.Close(); err != nil {
@@ -28,6 +30,8 @@ func TestLocalCache(t *testing.T) {
 }
 
 func TestLocalCache_Parallel(t *testing.T) {
+	t.Parallel()
+
 	resolver := landns.NewLocalCache(CacheTestUpstream(t), landns.NewMetrics("landns"))
 	defer func() {
 		if err := resolver.Close(); err != nil {
@@ -39,6 +43,8 @@ func TestLocalCache_Parallel(t *testing.T) {
 }
 
 func TestLocalCache_RecursionAvailable(t *testing.T) {
+	t.Parallel()
+
 	CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
 		return landns.NewLocalCache(landns.ResolverSet(rs), landns.NewMetrics("landns"))
 	})

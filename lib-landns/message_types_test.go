@@ -10,6 +10,8 @@ import (
 )
 
 func TestRequest(t *testing.T) {
+	t.Parallel()
+
 	x := landns.NewRequest("example.com.", dns.TypeA, true)
 	if x.QtypeString() != "A" {
 		t.Errorf("unexpected qtype string: %s", x.QtypeString())
@@ -34,6 +36,8 @@ func TestRequest(t *testing.T) {
 }
 
 func TestResponseCallback(t *testing.T) {
+	t.Parallel()
+
 	rc := landns.NewResponseCallback(func(r landns.Record) error {
 		return fmt.Errorf("test error")
 	})
@@ -76,6 +80,8 @@ func TestResponseCallback(t *testing.T) {
 }
 
 func TestResponseWriterHook(t *testing.T) {
+	t.Parallel()
+
 	upstreamLog := make([]landns.Record, 0, 5)
 	upstream := landns.NewResponseCallback(func(r landns.Record) error {
 		upstreamLog = append(upstreamLog, r)
@@ -130,6 +136,8 @@ func TestResponseWriterHook(t *testing.T) {
 }
 
 func TestMessageBuilder(t *testing.T) {
+	t.Parallel()
+
 	builder := landns.NewMessageBuilder(&dns.Msg{}, true)
 
 	if builder.IsAuthoritative() != true {

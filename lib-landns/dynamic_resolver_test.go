@@ -10,6 +10,8 @@ import (
 )
 
 func TestDynamicRecord(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Input  string
 		Expect string
@@ -56,6 +58,8 @@ func TestDynamicRecord(t *testing.T) {
 }
 
 func TestDynamicRecordSet(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Input  string
 		Expect string

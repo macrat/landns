@@ -31,6 +31,8 @@ func CreateEtcdResolver(t testing.TB) (*landns.EtcdResolver, []string, func()) {
 }
 
 func TestEtcdResolver(t *testing.T) {
+	t.Parallel()
+
 	resolver, addrs, closer := CreateEtcdResolver(t)
 	defer closer()
 
@@ -43,6 +45,8 @@ func TestEtcdResolver(t *testing.T) {
 }
 
 func TestEtcdResolver_Parallel(t *testing.T) {
+	t.Parallel()
+
 	resolver, _, closer := CreateEtcdResolver(t)
 	defer closer()
 

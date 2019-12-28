@@ -7,6 +7,8 @@ import (
 )
 
 func TestProto_Validate(t *testing.T) {
+	t.Parallel()
+
 	a := landns.Proto("")
 	if err := a.Validate(); err != nil {
 		t.Errorf("failed to empty proto validation: %#v", err.Error())
@@ -31,6 +33,8 @@ func TestProto_Validate(t *testing.T) {
 }
 
 func TestProto_Encoding(t *testing.T) {
+	t.Parallel()
+
 	var p landns.Proto
 
 	for input, expect := range map[string]string{"tcp": "tcp", "udp": "udp", "": "tcp"} {

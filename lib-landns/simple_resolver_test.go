@@ -10,6 +10,8 @@ import (
 )
 
 func TestSimpleResolver(t *testing.T) {
+	t.Parallel()
+
 	resolver := landns.NewSimpleResolver(
 		[]landns.Record{
 			landns.AddressRecord{Name: landns.Domain("example.com."), Address: net.ParseIP("127.1.2.3")},
@@ -63,6 +65,8 @@ func TestSimpleResolver(t *testing.T) {
 }
 
 func TestSimpleResolver_Parallel(t *testing.T) {
+	t.Parallel()
+
 	resolver := landns.NewSimpleResolver([]landns.Record{})
 
 	ParallelResolveTest(t, resolver)
@@ -100,6 +104,8 @@ func BenchmarkSimpleResolver(b *testing.B) {
 }
 
 func TestNewSimpleResolverFromConfig(t *testing.T) {
+	t.Parallel()
+
 	config := []byte(`ttl: 128
 
 address:
@@ -169,6 +175,8 @@ service:
 }
 
 func TestNewSimpleResolverFromConfig_WithoutTTL(t *testing.T) {
+	t.Parallel()
+
 	config := []byte(`address: {example.com: [127.1.2.3]}`)
 
 	resolver, err := landns.NewSimpleResolverFromConfig(config)
