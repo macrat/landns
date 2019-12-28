@@ -16,6 +16,7 @@ var (
 type DynamicRecord struct {
 	Record   Record
 	ID       *int
+	Volatile bool
 	Disabled bool
 }
 
@@ -27,10 +28,20 @@ func NewDynamicRecord(record string) (DynamicRecord, error) {
 
 // String is get printable string.
 func (r DynamicRecord) String() string {
-	result := r.Record.String()
+	annotates := []string{}
 
 	if r.ID != nil {
-		result += " ; ID:" + strconv.Itoa(*r.ID)
+		annotates = append(annotates, "ID:"+strconv.Itoa(*r.ID))
+	}
+
+	if r.Volatile {
+		annotates = append(annotates, "Volatile")
+	}
+
+	result := r.Record.String()
+
+	if len(annotates) > 0 {
+		result = strings.Join(append([]string{result, ";"}, annotates...), " ")
 	}
 
 	if r.Disabled {
@@ -42,11 +53,12 @@ func (r DynamicRecord) String() string {
 
 func (r *DynamicRecord) unmarshalAnnotation(text []byte) error {
 	r.ID = nil
+	r.Volatile = false
 
 	for _, x := range bytes.Split(bytes.TrimSpace(text), []byte(" ")) {
 		kvs := bytes.SplitN(x, []byte(":"), 2)
 
-		switch strings.ToUpper(string(bytes.TrimSpace(kvs[0]))) {
+		switch string(bytes.ToUpper(bytes.TrimSpace(kvs[0]))) {
 		case "ID":
 			if len(kvs) != 2 {
 				return ErrInvalidDynamicRecordFormat
@@ -56,6 +68,11 @@ func (r *DynamicRecord) unmarshalAnnotation(text []byte) error {
 				return ErrInvalidDynamicRecordFormat
 			}
 			r.ID = &id
+		case "VOLATILE":
+			if len(kvs) != 1 {
+				return ErrInvalidDynamicRecordFormat
+			}
+			r.Volatile = true
 		}
 	}
 

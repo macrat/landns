@@ -25,6 +25,8 @@ func TestDynamicRecord(t *testing.T) {
 		{"2.1.0.127.in-arpa.addr. 2 IN PTR example.com. ; ID:987654321", "2.1.0.127.in-arpa.addr. 2 IN PTR example.com. ; ID:987654321", ""},
 		{"; disabled.com. 100 IN A 127.1.2.3", ";disabled.com. 100 IN A 127.1.2.3", ""},
 		{";disabled.com. 100 IN A 127.1.2.3 ; ID:4", ";disabled.com. 100 IN A 127.1.2.3 ; ID:4", ""},
+		{"volatile.com. 100 IN A 127.1.2.3 ; Volatile", "volatile.com. 100 IN A 127.1.2.3 ; Volatile", ""},
+		{";disabled.volatile.com. 100 IN A 127.1.2.3 ; Id:5 VOLATILE", ";disabled.volatile.com. 100 IN A 127.1.2.3 ; ID:5 Volatile", ""},
 		{"a\nb", "", landns.ErrMultiLineDynamicRecord.Error()},
 		{"example.com. 42 IN A 127.0.1.2 ; ID", "", landns.ErrInvalidDynamicRecordFormat.Error()},
 		{"example.com. 42 IN A 127.0.1.2 ; ID: 42", "", landns.ErrInvalidDynamicRecordFormat.Error()},
