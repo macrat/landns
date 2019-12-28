@@ -31,6 +31,7 @@
         "x": 0,
         "y": 0
       },
+      "hiddenSeries": false,
       "id": 2,
       "interval": "1m",
       "legend": {
@@ -118,6 +119,7 @@
         "x": 12,
         "y": 0
       },
+      "hiddenSeries": false,
       "id": 4,
       "interval": "1m",
       "legend": {
@@ -205,6 +207,7 @@
         "x": 0,
         "y": 8
       },
+      "hiddenSeries": false,
       "id": 10,
       "interval": "",
       "legend": {
@@ -292,6 +295,7 @@
         "x": 12,
         "y": 8
       },
+      "hiddenSeries": false,
       "id": 15,
       "interval": "1m",
       "legend": {
@@ -379,6 +383,7 @@
         "x": 0,
         "y": 16
       },
+      "hiddenSeries": false,
       "id": 12,
       "legend": {
         "avg": false,
@@ -391,7 +396,7 @@
       },
       "lines": true,
       "linewidth": 1,
-      "nullPointMode": "null",
+      "nullPointMode": "connected",
       "options": {
         "dataLinks": []
       },
@@ -405,7 +410,8 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "landns_resolve_duration_seconds_sum / landns_resolve_duration_seconds_count",
+          "expr": "delta(landns_resolve_duration_seconds_sum[$__interval]) / delta(landns_resolve_duration_seconds_count[$__interval])",
+          "interval": "1m",
           "legendFormat": "Mean",
           "refId": "A"
         },
@@ -480,6 +486,7 @@
         "x": 12,
         "y": 16
       },
+      "hiddenSeries": false,
       "id": 13,
       "legend": {
         "avg": false,
@@ -492,7 +499,7 @@
       },
       "lines": true,
       "linewidth": 1,
-      "nullPointMode": "null",
+      "nullPointMode": "connected",
       "options": {
         "dataLinks": []
       },
@@ -506,7 +513,8 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "landns_upstream_resolve_duration_seconds_sum / landns_upstream_resolve_duration_seconds_count",
+          "expr": "delta(landns_upstream_resolve_duration_seconds_sum[$__interval]) / delta(landns_upstream_resolve_duration_seconds_count[$__interval])",
+          "interval": "1m",
           "legendFormat": "Mean",
           "refId": "A"
         },
@@ -581,6 +589,7 @@
         "x": 0,
         "y": 24
       },
+      "hiddenSeries": false,
       "id": 17,
       "interval": "1m",
       "legend": {
@@ -668,6 +677,7 @@
         "x": 12,
         "y": 24
       },
+      "hiddenSeries": false,
       "id": 18,
       "interval": "1m",
       "legend": {
@@ -743,14 +753,14 @@
     }
   ],
   "refresh": "1m",
-  "schemaVersion": 20,
+  "schemaVersion": 21,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
@@ -770,5 +780,5 @@
   "timezone": "",
   "title": "Landns Dashboard",
   "uid": "5vjpowBZk",
-  "version": 4
+  "version": 1
 }
