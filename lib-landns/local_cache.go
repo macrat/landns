@@ -8,16 +8,10 @@ import (
 	"github.com/miekg/dns"
 )
 
-type localCacheEntry struct {
-	Record  Record
-	Created time.Time
-	Expire  time.Time
-}
-
 // LocalCache is in-memory cache manager for Resolver.
 type LocalCache struct {
 	mutex    sync.Mutex
-	entries  map[uint16]map[Domain][]localCacheEntry
+	entries  map[uint16]map[Domain][]ExpiredRecord
 	invoke   chan struct{}
 	closer   chan struct{}
 	upstream Resolver
@@ -29,7 +23,7 @@ type LocalCache struct {
 // LocalCache will start background goroutine. So you have to ensure to call LocalCache.Close.
 func NewLocalCache(upstream Resolver, metrics *Metrics) *LocalCache {
 	lc := &LocalCache{
-		entries:  make(map[uint16]map[Domain][]localCacheEntry),
+		entries:  make(map[uint16]map[Domain][]ExpiredRecord),
 		invoke:   make(chan struct{}, 100),
 		closer:   make(chan struct{}),
 		upstream: upstream,
@@ -37,7 +31,7 @@ func NewLocalCache(upstream Resolver, metrics *Metrics) *LocalCache {
 	}
 
 	for _, t := range []uint16{dns.TypeA, dns.TypeNS, dns.TypeCNAME, dns.TypePTR, dns.TypeMX, dns.TypeTXT, dns.TypeAAAA, dns.TypeSRV} {
-		lc.entries[t] = make(map[Domain][]localCacheEntry)
+		lc.entries[t] = make(map[Domain][]ExpiredRecord)
 	}
 
 	go lc.manage()
@@ -116,23 +110,22 @@ func (lc *LocalCache) add(r Record) {
 		return
 	}
 
+	rr, _ := r.ToRR()
+
 	if _, ok := lc.entries[r.GetQtype()][r.GetName()]; !ok {
-		lc.entries[r.GetQtype()][r.GetName()] = []localCacheEntry{
-			{
-				Record:  r,
-				Created: time.Now(),
-				Expire:  time.Now().Add(time.Duration(r.GetTTL()) * time.Second),
-			},
+		lc.entries[r.GetQtype()][r.GetName()] = []ExpiredRecord{
+			{rr, time.Now().Add(time.Duration(r.GetTTL()) * time.Second)},
 		}
 	} else {
-		lc.entries[r.GetQtype()][r.GetName()] = append(lc.entries[r.GetQtype()][r.GetName()], localCacheEntry{
-			Record:  r,
-			Created: time.Now(),
-			Expire:  time.Now().Add(time.Duration(r.GetTTL()) * time.Second),
-		})
+		lc.entries[r.GetQtype()][r.GetName()] = append(
+			lc.entries[r.GetQtype()][r.GetName()],
+			ExpiredRecord{rr, time.Now().Add(time.Duration(r.GetTTL()) * time.Second)},
+		)
 	}
 
 	lc.invoke <- struct{}{}
+
+	return
 }
 
 func (lc *LocalCache) resolveFromUpstream(w ResponseWriter, r Request) error {
@@ -146,22 +139,13 @@ func (lc *LocalCache) resolveFromUpstream(w ResponseWriter, r Request) error {
 	return lc.upstream.Resolve(wh, r)
 }
 
-func (lc *LocalCache) resolveFromCache(w ResponseWriter, r Request, records []localCacheEntry) error {
+func (lc *LocalCache) resolveFromCache(w ResponseWriter, r Request, records []ExpiredRecord) error {
 	lc.metrics.CacheHit(r)
 
 	w.SetNoAuthoritative()
 
-	now := time.Now()
-
 	for _, cache := range records {
-		rr, err := cache.Record.ToRR()
-		if err != nil {
-			return err
-		}
-
-		rr.Header().Ttl -= uint32(now.Sub(cache.Created).Seconds())
-
-		record, err := NewRecordFromRR(rr)
+		record, err := cache.Record()
 		if err != nil {
 			return err
 		}
