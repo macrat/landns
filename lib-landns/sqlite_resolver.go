@@ -55,12 +55,12 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 		return nil, Error{TypeExternalError, err, "failed to create index"}
 	}
 
-	go sr.manageExpire()
+	go sr.manageExpire(5 * time.Second)
 
 	return sr, nil
 }
 
-func (sr *SqliteResolver) manageExpire() {
+func (sr *SqliteResolver) manageExpire(interval time.Duration) {
 	sr.mutex.Lock()
 	stmt, err := sr.db.Prepare(`
 		DELETE FROM records
@@ -71,19 +71,17 @@ func (sr *SqliteResolver) manageExpire() {
 		panic(err.Error())
 	}
 
-	tick := time.Tick(5 * time.Second)
+	tick := time.Tick(interval)
 
 	for {
 		select {
 		case <-tick:
 			sr.mutex.Lock()
-			defer sr.mutex.Unlock()
+			_, err := stmt.Exec()
+			sr.mutex.Unlock()
 
-			if _, err := stmt.Exec(); err != nil {
-				logger.Error("failed to delete expired records", logger.Fields{
-					"reason": err,
-					"zone":   "dynamic",
-				})
+			if err != nil && err.Error() != "sql: database is closed" {
+				logger.Error("failed to delete expired records", logger.Fields{"reason": err})
 			}
 		case <-sr.closer:
 			return
