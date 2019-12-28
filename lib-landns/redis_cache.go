@@ -4,45 +4,10 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-redis/redis"
 )
-
-type redisCacheEntry struct {
-	Record Record
-	Expire time.Time
-}
-
-func parseRedisCacheEntry(str string) (redisCacheEntry, error) {
-	xs := strings.Split(str, "\n")
-	if len(xs) != 2 {
-		return redisCacheEntry{}, Error{TypeInternalError, nil, "failed to parse record"}
-	}
-
-	i, err := strconv.ParseInt(xs[1], 10, 64)
-	if err != nil {
-		return redisCacheEntry{}, Error{TypeInternalError, err, "failed to parse record"}
-	}
-
-	expire := time.Unix(i, 0)
-
-	record, err := NewRecordWithExpire(xs[0], expire)
-	if err != nil {
-		return redisCacheEntry{}, Error{TypeInternalError, err, "failed to parse record"}
-	}
-
-	return redisCacheEntry{
-		Record: record,
-		Expire: expire,
-	}, nil
-}
-
-func (e redisCacheEntry) String() string {
-	return fmt.Sprintf("%s\n%d", e.Record, int64(math.Round(float64(e.Expire.UnixNano())/1000/1000/1000)))
-}
 
 // RedisCache is redis cache manager for Resolver.
 type RedisCache struct {
@@ -93,10 +58,9 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 	wh := ResponseWriterHook{
 		Writer: w,
 		OnAdd: func(record Record) {
-			rc.client.RPush(key, redisCacheEntry{
-				record,
-				time.Now().Add(time.Duration(record.GetTTL()) * time.Second),
-			}.String())
+			rr, _ := record.ToRR()
+			rc.client.RPush(key, ExpiredRecord{rr, time.Now().Add(time.Duration(record.GetTTL()) * time.Second)}.String())
+
 			if ttl > record.GetTTL() {
 				ttl = record.GetTTL()
 			}
@@ -120,12 +84,14 @@ func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []strin
 	rc.metrics.CacheMiss(r)
 
 	for _, str := range cache {
-		entry, err := parseRedisCacheEntry(str)
+		entry, err := NewExpiredRecord(str)
 		if err != nil {
 			return err
 		}
 
-		if err := w.Add(entry.Record); err != nil {
+		if rec, err := entry.Record(); err != nil {
+			return err
+		} else if err := w.Add(rec); err != nil {
 			return err
 		}
 
