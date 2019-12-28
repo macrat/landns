@@ -2,10 +2,8 @@ package landns_test
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/macrat/landns/lib-landns"
 	"github.com/miekg/dns"
@@ -93,73 +91,6 @@ func TestDynamicRecordSet(t *testing.T) {
 			t.Errorf("encoded text was unexpected:\n\texpected: %#v\n\tbut got:  %#v", tt.Expect, string(got))
 		}
 	}
-}
-
-func TestExpiredRecord(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		tests := []struct {
-			Entry  string
-			Expect string
-		}{
-			{
-				fmt.Sprintf("example.com. 600 IN A 127.0.0.1 ; %d", time.Now().Add(42500*time.Millisecond).Unix()),
-				"example.com. 42 IN A 127.0.0.1",
-			},
-			{
-				fmt.Sprintf("example.com. 600 IN A 127.0.0.1;%d", time.Now().Add(42500*time.Millisecond).Unix()),
-				"example.com. 42 IN A 127.0.0.1",
-			},
-			{
-				"example.com. 600 IN A 127.0.0.1",
-				"example.com. 600 IN A 127.0.0.1",
-			},
-		}
-
-		for _, tt := range tests {
-			e, err := landns.NewExpiredRecord(tt.Entry)
-
-			if err != nil {
-				t.Errorf("%#v: failed to parse cache entry: %s", tt.Entry, err)
-				continue
-			}
-
-			if r, err := e.Record(); err != nil {
-				t.Errorf("%#v: failed to get record: %s", tt.Entry, err)
-			} else if r.String() != tt.Expect {
-				t.Errorf("%#v: unexpected record string:\nexpected: %#v\nbut got:  %#v", tt.Entry, tt.Expect, r.String())
-			}
-		}
-	})
-
-	t.Run("error", func(t *testing.T) {
-		tests := []struct {
-			Entry string
-			Error string
-		}{
-			{
-				"example.com. 600 IN A 127.0.0.1 ; 12345",
-				"failed to parse record: expire can't be past time: 1970-01-01 ..:..:.. [+-].... ...",
-			},
-			{
-				"hello world ; 4294967295",
-				"failed to parse record: dns: not a TTL: \"world\" at line: 1:12",
-			},
-			{
-				"example.com. 600 IN A 127.0.0.1 ; ",
-				"failed to parse record: strconv\\.ParseInt: parsing \"\": invalid syntax",
-			},
-		}
-
-		for _, tt := range tests {
-			_, err := landns.NewExpiredRecord(tt.Entry)
-
-			if err == nil {
-				t.Errorf("%#v: expected error but got nil", tt.Entry)
-			} else if ok, e := regexp.MatchString("^"+tt.Error+"$", err.Error()); e != nil || !ok {
-				t.Errorf("%#v: unexpected error:\nexpected: %#v\nbut got:  %#v", tt.Entry, tt.Error, err.Error())
-			}
-		}
-	})
 }
 
 func DynamicResolverTest(t *testing.T, resolver landns.DynamicResolver) {

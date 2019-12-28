@@ -2,13 +2,8 @@ package landns
 
 import (
 	"bytes"
-	"fmt"
-	"math"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/miekg/dns"
 )
 
 var (
@@ -170,82 +165,6 @@ func (rs DynamicRecordSet) MarshalText() ([]byte, error) {
 func (rs DynamicRecordSet) String() string {
 	b, _ := rs.MarshalText()
 	return string(b)
-}
-
-type ExpiredRecord struct {
-	RR     dns.RR
-	Expire time.Time
-}
-
-// NewExpiredRecord will parse record text and make new ExpiredRecord.
-func NewExpiredRecord(record string) (ExpiredRecord, error) {
-	var r ExpiredRecord
-	return r, r.UnmarshalText([]byte(record))
-}
-
-// Record is Record getter.
-func (r ExpiredRecord) Record() (Record, error) {
-	if r.Expire.Unix() > 0 {
-		ttl := math.Round(r.Expire.Sub(time.Now()).Seconds())
-		if ttl < 0 {
-			return nil, newError(TypeArgumentError, nil, "this record is already expired: %s", r.Expire)
-		}
-
-		r.RR.Header().Ttl = uint32(ttl)
-	}
-
-	return NewRecordFromRR(r.RR)
-}
-
-// String is get printable string.
-func (r ExpiredRecord) String() string {
-	text, _ := r.MarshalText()
-	return string(text)
-}
-
-// UnmarshalText is unmarshal ExpiredRecord from text.
-func (r *ExpiredRecord) UnmarshalText(text []byte) error {
-	if bytes.Contains(text, []byte("\n")) {
-		return ErrMultiLineDynamicRecord
-	}
-	text = bytes.TrimSpace(text)
-
-	r.Expire = time.Unix(0, 0)
-
-	xs := bytes.SplitN(text, []byte(";"), 2)
-	if len(xs) == 2 {
-		i, err := strconv.ParseInt(string(bytes.TrimSpace(xs[1])), 10, 64)
-		if err != nil {
-			return Error{TypeInternalError, err, "failed to parse record"}
-		}
-		r.Expire = time.Unix(i, 0)
-
-		if r.Expire.Before(time.Now()) {
-			return newError(TypeArgumentError, nil, "failed to parse record: expire can't be past time: %s", r.Expire)
-		}
-	}
-
-	var err error
-	r.RR, err = dns.NewRR(string(xs[0]))
-	if err != nil {
-		return Error{TypeInternalError, err, "failed to parse record"}
-	}
-
-	return nil
-}
-
-// MarshalText is marshal ExpiredRecord to text.
-func (r ExpiredRecord) MarshalText() ([]byte, error) {
-	rec, err := r.Record()
-	if err != nil {
-		return nil, err
-	}
-
-	if r.Expire.Unix() > 0 {
-		return []byte(fmt.Sprintf("%s ; %d", rec, r.Expire.Unix())), nil
-	}
-
-	return []byte(rec.String()), nil
 }
 
 type DynamicResolver interface {
