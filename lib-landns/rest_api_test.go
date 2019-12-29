@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 )
 
 func TestDynamicAPI(t *testing.T) {
@@ -21,7 +22,7 @@ func TestDynamicAPI(t *testing.T) {
 		t.Fatalf("failed to make sqlite resolver: %s", err)
 	}
 
-	s := StartHTTPServer(ctx, t, landns.DynamicAPI{resolver}.Handler())
+	srv := testutil.StartHTTPServer(ctx, t, landns.DynamicAPI{resolver}.Handler())
 
 	type Test struct {
 		Method string
@@ -34,17 +35,7 @@ func TestDynamicAPI(t *testing.T) {
 	tester := func(tests []Test) func(t *testing.T) {
 		return func(t *testing.T) {
 			for _, tt := range tests {
-				status, got, err := s.Do(tt.Method, tt.Path, tt.Body)
-				if err != nil {
-					continue
-				}
-				if status != tt.Status {
-					t.Errorf("%s %s: unexpected status code: expected %d but got %d", tt.Method, tt.Path, tt.Status, status)
-				}
-
-				if got != tt.Expect {
-					t.Errorf("%s %s: unexpected response:\nexpected:\n%s\nbut got:\n%s\n", tt.Method, tt.Path, tt.Expect, got)
-				}
+				srv.Do(t, tt.Method, tt.Path, tt.Body).Assert(t, tt.Status, tt.Expect)
 			}
 		}
 	}

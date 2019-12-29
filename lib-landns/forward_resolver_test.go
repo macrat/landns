@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -47,9 +48,9 @@ func TestForwardResolver(t *testing.T) {
 	for _, rs := range testCases {
 		records = append(records, rs...)
 	}
-	addr := StartDummyDNSServer(ctx, t, landns.NewSimpleResolver(records))
+	srv := testutil.StartDNSServer(ctx, t, landns.NewSimpleResolver(records))
 
-	resolver := landns.NewForwardResolver([]*net.UDPAddr{addr}, 1*time.Second, landns.NewMetrics("landns"))
+	resolver := landns.NewForwardResolver([]*net.UDPAddr{{IP: net.ParseIP("127.0.0.1"), Port: 5321}, srv.Addr}, 1*time.Second, landns.NewMetrics("landns"))
 	defer func() {
 		if err := resolver.Close(); err != nil {
 			t.Fatalf("failed to close: %s", err)
@@ -73,9 +74,9 @@ func TestForwardResolver_Parallel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	addr := StartDummyDNSServer(ctx, t, landns.NewSimpleResolver([]landns.Record{}))
+	srv := testutil.StartDNSServer(ctx, t, landns.NewSimpleResolver([]landns.Record{}))
 
-	resolver := landns.NewForwardResolver([]*net.UDPAddr{addr}, 1*time.Second, landns.NewMetrics("landns"))
+	resolver := landns.NewForwardResolver([]*net.UDPAddr{srv.Addr}, 1*time.Second, landns.NewMetrics("landns"))
 	defer func() {
 		if err := resolver.Close(); err != nil {
 			t.Fatalf("failed to close: %s", err)

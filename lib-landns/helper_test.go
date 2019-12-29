@@ -8,24 +8,14 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
-
-func FindEmptyPort() int {
-	for port := 49152; port <= 65535; port++ {
-		l, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
-		if err == nil {
-			l.Close()
-			return port
-		}
-	}
-	return -1
-}
 
 func AssertResolve(t testing.TB, resolver landns.Resolver, request landns.Request, authoritative bool, responses ...string) {
 	t.Helper()
 
-	resp := NewDummyResponseWriter()
+	resp := testutil.NewDummyResponseWriter()
 	if err := resolver.Resolve(resp, request); err != nil {
 		t.Errorf("%s <- %s: failed to resolve: %v", resolver, request, err.Error())
 		return
@@ -132,8 +122,8 @@ func AssertDynamicRecordSet(t testing.TB, name string, expect []string, got land
 func CheckRecursionAvailable(t testing.TB, makeResolver func([]landns.Resolver) landns.Resolver) {
 	t.Helper()
 
-	recursionResolver := DummyResolver{false, true}
-	nonRecursionResolver := DummyResolver{false, false}
+	recursionResolver := testutil.DummyResolver{false, true}
+	nonRecursionResolver := testutil.DummyResolver{false, false}
 
 	resolver := makeResolver([]landns.Resolver{nonRecursionResolver, recursionResolver, nonRecursionResolver})
 	if resolver.RecursionAvailable() != true {
@@ -155,7 +145,7 @@ func ParallelResolveTest(t testing.TB, resolver landns.Resolver) {
 		go func(ch chan string) {
 			defer close(ch)
 			for i := 0; i < loop; i++ {
-				err := resolver.Resolve(EmptyResponseWriter{}, landns.NewRequest("example.com.", dns.TypeA, false))
+				err := resolver.Resolve(testutil.EmptyResponseWriter{}, landns.NewRequest("example.com.", dns.TypeA, false))
 				if err != nil {
 					ch <- err.Error()
 				}

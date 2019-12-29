@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -50,17 +51,17 @@ func TestResolverSet(t *testing.T) {
 func TestResolverSet_ErrorHandling(t *testing.T) {
 	t.Parallel()
 
-	response := EmptyResponseWriter{}
+	response := testutil.EmptyResponseWriter{}
 	request := landns.NewRequest("example.com.", dns.TypeA, false)
 
-	errorResolver := DummyResolver{true, false}
+	errorResolver := testutil.DummyResolver{true, false}
 	if err := errorResolver.Resolve(response, request); err == nil {
 		t.Fatalf("expected returns error but got nil")
 	} else if err.Error() != "test error" {
 		t.Fatalf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
 	}
 
-	noErrorResolver := DummyResolver{false, false}
+	noErrorResolver := testutil.DummyResolver{false, false}
 	if err := noErrorResolver.Resolve(response, request); err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
@@ -101,7 +102,7 @@ func BenchmarkResolverSet(b *testing.B) {
 	}
 
 	req := landns.NewRequest("host50.example.com.", dns.TypeA, false)
-	resp := EmptyResponseWriter{}
+	resp := testutil.EmptyResponseWriter{}
 
 	b.ResetTimer()
 
@@ -153,17 +154,17 @@ func TestAlternateResolver(t *testing.T) {
 func TestAlternateResolver_ErrorHandling(t *testing.T) {
 	t.Parallel()
 
-	response := EmptyResponseWriter{}
+	response := testutil.EmptyResponseWriter{}
 	request := landns.NewRequest("example.com.", dns.TypeA, false)
 
-	errorResolver := DummyResolver{true, false}
+	errorResolver := testutil.DummyResolver{true, false}
 	if err := errorResolver.Resolve(response, request); err == nil {
 		t.Fatalf("expected returns error but got nil")
 	} else if err.Error() != "test error" {
 		t.Fatalf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
 	}
 
-	noErrorResolver := DummyResolver{false, false}
+	noErrorResolver := testutil.DummyResolver{false, false}
 	if err := noErrorResolver.Resolve(response, request); err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
@@ -211,7 +212,7 @@ func BenchmarkAlternateResolver(b *testing.B) {
 	}
 
 	req := landns.NewRequest("host50.example.com.", dns.TypeA, false)
-	resp := EmptyResponseWriter{}
+	resp := testutil.EmptyResponseWriter{}
 
 	b.ResetTimer()
 

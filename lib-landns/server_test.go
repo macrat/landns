@@ -2,55 +2,21 @@ package landns_test
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"net/url"
 	"testing"
 	"time"
 
-	"github.com/macrat/landns/client/go-client"
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
-
-func StartServer(ctx context.Context, t testing.TB) (client.Client, *net.UDPAddr) {
-	metrics := landns.NewMetrics("landns")
-	dyn, err := landns.NewSqliteResolver(":memory:", metrics)
-	if err != nil {
-		t.Fatalf("failed to make sqlite resolver: %s", err)
-	}
-
-	s := &landns.Server{
-		Metrics:         metrics,
-		DynamicResolver: dyn,
-		Resolvers:       dyn,
-	}
-
-	apiAddr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: FindEmptyPort()}
-	dnsAddr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 3553}
-	go func() {
-		if err := s.ListenAndServe(ctx, apiAddr, dnsAddr, "udp"); err != nil {
-			t.Fatalf("failed to start server: %s", err)
-		}
-	}()
-
-	u, err := url.Parse(fmt.Sprintf("http://%s/api/v1/", apiAddr))
-	if err != nil {
-		t.Fatalf("failed to parse URL: %s", err)
-	}
-
-	time.Sleep(10 * time.Millisecond) // wait for start server
-
-	return client.New(u), dnsAddr
-}
 
 func TestServer(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	c, d := StartServer(ctx, t)
+	c, d := testutil.StartServer(ctx, t)
 
 	if rs, err := landns.NewDynamicRecordSet("example.com. 300 IN A 127.0.1.2"); err != nil {
 		t.Errorf("failed to parse record set: %s", err)
@@ -101,7 +67,7 @@ func TestServer_StartStop(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		ctx, cancel := context.WithCancel(context.Background())
 
-		StartServer(ctx, t)
+		testutil.StartServer(ctx, t)
 
 		cancel()
 

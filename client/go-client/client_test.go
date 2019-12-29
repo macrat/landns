@@ -3,49 +3,27 @@ package client_test
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/macrat/landns/client/go-client"
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 )
 
-func StartServer(ctx context.Context) (*url.URL, error) {
-	metrics := landns.NewMetrics("landns")
-	resolver, err := landns.NewSqliteResolver(":memory:", metrics)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make sqlite resolver: %s", err)
-	}
+func GetAPIAddress() (*url.URL, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
 
-	server := landns.Server{
-		Metrics:         metrics,
-		DynamicResolver: resolver,
-		Resolvers:       resolver,
-	}
-	go func() {
-		err := server.ListenAndServe(ctx, &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9353}, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 3553}, "udp")
-		if err != nil {
-			panic(fmt.Sprintf("failed to start server: %s", err))
-		}
-	}()
-	time.Sleep(10 * time.Millisecond)
-	u, err := url.Parse("http://127.0.0.1:9353/api/v1/")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %s", err)
-	}
+	tb := new(testutil.DummyTB)
 
-	return u, nil
+	client, _ := testutil.StartServer(ctx, tb)
+
+	return client.Endpoint, cancel
 }
 
 func Example() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	apiAddress, _ := StartServer(ctx) // Start Landns server for test. (this is debug function)
-
-	fmt.Println("api address:", apiAddress)
-	fmt.Println()
+	apiAddress, closer := GetAPIAddress() // Start Landns server for test. (this is debug function)
+	defer closer()
 
 	c := client.New(apiAddress)
 
@@ -81,8 +59,6 @@ func Example() {
 	fmt.Println()
 
 	// Output:
-	// api address: http://127.0.0.1:9353/api/v1/
-	//
 	// all:
 	// example.com. 100 IN A 127.0.0.1 ; ID:1
 	// 1.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:2
@@ -98,11 +74,7 @@ func TestAPIClient(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	u, err := StartServer(ctx)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	client := client.New(u)
+	client, _ := testutil.StartServer(ctx, t)
 
 	rs, err := landns.NewDynamicRecordSet(`a.example.com. 42 IN A 127.0.0.1 ; ID:1
 1.0.0.127.in-addr.arpa. 42 IN PTR a.example.com. ; ID:2

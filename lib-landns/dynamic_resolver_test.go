@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -441,7 +442,7 @@ func DynamicResolverBenchmark(b *testing.B, resolver landns.DynamicResolver) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resolver.Resolve(NewDummyResponseWriter(), req)
+		resolver.Resolve(testutil.NewDummyResponseWriter(), req)
 	}
 
 	b.StopTimer()

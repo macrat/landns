@@ -10,6 +10,7 @@ import (
 
 	"github.com/macrat/landns/lib-landns"
 	"github.com/macrat/landns/lib-landns/logger"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -86,7 +87,7 @@ func TestMakeServer(t *testing.T) {
 		}
 	})
 	t.Run("simple/run", func(t *testing.T) {
-		service, err := makeServer([]string{"-l", "127.0.0.1:19353", "-L", ":1053"})
+		service, err := makeServer([]string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", ":1053"})
 		if err != nil {
 			t.Fatalf("failed to make server: %s", err)
 		}
@@ -112,7 +113,7 @@ func TestMakeServer(t *testing.T) {
 		}
 		defer closer()
 
-		service, err := makeServer([]string{"-l", "127.0.0.1:19353", "-L", "127.0.0.1:1053", "-c", path})
+		service, err := makeServer([]string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-c", path})
 		if err != nil {
 			t.Fatalf("failed to make server: %s", err)
 		}
@@ -151,7 +152,7 @@ func TestMakeServer(t *testing.T) {
 		}
 	})
 	t.Run("upstream", func(t *testing.T) {
-		service, err := makeServer([]string{"-l", "127.0.0.1:19353", "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
+		service, err := makeServer([]string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
 		if err != nil {
 			t.Fatalf("failed to make server: %s", err)
 		}
