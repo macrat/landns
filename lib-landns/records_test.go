@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -125,13 +126,13 @@ func TestRecords(t *testing.T) {
 	}{
 		{
 			landns.AddressRecord{Name: "a.example.com.", TTL: 10, Address: net.ParseIP("127.0.0.1")},
-			"a.example.com. 10 IN A 127.0.0.1",
+			"a.example.com. $TTL IN A 127.0.0.1",
 			dns.TypeA,
 			10,
 		},
 		{
 			landns.AddressRecord{Name: "aaaa.example.com.", TTL: 20, Address: net.ParseIP("4::2")},
-			"aaaa.example.com. 20 IN AAAA 4::2",
+			"aaaa.example.com. $TTL IN AAAA 4::2",
 			dns.TypeAAAA,
 			20,
 		},
@@ -143,31 +144,31 @@ func TestRecords(t *testing.T) {
 		},
 		{
 			landns.CnameRecord{Name: "cname.example.com.", TTL: 40, Target: "example.com."},
-			"cname.example.com. 40 IN CNAME example.com.",
+			"cname.example.com. $TTL IN CNAME example.com.",
 			dns.TypeCNAME,
 			40,
 		},
 		{
 			landns.PtrRecord{Name: "1.0.0.127.in-addr.arpa.", TTL: 50, Domain: "ptr.example.com."},
-			"1.0.0.127.in-addr.arpa. 50 IN PTR ptr.example.com.",
+			"1.0.0.127.in-addr.arpa. $TTL IN PTR ptr.example.com.",
 			dns.TypePTR,
 			50,
 		},
 		{
 			landns.MxRecord{Name: "mx.example.com.", TTL: 60, Preference: 42, Target: "example.com."},
-			"mx.example.com. 60 IN MX 42 example.com.",
+			"mx.example.com. $TTL IN MX 42 example.com.",
 			dns.TypeMX,
 			60,
 		},
 		{
 			landns.TxtRecord{Name: "txt.example.com.", TTL: 70, Text: "hello world"},
-			"txt.example.com. 70 IN TXT \"hello world\"",
+			"txt.example.com. $TTL IN TXT \"hello world\"",
 			dns.TypeTXT,
 			70,
 		},
 		{
 			landns.SrvRecord{Name: "_web._tcp.srv.example.com.", TTL: 80, Priority: 11, Weight: 22, Port: 33, Target: "example.com."},
-			"_web._tcp.srv.example.com. 80 IN SRV 11 22 33 example.com.",
+			"_web._tcp.srv.example.com. $TTL IN SRV 11 22 33 example.com.",
 			dns.TypeSRV,
 			80,
 		},
@@ -177,8 +178,12 @@ func TestRecords(t *testing.T) {
 		if err := tt.Record.Validate(); err != nil {
 			t.Errorf("failed to validate: %s", err)
 		}
-		if s := tt.Record.String(); s != tt.String {
-			t.Errorf("failed to convert to string:\nexpected: %s\nbut got:  %s", tt.String, s)
+		if s := tt.Record.WithoutTTL(); s != tt.String {
+			t.Errorf("failed to convert to string without TTL:\nexpected: %s\nbut got:  %s", tt.String, s)
+		}
+		withTTL := strings.ReplaceAll(tt.String, "$TTL", fmt.Sprint(tt.TTL))
+		if s := tt.Record.String(); s != withTTL {
+			t.Errorf("failed to convert to string without TTL:\nexpected: %s\nbut got:  %s", withTTL, s)
 		}
 		if q := tt.Record.GetQtype(); q != tt.Qtype {
 			t.Errorf("unexpected qtype: expected %d but got %d", tt.Qtype, q)
@@ -193,7 +198,7 @@ func TestRecords(t *testing.T) {
 			continue
 		}
 
-		rr2, err := dns.NewRR(tt.String)
+		rr2, err := dns.NewRR(withTTL)
 		if err != nil {
 			t.Errorf("failed to convert example to dns.RR: %s", err)
 			continue

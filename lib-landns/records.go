@@ -69,6 +69,7 @@ type Record interface {
 	GetTTL() uint32        // Get TTL for the Record.
 	ToRR() (dns.RR, error) // Get response record for dns.Msg of package github.com/miekg/dns.
 	Validate() error       // Validation Record and returns error if invalid.
+	WithoutTTL() string    // Get record string that replaced TTL number with "$TTL".
 }
 
 // NewRecord is make new Record from query string.
@@ -149,6 +150,16 @@ func (r AddressRecord) String() string {
 	return fmt.Sprintf("%s %d IN %s %s", r.Name, r.TTL, qtype, r.Address)
 }
 
+// WithoutTTL is make record string but mask TTL number.
+func (r AddressRecord) WithoutTTL() string {
+	qtype := "A"
+	if !r.IsV4() {
+		qtype = "AAAA"
+	}
+
+	return fmt.Sprintf("%s $TTL IN %s %s", r.Name, qtype, r.Address)
+}
+
 // GetName is getter to name of record.
 func (r AddressRecord) GetName() Domain {
 	return r.Name
@@ -191,6 +202,11 @@ type NsRecord struct {
 // Strings is make record string.
 func (r NsRecord) String() string {
 	return fmt.Sprintf("%s IN NS %s", r.Name, r.Target)
+}
+
+// WithoutTTL is make record string but mask TTL number.
+func (r NsRecord) WithoutTTL() string {
+	return r.String()
 }
 
 // GetName is getter to name of record.
@@ -237,6 +253,11 @@ func (r CnameRecord) String() string {
 	return fmt.Sprintf("%s %d IN CNAME %s", r.Name, r.TTL, r.Target)
 }
 
+// WithoutTTL is make record string but mask TTL number.
+func (r CnameRecord) WithoutTTL() string {
+	return fmt.Sprintf("%s $TTL IN CNAME %s", r.Name, r.Target)
+}
+
 // GetName is getter to name of record.
 func (r CnameRecord) GetName() Domain {
 	return r.Name
@@ -279,6 +300,11 @@ type PtrRecord struct {
 // String is make record string.
 func (r PtrRecord) String() string {
 	return fmt.Sprintf("%s %d IN PTR %s", r.Name, r.TTL, r.Domain)
+}
+
+// WithoutTTL is make record string but mask TTL number.
+func (r PtrRecord) WithoutTTL() string {
+	return fmt.Sprintf("%s $TTL IN PTR %s", r.Name, r.Domain)
 }
 
 // GetName is getter to name of record.
@@ -326,6 +352,11 @@ func (r MxRecord) String() string {
 	return fmt.Sprintf("%s %d IN MX %d %s", r.Name, r.TTL, r.Preference, r.Target)
 }
 
+// WithoutTTL is make record string but mask TTL number.
+func (r MxRecord) WithoutTTL() string {
+	return fmt.Sprintf("%s $TTL IN MX %d %s", r.Name, r.Preference, r.Target)
+}
+
 // GetName is getter to name of record.
 func (r MxRecord) GetName() Domain {
 	return r.Name
@@ -368,6 +399,11 @@ type TxtRecord struct {
 // String is make record string.
 func (r TxtRecord) String() string {
 	return fmt.Sprintf("%s %d IN TXT \"%s\"", r.Name, r.TTL, r.Text)
+}
+
+// WithoutTTL is make record string but mask TTL number.
+func (r TxtRecord) WithoutTTL() string {
+	return fmt.Sprintf("%s $TTL IN TXT \"%s\"", r.Name, r.Text)
 }
 
 // GetName is getter to name of record.
@@ -415,6 +451,18 @@ func (r SrvRecord) String() string {
 		"%s %d IN SRV %d %d %d %s",
 		r.Name,
 		r.TTL,
+		r.Priority,
+		r.Weight,
+		r.Port,
+		r.Target,
+	)
+}
+
+// WithoutTTL is make record string but mask TTL number.
+func (r SrvRecord) WithoutTTL() string {
+	return fmt.Sprintf(
+		"%s $TTL IN SRV %d %d %d %s",
+		r.Name,
 		r.Priority,
 		r.Weight,
 		r.Port,
