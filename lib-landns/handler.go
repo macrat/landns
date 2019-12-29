@@ -43,7 +43,9 @@ func (h Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	msg := resp.Build()
-	w.WriteMsg(msg)
+	if err := w.WriteMsg(msg); err != nil {
+		logger.Error("failed to write msg", nil)
+	}
 	end(msg)
 
 	if !errored && len(msg.Answer) == 0 && len(msg.Question) > 0 {

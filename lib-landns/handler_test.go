@@ -36,13 +36,13 @@ func TestHandler(t *testing.T) {
 
 	srv.Assert(t, dns.Question{Name: "notfound.example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET})
 
-	if err := lt.Test([]logtest.Entry{{logger.InfoLevel, "not found", logger.Fields{"name": "notfound.example.com.", "type": "A"}}}); err != nil {
+	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"name": "notfound.example.com.", "type": "A"}}}); err != nil {
 		t.Error(err)
 	}
 
 	srv.Assert(t, dns.Question{Name: "notfound.example.com.", Qtype: dns.TypeAAAA, Qclass: dns.ClassINET})
 
-	if err := lt.Test([]logtest.Entry{{logger.InfoLevel, "not found", logger.Fields{"name": "notfound.example.com.", "type": "AAAA"}}}); err != nil {
+	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"name": "notfound.example.com.", "type": "AAAA"}}}); err != nil {
 		t.Error(err)
 	}
 }
@@ -51,7 +51,7 @@ func TestHandler_ErrorHandling(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	resolver := &testutil.DummyResolver{false, false}
+	resolver := &testutil.DummyResolver{Error: false, Recursion: false}
 	srv := testutil.StartDNSServer(ctx, t, resolver)
 
 	lt := logtest.Start()
@@ -59,7 +59,7 @@ func TestHandler_ErrorHandling(t *testing.T) {
 
 	srv.Assert(t, dns.Question{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET})
 
-	if err := lt.Test([]logtest.Entry{{logger.InfoLevel, "not found", logger.Fields{"name": "example.com.", "type": "A"}}}); err != nil {
+	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"name": "example.com.", "type": "A"}}}); err != nil {
 		t.Error(err)
 	}
 
@@ -67,7 +67,7 @@ func TestHandler_ErrorHandling(t *testing.T) {
 
 	srv.Assert(t, dns.Question{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET})
 
-	if err := lt.Test([]logtest.Entry{{logger.WarnLevel, "failed to resolve", logger.Fields{"reason": "test error", "name": "example.com.", "type": "A"}}}); err != nil {
+	if err := lt.Test([]logtest.Entry{{Level: logger.WarnLevel, Message: "failed to resolve", Fields: logger.Fields{"reason": "test error", "name": "example.com.", "type": "A"}}}); err != nil {
 		t.Error(err)
 	}
 }

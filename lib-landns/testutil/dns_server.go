@@ -34,7 +34,9 @@ func StartDNSServer(ctx context.Context, t SimpleTB, resolver landns.Resolver) D
 
 	go func() {
 		<-ctx.Done()
-		server.Shutdown()
+		if err := server.Shutdown(); err != nil {
+			t.Fatalf("failed to stop dummy DNS: %s", err)
+		}
 	}()
 
 	time.Sleep(10 * time.Millisecond) // Wait for start DNS server

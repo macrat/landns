@@ -22,8 +22,8 @@ func TestDummyResponseWriter(t *testing.T) {
 	}
 
 	records := []landns.Record{
-		landns.AddressRecord{"example.com.", 42, net.ParseIP("127.1.2.3")},
-		landns.AddressRecord{"example.com.", 123, net.ParseIP("127.9.8.7")},
+		landns.AddressRecord{Name: "example.com.", TTL: 42, Address: net.ParseIP("127.1.2.3")},
+		landns.AddressRecord{Name: "example.com.", TTL: 123, Address: net.ParseIP("127.9.8.7")},
 	}
 	for _, r := range records {
 		if err := w.Add(r); err != nil {
@@ -51,7 +51,7 @@ func TestEmptyResponseWriter(t *testing.T) {
 		t.Errorf("unexpected authoritative: expected true but got false")
 	}
 
-	if err := w.Add(landns.AddressRecord{"example.com.", 42, net.ParseIP("127.1.2.3")}); err != nil {
+	if err := w.Add(landns.AddressRecord{Name: "example.com.", TTL: 42, Address: net.ParseIP("127.1.2.3")}); err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 }

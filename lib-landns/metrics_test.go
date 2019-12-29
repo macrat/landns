@@ -3,25 +3,12 @@ package landns_test
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
 	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
-
-func MetricsResponseTest(t testing.TB, name, metrics string, re *regexp.Regexp, expect int) {
-	t.Helper()
-
-	result := re.FindStringSubmatch(metrics)
-
-	if len(result) != 2 {
-		t.Errorf("unexpected %s length: expected 2 but got %d", name, len(result))
-	} else if result[1] != fmt.Sprint(expect) {
-		t.Errorf("unexpected %s value: expected %d but got %s", name, expect, result[1])
-	}
-}
 
 func TestMetrics(t *testing.T) {
 	t.Parallel()

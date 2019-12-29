@@ -21,5 +21,4 @@ func FindEmptyPort() int {
 			return port
 		}
 	}
-	return -1
 }

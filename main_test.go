@@ -76,6 +76,28 @@ address:
 	}
 }
 
+func StartServer(t *testing.T, args []string) (*service, func()) {
+	service, err := makeServer(args)
+	if err != nil {
+		t.Fatalf("failed to make server: %s", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		if err := service.Start(ctx); err != nil {
+			t.Errorf("failed to start server: %s", err)
+		}
+	}()
+
+	time.Sleep(10 * time.Millisecond)
+
+	return service, func() {
+		if err := service.Stop(); err != nil {
+			t.Fatalf("failed to close resolver: %s", err)
+		}
+		cancel()
+	}
+}
+
 func TestMakeServer(t *testing.T) {
 	t.Run("simple/make", func(t *testing.T) {
 		service, err := makeServer([]string{})
@@ -86,25 +108,10 @@ func TestMakeServer(t *testing.T) {
 			t.Fatalf("failed to close resolver: %s", err)
 		}
 	})
+
 	t.Run("simple/run", func(t *testing.T) {
-		service, err := makeServer([]string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", ":1053"})
-		if err != nil {
-			t.Fatalf("failed to make server: %s", err)
-		}
-		defer func() {
-			if err := service.Stop(); err != nil {
-				t.Fatalf("failed to close resolver: %s", err)
-			}
-			time.Sleep(100 * time.Millisecond)
-		}()
-		ctx, cancel := context.WithCancel(context.Background())
+		_, cancel := StartServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", ":1053"})
 		defer cancel()
-		go func() {
-			if err := service.Start(ctx); err != nil {
-				t.Fatalf("failed to start server: %s", err)
-			}
-		}()
-		time.Sleep(100 * time.Millisecond)
 	})
 	t.Run("static", func(t *testing.T) {
 		closer, path, err := MakeDummyFile("ttl: 10\naddress:\n  example.com.: [127.0.1.2]\n")
@@ -113,24 +120,8 @@ func TestMakeServer(t *testing.T) {
 		}
 		defer closer()
 
-		service, err := makeServer([]string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-c", path})
-		if err != nil {
-			t.Fatalf("failed to make server: %s", err)
-		}
-		defer func() {
-			if err := service.Stop(); err != nil {
-				t.Fatalf("failed to close resolver: %s", err)
-			}
-			time.Sleep(100 * time.Millisecond)
-		}()
-		ctx, cancel := context.WithCancel(context.Background())
+		_, cancel := StartServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-c", path})
 		defer cancel()
-		go func() {
-			if err := service.Start(ctx); err != nil {
-				t.Fatalf("failed to start server: %s", err)
-			}
-		}()
-		time.Sleep(100 * time.Millisecond)
 
 		msg := &dns.Msg{
 			MsgHdr: dns.MsgHdr{Id: dns.Id()},
@@ -152,24 +143,8 @@ func TestMakeServer(t *testing.T) {
 		}
 	})
 	t.Run("upstream", func(t *testing.T) {
-		service, err := makeServer([]string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
-		if err != nil {
-			t.Fatalf("failed to make server: %s", err)
-		}
-		defer func() {
-			if err := service.Stop(); err != nil {
-				t.Fatalf("failed to close resolver: %s", err)
-			}
-			time.Sleep(100 * time.Millisecond)
-		}()
-		ctx, cancel := context.WithCancel(context.Background())
+		_, cancel := StartServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
 		defer cancel()
-		go func() {
-			if err := service.Start(ctx); err != nil {
-				t.Fatalf("failed to start server: %s", err)
-			}
-		}()
-		time.Sleep(100 * time.Millisecond)
 
 		msg := &dns.Msg{
 			MsgHdr: dns.MsgHdr{Id: dns.Id()},
@@ -177,8 +152,7 @@ func TestMakeServer(t *testing.T) {
 				{Name: "google.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET},
 			},
 		}
-		_, err = dns.Exchange(msg, "127.0.0.1:1053")
-		if err != nil {
+		if _, err := dns.Exchange(msg, "127.0.0.1:1053"); err != nil {
 			t.Errorf("failed to resolve google.com.: %s", err)
 		}
 	})

@@ -92,7 +92,7 @@ func NewRecordWithExpire(str string, expire time.Time) (Record, error) {
 		return nil, newError(TypeArgumentError, nil, "expire can't be past time: %s", expire)
 	}
 
-	rr.Header().Ttl = uint32(math.Round(expire.Sub(time.Now()).Seconds()))
+	rr.Header().Ttl = uint32(math.Round(time.Until(expire).Seconds()))
 
 	return NewRecordFromRR(rr)
 }
@@ -472,7 +472,7 @@ func NewExpiredRecord(record string) (ExpiredRecord, error) {
 // Record is Record getter.
 func (r ExpiredRecord) Record() (Record, error) {
 	if r.Expire.Unix() > 0 {
-		ttl := math.Round(r.Expire.Sub(time.Now()).Seconds())
+		ttl := math.Round(time.Until(r.Expire).Seconds())
 		if ttl < 0 {
 			return nil, newError(TypeArgumentError, nil, "this record is already expired: %s", r.Expire)
 		}

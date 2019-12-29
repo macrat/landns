@@ -122,8 +122,8 @@ func AssertDynamicRecordSet(t testing.TB, name string, expect []string, got land
 func CheckRecursionAvailable(t testing.TB, makeResolver func([]landns.Resolver) landns.Resolver) {
 	t.Helper()
 
-	recursionResolver := testutil.DummyResolver{false, true}
-	nonRecursionResolver := testutil.DummyResolver{false, false}
+	recursionResolver := testutil.DummyResolver{Error: false, Recursion: true}
+	nonRecursionResolver := testutil.DummyResolver{Error: false, Recursion: false}
 
 	resolver := makeResolver([]landns.Resolver{nonRecursionResolver, recursionResolver, nonRecursionResolver})
 	if resolver.RecursionAvailable() != true {

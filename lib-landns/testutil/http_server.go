@@ -61,7 +61,8 @@ func StartHTTPServer(ctx context.Context, t SimpleTB, handler http.Handler) HTTP
 
 	go func() {
 		<-ctx.Done()
-		c, _ := context.WithTimeout(context.Background(), 1*time.Second)
+		c, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
 		if err := server.Shutdown(c); err != nil {
 			t.Fatalf("failed to stop HTTP server: %s", err)
 		}

@@ -435,7 +435,9 @@ func DynamicResolverBenchmark(b *testing.B, resolver landns.DynamicResolver) {
 		}
 	}
 
-	resolver.SetRecords(records)
+	if err := resolver.SetRecords(records); err != nil {
+		b.Fatalf("failed to set records: %s", err)
+	}
 
 	req := landns.NewRequest("host50.example.com.", dns.TypeA, false)
 

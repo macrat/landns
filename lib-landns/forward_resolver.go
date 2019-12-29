@@ -56,7 +56,9 @@ func (fr ForwardResolver) Resolve(w ResponseWriter, r Request) error {
 				return err
 			}
 			w.SetNoAuthoritative()
-			w.Add(record)
+			if err := w.Add(record); err != nil {
+				return err
+			}
 		}
 		break
 	}

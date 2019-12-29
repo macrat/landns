@@ -63,7 +63,9 @@ func (er *EtcdResolver) makeKey(ctx context.Context, r DynamicRecord) (DynamicRe
 		id++
 		r.ID = &id
 
-		er.client.Put(ctx, er.Prefix+"/lastID", strconv.Itoa(*r.ID))
+		if _, err := er.client.Put(ctx, er.Prefix+"/lastID", strconv.Itoa(*r.ID)); err != nil {
+			return r, "", Error{TypeExternalError, err, "failed to put last ID"}
+		}
 	}
 
 	return er.findKey(ctx, r)
@@ -182,7 +184,7 @@ func (er *EtcdResolver) dropRecord(ctx context.Context, r DynamicRecord) error {
 	return nil
 }
 
-func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error {
+func (er *EtcdResolver) insertSingleRecord(ctx context.Context, r DynamicRecord) error {
 	if found, err := er.findSameRecord(ctx, r); err != nil {
 		return err
 	} else if found {
@@ -216,12 +218,21 @@ func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error
 		return Error{TypeExternalError, err, "failed to put record"}
 	}
 
+	return nil
+}
+
+func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error {
+	if err := er.insertSingleRecord(ctx, r); err != nil {
+		return err
+	}
+
 	if r.Record.GetQtype() == dns.TypeA || r.Record.GetQtype() == dns.TypeAAAA {
 		reverse, err := dns.ReverseAddr(r.Record.(AddressRecord).Address.String())
 		if err != nil {
 			return Error{TypeExternalError, err, "failed to make reverse address"}
 		}
-		r, key, err = er.makeKey(ctx, DynamicRecord{
+
+		err = er.insertSingleRecord(ctx, DynamicRecord{
 			Record: PtrRecord{
 				Name:   Domain(reverse),
 				TTL:    r.Record.GetTTL(),
@@ -230,19 +241,6 @@ func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error
 		})
 		if err != nil {
 			return err
-		}
-
-		expired, err = r.ExpiredRecord()
-		if err != nil {
-			return err
-		}
-		value, err = expired.MarshalText()
-		if err != nil {
-			return err
-		}
-
-		if _, err := er.client.Put(ctx, key, string(value), options...); err != nil {
-			return Error{TypeExternalError, err, "failed to put record"}
 		}
 	}
 

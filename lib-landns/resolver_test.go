@@ -54,14 +54,14 @@ func TestResolverSet_ErrorHandling(t *testing.T) {
 	response := testutil.EmptyResponseWriter{}
 	request := landns.NewRequest("example.com.", dns.TypeA, false)
 
-	errorResolver := testutil.DummyResolver{true, false}
+	errorResolver := testutil.DummyResolver{Error: true, Recursion: false}
 	if err := errorResolver.Resolve(response, request); err == nil {
 		t.Fatalf("expected returns error but got nil")
 	} else if err.Error() != "test error" {
 		t.Fatalf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
 	}
 
-	noErrorResolver := testutil.DummyResolver{false, false}
+	noErrorResolver := testutil.DummyResolver{Error: false, Recursion: false}
 	if err := noErrorResolver.Resolve(response, request); err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
@@ -157,14 +157,14 @@ func TestAlternateResolver_ErrorHandling(t *testing.T) {
 	response := testutil.EmptyResponseWriter{}
 	request := landns.NewRequest("example.com.", dns.TypeA, false)
 
-	errorResolver := testutil.DummyResolver{true, false}
+	errorResolver := testutil.DummyResolver{Error: true, Recursion: false}
 	if err := errorResolver.Resolve(response, request); err == nil {
 		t.Fatalf("expected returns error but got nil")
 	} else if err.Error() != "test error" {
 		t.Fatalf(`unexpected error: unexpected "test error" but got "%s"`, err.Error())
 	}
 
-	noErrorResolver := testutil.DummyResolver{false, false}
+	noErrorResolver := testutil.DummyResolver{Error: false, Recursion: false}
 	if err := noErrorResolver.Resolve(response, request); err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}

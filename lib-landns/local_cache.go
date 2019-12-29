@@ -74,7 +74,7 @@ func (lc *LocalCache) manageTask() (next time.Duration) {
 			sweep := false
 
 			for _, entry := range entries {
-				delta := entry.Expire.Sub(time.Now())
+				delta := time.Until(entry.Expire)
 				if delta < 1 {
 					sweep = true
 					break
@@ -124,8 +124,6 @@ func (lc *LocalCache) add(r Record) {
 	}
 
 	lc.invoke <- struct{}{}
-
-	return
 }
 
 func (lc *LocalCache) resolveFromUpstream(w ResponseWriter, r Request) error {
@@ -169,7 +167,7 @@ func (lc *LocalCache) Resolve(w ResponseWriter, r Request) error {
 	}
 
 	for _, cache := range records {
-		if cache.Expire.Sub(time.Now()) < 1 {
+		if time.Until(cache.Expire) < 1 {
 			delete(lc.entries[r.Qtype], Domain(r.Name))
 			return lc.resolveFromUpstream(w, r)
 		}

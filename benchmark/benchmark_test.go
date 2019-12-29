@@ -39,7 +39,12 @@ func NewServer(ctx context.Context, t testing.TB) *net.UDPAddr {
 		},
 	}
 
-	go server.ListenAndServe(ctx, &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5335}, addr, "udp")
+	go func() {
+		err := server.ListenAndServe(ctx, &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5335}, addr, "udp")
+		if err != nil {
+			t.Fatalf("failed to start server: %s", err)
+		}
+	}()
 
 	time.Sleep(100 * time.Millisecond) // wait for start server
 

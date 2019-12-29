@@ -25,7 +25,7 @@ func TestDummyResolver(t *testing.T) {
 	r := landns.NewRequest("example.com.", dns.TypeA, true)
 
 	for _, tt := range tests {
-		res := testutil.DummyResolver{tt.err, tt.rec}
+		res := testutil.DummyResolver{Error: tt.err, Recursion: tt.rec}
 
 		if err := res.Resolve(w, r); !tt.err && err != nil {
 			t.Errorf("unexpected error: %#v", err)

@@ -67,7 +67,9 @@ func TestResponseCallback(t *testing.T) {
 		}
 
 		text := fmt.Sprintf("test%d", i)
-		rc.Add(landns.TxtRecord{Text: text})
+		if err := rc.Add(landns.TxtRecord{Text: text}); err != nil {
+			t.Errorf("failed to add record: %s", err)
+		}
 
 		if len(log) != i+1 {
 			t.Errorf("unexpected log length: expected %d but got %d", i, len(log))
@@ -144,7 +146,9 @@ func TestMessageBuilder(t *testing.T) {
 		t.Errorf("unexpected authoritative: %v", builder.IsAuthoritative())
 	}
 
-	builder.Add(landns.AddressRecord{Name: "example.com.", TTL: 42, Address: net.ParseIP("127.0.1.2")})
+	if err := builder.Add(landns.AddressRecord{Name: "example.com.", TTL: 42, Address: net.ParseIP("127.0.1.2")}); err != nil {
+		t.Errorf("failed to add record: %s", err)
+	}
 
 	msg := builder.Build()
 	if len(msg.Answer) != 1 {
@@ -160,7 +164,9 @@ func TestMessageBuilder(t *testing.T) {
 	}
 
 	builder.SetNoAuthoritative()
-	builder.Add(landns.AddressRecord{Name: "blanktar.jp.", TTL: 1234, Address: net.ParseIP("127.1.2.3")})
+	if err := builder.Add(landns.AddressRecord{Name: "blanktar.jp.", TTL: 1234, Address: net.ParseIP("127.1.2.3")}); err != nil {
+		t.Errorf("failed to add record: %s", err)
+	}
 
 	msg = builder.Build()
 	if len(msg.Answer) != 2 {

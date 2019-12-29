@@ -52,7 +52,7 @@ func newError(typ ErrorType, original error, format string, args ...interface{})
 // Error is converter to human readable string.
 func (e Error) Error() string {
 	if e.Original == nil {
-		return fmt.Sprintf("%s", e.Message)
+		return e.Message
 	}
 	return fmt.Sprintf("%s: %s", e.Message, e.Original.Error())
 }

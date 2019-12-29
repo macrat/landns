@@ -71,11 +71,12 @@ func (sr *SqliteResolver) manageExpire(interval time.Duration) {
 		panic(err.Error())
 	}
 
-	tick := time.Tick(interval)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 
 	for {
 		select {
-		case <-tick:
+		case <-ticker.C:
 			sr.mutex.Lock()
 			_, err := stmt.Exec()
 			sr.mutex.Unlock()

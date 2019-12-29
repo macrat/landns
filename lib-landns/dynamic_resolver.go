@@ -97,7 +97,9 @@ func (r *DynamicRecord) UnmarshalText(text []byte) error {
 	if len(xs) != 2 {
 		r.ID = nil
 	} else {
-		r.unmarshalAnnotation(xs[1])
+		if err := r.unmarshalAnnotation(xs[1]); err != nil {
+			return err
+		}
 	}
 
 	var err error
