@@ -7,6 +7,8 @@ import (
 )
 
 func TestFindEmptyPort(t *testing.T) {
+	t.Parallel()
+
 	port := testutil.FindEmptyPort()
 	if port == -1 {
 		t.Errorf("failed to find empty port")

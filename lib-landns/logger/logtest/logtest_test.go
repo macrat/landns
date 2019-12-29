@@ -9,6 +9,8 @@ import (
 )
 
 func TestEntry(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Entry  logtest.Entry
 		Expect string
@@ -35,6 +37,8 @@ func TestEntry(t *testing.T) {
 }
 
 func TestDummyLogger(t *testing.T) {
+	t.Parallel()
+
 	l := new(logtest.DummyLogger)
 	es := []logtest.Entry{}
 
@@ -68,6 +72,8 @@ func TestDummyLogger(t *testing.T) {
 }
 
 func TestDummyLogger_Test(t *testing.T) {
+	t.Parallel()
+
 	l := new(logtest.DummyLogger)
 	l.Debug("hello", logger.Fields{"target": "world"})
 
@@ -117,6 +123,8 @@ func TestDummyLogger_Test(t *testing.T) {
 }
 
 func TestDummyLogger_TestAll(t *testing.T) {
+	t.Parallel()
+
 	l := new(logtest.DummyLogger)
 	l.Debug("hello", logger.Fields{"target": "world"})
 	l.Debug("world", logger.Fields{"say": "hello"})
@@ -150,6 +158,8 @@ func TestDummyLogger_TestAll(t *testing.T) {
 }
 
 func TestLogTest(t *testing.T) {
+	t.Parallel()
+
 	orig := logger.GetLogger()
 
 	lt := logtest.Start()
