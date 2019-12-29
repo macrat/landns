@@ -2,7 +2,6 @@ package landns_test
 
 import (
 	"net"
-	"sync"
 	"testing"
 	"time"
 
@@ -30,37 +29,32 @@ func CacheTestUpstream(t testing.TB) landns.Resolver {
 	return upstream
 }
 
-func CacheTest(t *testing.T, resolver landns.Resolver) {
-	tests := []func(){
-		func() {
+var (
+	CacheTests = []struct {
+		Name   string
+		Tester func(t testing.TB, resolver landns.Resolver)
+	}{
+		{"multiTTL", func(t testing.TB, resolver landns.Resolver) {
 			AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 100 IN A 127.1.2.3", "example.com. 10 IN A 127.2.3.4")
 			time.Sleep(500 * time.Millisecond)
 			AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), false, "example.com. 99 IN A 127.1.2.3", "example.com. 9 IN A 127.2.3.4")
-		},
-		func() {
+		}},
+		{"shortTTL", func(t testing.TB, resolver landns.Resolver) {
 			AssertResolve(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), true, "short.example.com. 10 IN A 127.3.4.5", "short.example.com. 2 IN A 127.4.5.6")
 			time.Sleep(500 * time.Millisecond)
 			AssertResolve(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), false, "short.example.com. 9 IN A 127.3.4.5", "short.example.com. 1 IN A 127.4.5.6")
-			time.Sleep(1500 * time.Millisecond)
+			time.Sleep(1700 * time.Millisecond)
 			AssertResolve(t, resolver, landns.NewRequest("short.example.com.", dns.TypeA, false), true, "short.example.com. 10 IN A 127.3.4.5", "short.example.com. 2 IN A 127.4.5.6")
-		},
-		func() {
+		}},
+		{"noCache", func(t testing.TB, resolver landns.Resolver) {
 			AssertResolve(t, resolver, landns.NewRequest("no-cache.example.com.", dns.TypeA, false), true, "no-cache.example.com. 0 IN A 127.5.6.7")
 			AssertResolve(t, resolver, landns.NewRequest("no-cache.example.com.", dns.TypeA, false), true, "no-cache.example.com. 0 IN A 127.5.6.7")
-		},
-		func() {
+		}},
+		{"txtType", func(t testing.TB, resolver landns.Resolver) {
 			AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), true, "example.com. 100 IN TXT \"hello world\"")
 			time.Sleep(500 * time.Millisecond)
 			AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeTXT, false), false, "example.com. 99 IN TXT \"hello world\"")
-		},
+		}},
+		{"parallel", ParallelResolveTest},
 	}
-	wg := sync.WaitGroup{}
-	for _, test := range tests {
-		wg.Add(1)
-		go func(t func()) {
-			t()
-			wg.Done()
-		}(test)
-	}
-	wg.Wait()
-}
+)

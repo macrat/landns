@@ -27,50 +27,40 @@ func prepareRedisDB(t testing.TB) {
 }
 
 func TestRedisCache(t *testing.T) {
-	prepareRedisDB(t)
+	for _, tt := range CacheTests {
+		tester := tt.Tester
 
-	resolver, err := landns.NewRedisCache(redisAddr, 0, "", CacheTestUpstream(t), landns.NewMetrics("landns"))
-	if err != nil {
-		t.Fatalf("failed to connect redis server: %s", err)
+		t.Run(tt.Name, func(t *testing.T) {
+			prepareRedisDB(t)
+
+			resolver, err := landns.NewRedisCache(redisAddr, 0, "", CacheTestUpstream(t), landns.NewMetrics("landns"))
+			if err != nil {
+				t.Fatalf("failed to connect redis server: %s", err)
+			}
+			defer func() {
+				if err := resolver.Close(); err != nil {
+					t.Fatalf("failed to close: %s", err)
+				}
+			}()
+
+			if resolver.String() != fmt.Sprintf("RedisCache[Redis<%s db:0>]", redisAddr) {
+				t.Errorf("unexpected string: %s", resolver)
+			}
+
+			tester(t, resolver)
+		})
 	}
-	defer func() {
-		if err := resolver.Close(); err != nil {
-			t.Fatalf("failed to close: %s", err)
-		}
-	}()
 
-	if resolver.String() != fmt.Sprintf("RedisCache[Redis<%s db:0>]", redisAddr) {
-		t.Errorf("unexpected string: %s", resolver)
-	}
+	t.Run("RecursionAvailable", func(t *testing.T) {
+		prepareRedisDB(t)
 
-	CacheTest(t, resolver)
-}
-
-func TestRedisCache_Parallel(t *testing.T) {
-	prepareRedisDB(t)
-
-	resolver, err := landns.NewRedisCache(redisAddr, 0, "", CacheTestUpstream(t), landns.NewMetrics("landns"))
-	if err != nil {
-		t.Fatalf("failed to connect redis server: %s", err)
-	}
-	defer func() {
-		if err := resolver.Close(); err != nil {
-			t.Fatalf("failed to close: %s", err)
-		}
-	}()
-
-	ParallelResolveTest(t, resolver)
-}
-
-func TestRedisCache_RecursionAvailable(t *testing.T) {
-	prepareRedisDB(t)
-
-	CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
-		resolver, err := landns.NewRedisCache(redisAddr, 0, "", landns.ResolverSet(rs), landns.NewMetrics("landns"))
-		if err != nil {
-			t.Fatalf("failed to connect redis server: %s", err)
-		}
-		return resolver
+		CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
+			resolver, err := landns.NewRedisCache(redisAddr, 0, "", landns.ResolverSet(rs), landns.NewMetrics("landns"))
+			if err != nil {
+				t.Fatalf("failed to connect redis server: %s", err)
+			}
+			return resolver
+		})
 	})
 }
 

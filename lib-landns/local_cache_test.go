@@ -10,44 +10,50 @@ import (
 )
 
 func TestLocalCache(t *testing.T) {
-	t.Parallel()
+	for _, tt := range CacheTests {
+		tester := tt.Tester
 
-	resolver := landns.NewLocalCache(CacheTestUpstream(t), landns.NewMetrics("landns"))
-	defer func() {
-		if err := resolver.Close(); err != nil {
-			t.Fatalf("failed to close: %s", err)
-		}
-	}()
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
 
-	if resolver.String() != "LocalCache[0 domains 0 records]" {
-		t.Errorf("unexpected string: %s", resolver)
+			resolver := landns.NewLocalCache(CacheTestUpstream(t), landns.NewMetrics("landns"))
+			defer func() {
+				if err := resolver.Close(); err != nil {
+					t.Fatalf("failed to close: %s", err)
+				}
+			}()
+
+			tester(t, resolver)
+		})
 	}
 
-	CacheTest(t, resolver)
+	t.Run("String", func(t *testing.T) {
+		t.Parallel()
 
-	if resolver.String() != "LocalCache[2 domains 5 records]" {
-		t.Errorf("unexpected string: %s", resolver)
-	}
-}
+		resolver := landns.NewLocalCache(CacheTestUpstream(t), landns.NewMetrics("landns"))
+		defer func() {
+			if err := resolver.Close(); err != nil {
+				t.Fatalf("failed to close: %s", err)
+			}
+		}()
 
-func TestLocalCache_Parallel(t *testing.T) {
-	t.Parallel()
-
-	resolver := landns.NewLocalCache(CacheTestUpstream(t), landns.NewMetrics("landns"))
-	defer func() {
-		if err := resolver.Close(); err != nil {
-			t.Fatalf("failed to close: %s", err)
+		if resolver.String() != "LocalCache[0 domains 0 records]" {
+			t.Errorf("unexpected string: %s", resolver)
 		}
-	}()
 
-	ParallelResolveTest(t, resolver)
-}
+		AssertResolve(t, resolver, landns.NewRequest("example.com.", dns.TypeA, false), true, "example.com. 100 IN A 127.1.2.3", "example.com. 10 IN A 127.2.3.4")
 
-func TestLocalCache_RecursionAvailable(t *testing.T) {
-	t.Parallel()
+		if resolver.String() != "LocalCache[1 domains 2 records]" {
+			t.Errorf("unexpected string: %s", resolver)
+		}
+	})
 
-	CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
-		return landns.NewLocalCache(landns.ResolverSet(rs), landns.NewMetrics("landns"))
+	t.Run("RecursionAvailable", func(t *testing.T) {
+		t.Parallel()
+
+		CheckRecursionAvailable(t, func(rs []landns.Resolver) landns.Resolver {
+			return landns.NewLocalCache(landns.ResolverSet(rs), landns.NewMetrics("landns"))
+		})
 	})
 }
 
