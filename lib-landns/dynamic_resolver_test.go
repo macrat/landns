@@ -261,10 +261,10 @@ func DynamicResolverTest_GetRecord(t testing.TB, resolver landns.DynamicResolver
 		t.Errorf("failed to set records: %s", err)
 	}
 
-	tests := []struct{
+	tests := []struct {
 		ID     int
 		Expect string
-	} {
+	}{
 		{1, "example.com. 42 IN A 127.0.0.1 ; ID:1\n"},
 		{20, ""},
 	}
@@ -481,7 +481,7 @@ func DynamicResolverTest_RemoveRecord(t testing.TB, resolver landns.DynamicResol
 		t.Errorf("failed to set records: %s", err)
 	}
 
-	tests := []struct{
+	tests := []struct {
 		Entries map[int]string
 		Target  int
 		Error   error
@@ -500,7 +500,7 @@ func DynamicResolverTest_RemoveRecord(t testing.TB, resolver landns.DynamicResol
 				10: "example.com. IN NS ns1.example.com. ; ID:10",
 			},
 			Target: 2,
-			Error: nil,
+			Error:  nil,
 		},
 		{
 			Entries: map[int]string{
@@ -515,7 +515,7 @@ func DynamicResolverTest_RemoveRecord(t testing.TB, resolver landns.DynamicResol
 				10: "example.com. IN NS ns1.example.com. ; ID:10",
 			},
 			Target: 7,
-			Error: nil,
+			Error:  nil,
 		},
 		{
 			Entries: map[int]string{
@@ -527,7 +527,7 @@ func DynamicResolverTest_RemoveRecord(t testing.TB, resolver landns.DynamicResol
 				10: "example.com. IN NS ns1.example.com. ; ID:10",
 			},
 			Target: 3,
-			Error: nil,
+			Error:  nil,
 		},
 		{
 			Entries: map[int]string{
@@ -539,7 +539,7 @@ func DynamicResolverTest_RemoveRecord(t testing.TB, resolver landns.DynamicResol
 				10: "example.com. IN NS ns1.example.com. ; ID:10",
 			},
 			Target: 2,
-			Error: landns.ErrNoSuchRecord,
+			Error:  landns.ErrNoSuchRecord,
 		},
 		{
 			Entries: map[int]string{
@@ -551,7 +551,7 @@ func DynamicResolverTest_RemoveRecord(t testing.TB, resolver landns.DynamicResol
 				10: "example.com. IN NS ns1.example.com. ; ID:10",
 			},
 			Target: 2,
-			Error: landns.ErrNoSuchRecord,
+			Error:  landns.ErrNoSuchRecord,
 		},
 	}
 

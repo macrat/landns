@@ -30,21 +30,21 @@ func TestHandler(t *testing.T) {
 	defer lt.Close()
 
 	srv.Assert(t, dns.Question{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET}, "example.com.\t123\tIN\tA\t127.0.0.1")
-	time.Sleep(10*time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	if err := lt.TestAll([]logtest.Entry{}); err != nil {
 		t.Error(err)
 	}
 
 	srv.Assert(t, dns.Question{Name: "notfound.example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET})
-	time.Sleep(10*time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"name": "notfound.example.com.", "type": "A"}}}); err != nil {
 		t.Error(err)
 	}
 
 	srv.Assert(t, dns.Question{Name: "notfound.example.com.", Qtype: dns.TypeAAAA, Qclass: dns.ClassINET})
-	time.Sleep(10*time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"name": "notfound.example.com.", "type": "AAAA"}}}); err != nil {
 		t.Error(err)
