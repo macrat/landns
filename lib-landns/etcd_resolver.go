@@ -378,9 +378,10 @@ func (er *EtcdResolver) RemoveRecord(id int) error {
 			if err != nil {
 				return Error{TypeExternalError, err, "failed to delete record"}
 			}
+			return nil
 		}
 	}
-	return nil
+	return ErrNoSuchRecord
 }
 
 // RecursionAvailable is always returns `false`.

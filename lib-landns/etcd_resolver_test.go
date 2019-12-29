@@ -33,33 +33,35 @@ func CreateEtcdResolver(t testing.TB) (*landns.EtcdResolver, []string, func()) {
 func TestEtcdResolver(t *testing.T) {
 	t.Parallel()
 
-	resolver, addrs, closer := CreateEtcdResolver(t)
-	defer closer()
+	for _, tt := range DynamicResolverTests {
+		tester := tt.Tester
 
-	name := fmt.Sprintf("EtcdResolver[%s]", addrs[0])
-	if s := resolver.String(); s != name {
-		t.Errorf(`unexpected string: expected %#v but got %#v`, name, s)
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+
+			resolver, addrs, closer := CreateEtcdResolver(t)
+			defer closer()
+
+			name := fmt.Sprintf("EtcdResolver[%s]", addrs[0])
+			if s := resolver.String(); s != name {
+				t.Errorf(`unexpected string: expected %#v but got %#v`, name, s)
+			}
+
+			tester(t, resolver)
+		})
 	}
 
-	DynamicResolverTest(t, resolver)
-}
+	t.Run("NewEtcdResolver_fail", func(t *testing.T) {
+		t.Parallel()
 
-func TestEtcdResolver_Volatile(t *testing.T) {
-	t.Parallel()
-
-	resolver, _, closer := CreateEtcdResolver(t)
-	defer closer()
-
-	DynamicResolverTest_Volatile(t, resolver)
-}
-
-func TestEtcdResolver_Parallel(t *testing.T) {
-	t.Parallel()
-
-	resolver, _, closer := CreateEtcdResolver(t)
-	defer closer()
-
-	ParallelResolveTest(t, resolver)
+		_, err := landns.NewEtcdResolver(nil, "/landns", time.Second, landns.NewMetrics("landns"))
+		expect := "failed to connect etcd: etcdclient: no available endpoints"
+		if err == nil {
+			t.Errorf("expected error but got nil")
+		} else if err.Error() != expect {
+			t.Errorf("unexpected error:\nexpected: %#v\nbut got:  %#v", expect, err.Error())
+		}
+	})
 }
 
 func BenchmarkEtcdResolver(b *testing.B) {

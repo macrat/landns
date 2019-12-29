@@ -21,44 +21,26 @@ func CreateSqliteResolver(t testing.TB) *landns.SqliteResolver {
 func TestSqliteResolver(t *testing.T) {
 	t.Parallel()
 
-	resolver := CreateSqliteResolver(t)
-	defer func() {
-		if err := resolver.Close(); err != nil {
-			t.Fatalf("failed to close: %s", err)
-		}
-	}()
+	for _, tt := range DynamicResolverTests {
+		tester := tt.Tester
 
-	if s := resolver.String(); s != "SqliteResolver[:memory:]" {
-		t.Errorf(`unexpected string: expected "SqliteResolver[:memory:]" but got %#v`, s)
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+
+			resolver := CreateSqliteResolver(t)
+			defer func() {
+				if err := resolver.Close(); err != nil {
+					t.Fatalf("failed to close: %s", err)
+				}
+			}()
+
+			if s := resolver.String(); s != "SqliteResolver[:memory:]" {
+				t.Errorf(`unexpected string: expected "SqliteResolver[:memory:]" but got %#v`, s)
+			}
+
+			tester(t, resolver)
+		})
 	}
-
-	DynamicResolverTest(t, resolver)
-}
-
-func TestSqliteResolver_Volatile(t *testing.T) {
-	t.Parallel()
-
-	resolver := CreateSqliteResolver(t)
-	defer func() {
-		if err := resolver.Close(); err != nil {
-			t.Fatalf("failed to close: %s", err)
-		}
-	}()
-
-	DynamicResolverTest_Volatile(t, resolver)
-}
-
-func TestSqliteResolver_Parallel(t *testing.T) {
-	t.Parallel()
-
-	resolver := CreateSqliteResolver(t)
-	defer func() {
-		if err := resolver.Close(); err != nil {
-			t.Fatalf("failed to close: %s", err)
-		}
-	}()
-
-	ParallelResolveTest(t, resolver)
 }
 
 func BenchmarkSqliteResolver(b *testing.B) {

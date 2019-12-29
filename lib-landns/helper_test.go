@@ -94,11 +94,17 @@ func AssertExchange(t *testing.T, addr *net.UDPAddr, question []dns.Question, ex
 	}
 }
 
-func AssertDynamicRecordSet(t testing.TB, name string, expect []string, got landns.DynamicRecordSet) {
+func AssertDynamicRecordSet(t testing.TB, expect []string, got landns.DynamicRecordSet) {
 	t.Helper()
 
 	ok := len(expect) == len(got)
 	if ok {
+		sort.Slice(expect, func(i, j int) bool {
+			return strings.Compare(expect[i], expect[j]) == 1
+		})
+		sort.Slice(got, func(i, j int) bool {
+			return strings.Compare(got[i].String(), got[j].String()) == 1
+		})
 		for i := range got {
 			if got[i].String() != expect[i] {
 				ok = false
@@ -106,7 +112,7 @@ func AssertDynamicRecordSet(t testing.TB, name string, expect []string, got land
 		}
 	}
 	if !ok {
-		txt := "unexpected entries: " + name + ":\nexpected:\n"
+		txt := "unexpected entries:\nexpected:\n"
 		for _, t := range expect {
 			txt += "\t" + t + "\n"
 		}
