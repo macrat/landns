@@ -76,7 +76,7 @@ address:
 	}
 }
 
-func StartServer(t *testing.T, args []string) (*service, func()) {
+func startServer(t *testing.T, args []string) (*service, func()) {
 	service, err := makeServer(args)
 	if err != nil {
 		t.Fatalf("failed to make server: %s", err)
@@ -110,7 +110,7 @@ func TestMakeServer(t *testing.T) {
 	})
 
 	t.Run("simple/run", func(t *testing.T) {
-		_, cancel := StartServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", ":1053"})
+		_, cancel := startServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", ":1053"})
 		defer cancel()
 	})
 	t.Run("static", func(t *testing.T) {
@@ -120,7 +120,7 @@ func TestMakeServer(t *testing.T) {
 		}
 		defer closer()
 
-		_, cancel := StartServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-c", path})
+		_, cancel := startServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-c", path})
 		defer cancel()
 
 		msg := &dns.Msg{
@@ -143,7 +143,7 @@ func TestMakeServer(t *testing.T) {
 		}
 	})
 	t.Run("upstream", func(t *testing.T) {
-		_, cancel := StartServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
+		_, cancel := startServer(t, []string{"-l", fmt.Sprintf("127.0.0.1:%d", testutil.FindEmptyPort()), "-L", "127.0.0.1:1053", "-u", "8.8.8.8:53", "-u", "8.8.4.4:53", "-u", "1.1.1.1:53"})
 		defer cancel()
 
 		msg := &dns.Msg{

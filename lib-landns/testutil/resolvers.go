@@ -14,9 +14,8 @@ type DummyResolver struct {
 func (dr DummyResolver) Resolve(w landns.ResponseWriter, r landns.Request) error {
 	if dr.Error {
 		return landns.Error{Type: landns.TypeInternalError, Message: "test error"}
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // RecursionAvailable is returns value of DummyResolver.Recursion.

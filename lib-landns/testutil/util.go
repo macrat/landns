@@ -7,7 +7,10 @@ import (
 )
 
 const (
+	// PortMin is minimum port number for FindEmptyPort.
 	PortMin = 49152
+
+	// PortMax is maximum port number for FindEmptyPort.
 	PortMax = 65535
 )
 
