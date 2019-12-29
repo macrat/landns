@@ -49,6 +49,11 @@ func newError(typ ErrorType, original error, format string, args ...interface{})
 	}
 }
 
+// String is getter to human readable string.
+func (e Error) String() string {
+	return e.Error()
+}
+
 // Error is converter to human readable string.
 func (e Error) Error() string {
 	if e.Original == nil {

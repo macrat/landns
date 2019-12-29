@@ -45,6 +45,10 @@ func TestError(t *testing.T) {
 		if tt.Err.Error() != tt.Expect {
 			t.Errorf("unexpected error string:\nexpected: %#v\nbut got:  %#v", tt.Expect, tt.Err.Error())
 		}
+
+		if tt.Err.String() != tt.Expect {
+			t.Errorf("unexpected string:\nexpected: %#v\nbut got:  %#v", tt.Expect, tt.Err.Error())
+		}
 	}
 }
 
