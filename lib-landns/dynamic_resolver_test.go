@@ -117,7 +117,7 @@ func TestDynamicRecordSet(t *testing.T) {
 func DynamicResolverTest_SetRecords(t testing.TB, resolver landns.DynamicResolver) {
 	tests := []struct {
 		Records string
-		Entries map[int]string
+		Expect  []string
 	}{
 		{
 			Records: `
@@ -130,17 +130,17 @@ func DynamicResolverTest_SetRecords(t testing.TB, resolver landns.DynamicResolve
 				example.com. 500 IN MX 10 mx.example.com.
 				example.com. IN NS ns1.example.com.
 			`,
-			Entries: map[int]string{
-				1:  "example.com. 42 IN A 127.0.0.1 ; ID:1",
-				2:  "1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
-				3:  "example.com. 100 IN A 127.0.0.2 ; ID:3",
-				4:  "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-				5:  "example.com. 200 IN AAAA 4::2 ; ID:5",
-				6:  "2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
-				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
-				8:  "abc.example.com. 400 IN CNAME example.com. ; ID:8",
-				9:  "example.com. 500 IN MX 10 mx.example.com. ; ID:9",
-				10: "example.com. IN NS ns1.example.com. ; ID:10",
+			Expect: []string{
+				"example.com. 42 IN A 127.0.0.1 ; ID:1",
+				"1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
+				"example.com. 100 IN A 127.0.0.2 ; ID:3",
+				"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				"example.com. 200 IN AAAA 4::2 ; ID:5",
+				"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
+				"example.com. 300 IN TXT \"hello world\" ; ID:7",
+				"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+				"example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+				"example.com. IN NS ns1.example.com. ; ID:10",
 			},
 		},
 		{
@@ -149,17 +149,17 @@ func DynamicResolverTest_SetRecords(t testing.TB, resolver landns.DynamicResolve
 				new.example.com. 42 IN A 127.0.1.1
 				abc.example.com. 400 IN CNAME example.com.
 			`,
-			Entries: map[int]string{
-				3:  "example.com. 100 IN A 127.0.0.2 ; ID:3",
-				4:  "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-				5:  "example.com. 200 IN AAAA 4::2 ; ID:5",
-				6:  "2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
-				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
-				8:  "abc.example.com. 400 IN CNAME example.com. ; ID:8",
-				9:  "example.com. 500 IN MX 10 mx.example.com. ; ID:9",
-				10: "example.com. IN NS ns1.example.com. ; ID:10",
-				11: "new.example.com. 42 IN A 127.0.1.1 ; ID:11",
-				12: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
+			Expect: []string{
+				"example.com. 100 IN A 127.0.0.2 ; ID:3",
+				"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				"example.com. 200 IN AAAA 4::2 ; ID:5",
+				"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.ip6.arpa. 200 IN PTR example.com. ; ID:6",
+				"example.com. 300 IN TXT \"hello world\" ; ID:7",
+				"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+				"example.com. 500 IN MX 10 mx.example.com. ; ID:9",
+				"example.com. IN NS ns1.example.com. ; ID:10",
+				"new.example.com. 42 IN A 127.0.1.1 ; ID:11",
+				"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 			},
 		},
 		{
@@ -169,14 +169,14 @@ func DynamicResolverTest_SetRecords(t testing.TB, resolver landns.DynamicResolve
 				;no.example.com. 200 IN AAAA 4::2 ; ID:5
 				;example.com. 500 IN MX 10 mx.example.com.
 			`,
-			Entries: map[int]string{
-				3:  "example.com. 100 IN A 127.0.0.2 ; ID:3",
-				4:  "2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
-				7:  "example.com. 300 IN TXT \"hello world\" ; ID:7",
-				8:  "abc.example.com. 400 IN CNAME example.com. ; ID:8",
-				10: "example.com. IN NS ns1.example.com. ; ID:10",
-				11: "new.example.com. 42 IN A 127.0.1.1 ; ID:11",
-				12: "1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
+			Expect: []string{
+				"example.com. 100 IN A 127.0.0.2 ; ID:3",
+				"2.0.0.127.in-addr.arpa. 100 IN PTR example.com. ; ID:4",
+				"example.com. 300 IN TXT \"hello world\" ; ID:7",
+				"abc.example.com. 400 IN CNAME example.com. ; ID:8",
+				"example.com. IN NS ns1.example.com. ; ID:10",
+				"new.example.com. 42 IN A 127.0.1.1 ; ID:11",
+				"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 			},
 		},
 	}
@@ -191,17 +191,11 @@ func DynamicResolverTest_SetRecords(t testing.TB, resolver landns.DynamicResolve
 			t.Errorf("failed to set records: %s", err)
 		}
 
-		for id, expect := range tt.Entries {
-			record, err := resolver.GetRecord(id)
-			if err != nil {
-				t.Errorf("failed to get record: %d: %d", id, err)
-				continue
-			}
-
-			if record.String() != expect+"\n" {
-				t.Errorf("failed to get record: %d:\nexpected: %#v\nbut got:  %#v", id, expect+"\n", record.String())
-			}
+		rs, err := resolver.Records()
+		if err != nil {
+			t.Errorf("failed to get records: %s", err)
 		}
+		AssertDynamicRecordSet(t, tt.Expect, rs)
 	}
 }
 
