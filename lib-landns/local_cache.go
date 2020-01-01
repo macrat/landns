@@ -11,7 +11,7 @@ import (
 // LocalCache is in-memory cache manager for Resolver.
 type LocalCache struct {
 	mutex    sync.Mutex
-	entries  map[uint16]map[Domain][]ExpiredRecord
+	entries  map[uint16]map[Domain][]VolatileRecord
 	invoke   chan struct{}
 	closer   chan struct{}
 	upstream Resolver
@@ -23,7 +23,7 @@ type LocalCache struct {
 // LocalCache will start background goroutine. So you have to ensure to call LocalCache.Close.
 func NewLocalCache(upstream Resolver, metrics *Metrics) *LocalCache {
 	lc := &LocalCache{
-		entries:  make(map[uint16]map[Domain][]ExpiredRecord),
+		entries:  make(map[uint16]map[Domain][]VolatileRecord),
 		invoke:   make(chan struct{}, 100),
 		closer:   make(chan struct{}),
 		upstream: upstream,
@@ -31,7 +31,7 @@ func NewLocalCache(upstream Resolver, metrics *Metrics) *LocalCache {
 	}
 
 	for _, t := range []uint16{dns.TypeA, dns.TypeNS, dns.TypeCNAME, dns.TypePTR, dns.TypeMX, dns.TypeTXT, dns.TypeAAAA, dns.TypeSRV} {
-		lc.entries[t] = make(map[Domain][]ExpiredRecord)
+		lc.entries[t] = make(map[Domain][]VolatileRecord)
 	}
 
 	go lc.manage()
@@ -113,13 +113,13 @@ func (lc *LocalCache) add(r Record) {
 	rr, _ := r.ToRR()
 
 	if _, ok := lc.entries[r.GetQtype()][r.GetName()]; !ok {
-		lc.entries[r.GetQtype()][r.GetName()] = []ExpiredRecord{
+		lc.entries[r.GetQtype()][r.GetName()] = []VolatileRecord{
 			{rr, time.Now().Add(time.Duration(r.GetTTL()) * time.Second)},
 		}
 	} else {
 		lc.entries[r.GetQtype()][r.GetName()] = append(
 			lc.entries[r.GetQtype()][r.GetName()],
-			ExpiredRecord{rr, time.Now().Add(time.Duration(r.GetTTL()) * time.Second)},
+			VolatileRecord{rr, time.Now().Add(time.Duration(r.GetTTL()) * time.Second)},
 		)
 	}
 
@@ -137,7 +137,7 @@ func (lc *LocalCache) resolveFromUpstream(w ResponseWriter, r Request) error {
 	return lc.upstream.Resolve(wh, r)
 }
 
-func (lc *LocalCache) resolveFromCache(w ResponseWriter, r Request, records []ExpiredRecord) error {
+func (lc *LocalCache) resolveFromCache(w ResponseWriter, r Request, records []VolatileRecord) error {
 	lc.metrics.CacheHit(r)
 
 	w.SetNoAuthoritative()

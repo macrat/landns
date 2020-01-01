@@ -59,7 +59,7 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 		Writer: w,
 		OnAdd: func(record Record) {
 			rr, _ := record.ToRR()
-			rc.client.RPush(key, ExpiredRecord{rr, time.Now().Add(time.Duration(record.GetTTL()) * time.Second)}.String())
+			rc.client.RPush(key, VolatileRecord{rr, time.Now().Add(time.Duration(record.GetTTL()) * time.Second)}.String())
 
 			if ttl > record.GetTTL() {
 				ttl = record.GetTTL()
@@ -84,7 +84,7 @@ func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []strin
 	rc.metrics.CacheMiss(r)
 
 	for _, str := range cache {
-		entry, err := NewExpiredRecord(str)
+		entry, err := NewVolatileRecord(str)
 		if err != nil {
 			return err
 		}

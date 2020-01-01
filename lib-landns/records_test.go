@@ -210,7 +210,7 @@ func TestRecords(t *testing.T) {
 	}
 }
 
-func TestExpiredRecord(t *testing.T) {
+func TestVolatileRecord(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -233,7 +233,7 @@ func TestExpiredRecord(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			e, err := landns.NewExpiredRecord(tt.Entry)
+			e, err := landns.NewVolatileRecord(tt.Entry)
 
 			if err != nil {
 				t.Errorf("%#v: failed to parse cache entry: %s", tt.Entry, err)
@@ -268,7 +268,7 @@ func TestExpiredRecord(t *testing.T) {
 		}
 
 		for _, tt := range tests {
-			_, err := landns.NewExpiredRecord(tt.Entry)
+			_, err := landns.NewVolatileRecord(tt.Entry)
 
 			if err == nil {
 				t.Errorf("%#v: expected error but got nil", tt.Entry)

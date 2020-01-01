@@ -505,20 +505,20 @@ func (r SrvRecord) Validate() error {
 	return r.Target.Validate()
 }
 
-// ExpiredRecord is record value that has expire datetime.
-type ExpiredRecord struct {
+// VolatileRecord is record value that has expire datetime.
+type VolatileRecord struct {
 	RR     dns.RR
 	Expire time.Time
 }
 
-// NewExpiredRecord will parse record text and make new ExpiredRecord.
-func NewExpiredRecord(record string) (ExpiredRecord, error) {
-	var r ExpiredRecord
+// NewVolatileRecord will parse record text and make new VolatileRecord.
+func NewVolatileRecord(record string) (VolatileRecord, error) {
+	var r VolatileRecord
 	return r, r.UnmarshalText([]byte(record))
 }
 
 // Record is Record getter.
-func (r ExpiredRecord) Record() (Record, error) {
+func (r VolatileRecord) Record() (Record, error) {
 	if r.Expire.Unix() > 0 {
 		ttl := math.Round(time.Until(r.Expire).Seconds())
 		if ttl < 0 {
@@ -532,13 +532,13 @@ func (r ExpiredRecord) Record() (Record, error) {
 }
 
 // String is get printable string.
-func (r ExpiredRecord) String() string {
+func (r VolatileRecord) String() string {
 	text, _ := r.MarshalText()
 	return string(text)
 }
 
-// UnmarshalText is unmarshal ExpiredRecord from text.
-func (r *ExpiredRecord) UnmarshalText(text []byte) error {
+// UnmarshalText is unmarshal VolatileRecord from text.
+func (r *VolatileRecord) UnmarshalText(text []byte) error {
 	if bytes.Contains(text, []byte("\n")) {
 		return ErrMultiLineDynamicRecord
 	}
@@ -568,8 +568,8 @@ func (r *ExpiredRecord) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// MarshalText is marshal ExpiredRecord to text.
-func (r ExpiredRecord) MarshalText() ([]byte, error) {
+// MarshalText is marshal VolatileRecord to text.
+func (r VolatileRecord) MarshalText() ([]byte, error) {
 	rec, err := r.Record()
 	if err != nil {
 		return nil, err

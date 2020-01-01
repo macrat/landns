@@ -112,8 +112,8 @@ func (r DynamicRecord) MarshalText() ([]byte, error) {
 	return []byte(r.String()), nil
 }
 
-// ExpiredRecord is make ExpiredRecord from DynamicRecord.
-func (r DynamicRecord) ExpiredRecord() (ExpiredRecord, error) {
+// VolatileRecord is make VolatileRecord from DynamicRecord.
+func (r DynamicRecord) VolatileRecord() (VolatileRecord, error) {
 	var ttl time.Time
 	if r.Volatile {
 		ttl = time.Now().Add(time.Duration(r.Record.GetTTL()) * time.Second)
@@ -121,10 +121,10 @@ func (r DynamicRecord) ExpiredRecord() (ExpiredRecord, error) {
 
 	rr, err := r.Record.ToRR()
 	if err != nil {
-		return ExpiredRecord{}, err
+		return VolatileRecord{}, err
 	}
 
-	return ExpiredRecord{rr, ttl}, nil
+	return VolatileRecord{rr, ttl}, nil
 }
 
 // DynamicRecordSet is list of DynamicRecord

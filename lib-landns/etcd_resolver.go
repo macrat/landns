@@ -109,18 +109,18 @@ func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecord
 	rs := make(DynamicRecordSet, len(resp.Kvs))
 
 	for i, r := range resp.Kvs {
-		var expired ExpiredRecord
-		err := expired.UnmarshalText(r.Value)
+		var vr VolatileRecord
+		err := vr.UnmarshalText(r.Value)
 		if err != nil {
 			return nil, Error{TypeInternalError, err, "faield to parse records"}
 		}
 
-		rs[i].Record, err = expired.Record()
+		rs[i].Record, err = vr.Record()
 		if err != nil {
 			return nil, err
 		}
 
-		rs[i].Volatile = expired.Expire.Unix() > 0
+		rs[i].Volatile = vr.Expire.Unix() > 0
 
 		id, err := er.getIDbyKey(string(r.Key))
 		if err != nil {
@@ -205,11 +205,11 @@ func (er *EtcdResolver) insertSingleRecord(ctx context.Context, r DynamicRecord)
 		options = append(options, clientv3.WithLease(resp.ID))
 	}
 
-	expired, err := r.ExpiredRecord()
+	vr, err := r.VolatileRecord()
 	if err != nil {
 		return err
 	}
-	value, err := expired.MarshalText()
+	value, err := vr.MarshalText()
 	if err != nil {
 		return err
 	}
