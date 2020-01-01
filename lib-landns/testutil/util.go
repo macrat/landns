@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"time"
 )
 
 const (
@@ -13,6 +14,10 @@ const (
 	// PortMax is maximum port number for FindEmptyPort.
 	PortMax = 65535
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // FindEmptyPort is find unused TCP port.
 func FindEmptyPort() int {
