@@ -8,7 +8,7 @@ import (
 func TestErrorType(t *testing.T) {
 	t.Parallel()
 
-	for i, tt := range []string{"UnknownError", "InternalError", "ExternalError", "ArgumentError", "UnknownError"} {
+	for i, tt := range []string{"UnknownError", "InternalError", "ExternalError", "ArgumentError", "ExpirationError", "UnknownError"} {
 		if s := ErrorType(i).String(); s != tt {
 			t.Errorf("unexpected error string: expected %#v but got %#v", tt, s)
 		}
@@ -21,6 +21,7 @@ func TestErrorType(t *testing.T) {
 		{TypeInternalError, "InternalError"},
 		{TypeExternalError, "ExternalError"},
 		{TypeArgumentError, "ArgumentError"},
+		{TypeExpirationError, "ExpirationError"},
 	} {
 		if s := tt.Type.String(); s != tt.Expect {
 			t.Errorf("unexpected error string: expected %#v but got %#v", tt.Expect, s)

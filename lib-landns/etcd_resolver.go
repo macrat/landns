@@ -106,27 +106,34 @@ func (er *EtcdResolver) getIDbyKey(key string) (int, error) {
 }
 
 func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecordSet, error) {
-	rs := make(DynamicRecordSet, len(resp.Kvs))
+	rs := make(DynamicRecordSet, 0, len(resp.Kvs))
 
-	for i, r := range resp.Kvs {
+	for _, r := range resp.Kvs {
 		var vr VolatileRecord
 		err := vr.UnmarshalText(r.Value)
 		if err != nil {
-			return nil, Error{TypeInternalError, err, "faield to parse records"}
+			if e, ok := err.(Error); ok && e.Type == TypeExpirationError {
+				continue
+			} else {
+				return nil, err
+			}
 		}
 
-		rs[i].Record, err = vr.Record()
+		var dr DynamicRecord
+		dr.Record, err = vr.Record()
 		if err != nil {
 			return nil, err
 		}
 
-		rs[i].Volatile = vr.Expire.Unix() > 0
+		dr.Volatile = vr.Expire.Unix() > 0
 
 		id, err := er.getIDbyKey(string(r.Key))
 		if err != nil {
 			return nil, err
 		}
-		rs[i].ID = &id
+		dr.ID = &id
+
+		rs = append(rs, dr)
 	}
 
 	return rs, nil

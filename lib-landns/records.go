@@ -522,7 +522,7 @@ func (r VolatileRecord) Record() (Record, error) {
 	if r.Expire.Unix() > 0 {
 		ttl := math.Round(time.Until(r.Expire).Seconds())
 		if ttl < 0 {
-			return nil, newError(TypeArgumentError, nil, "this record is already expired: %s", r.Expire)
+			return nil, newError(TypeExpirationError, nil, "this record is already expired: %s", r.Expire)
 		}
 
 		r.RR.Header().Ttl = uint32(ttl)
@@ -544,9 +544,16 @@ func (r *VolatileRecord) UnmarshalText(text []byte) error {
 	}
 	text = bytes.TrimSpace(text)
 
+	xs := bytes.SplitN(text, []byte(";"), 2)
+
+	var err error
+	r.RR, err = dns.NewRR(string(xs[0]))
+	if err != nil {
+		return Error{TypeInternalError, err, "failed to parse record"}
+	}
+
 	r.Expire = time.Unix(0, 0)
 
-	xs := bytes.SplitN(text, []byte(";"), 2)
 	if len(xs) == 2 {
 		i, err := strconv.ParseInt(string(bytes.TrimSpace(xs[1])), 10, 64)
 		if err != nil {
@@ -555,14 +562,8 @@ func (r *VolatileRecord) UnmarshalText(text []byte) error {
 		r.Expire = time.Unix(i, 0)
 
 		if r.Expire.Before(time.Now()) {
-			return newError(TypeArgumentError, nil, "failed to parse record: expire can't be past time: %s", r.Expire)
+			return newError(TypeExpirationError, nil, "failed to parse record: expire can't be past time: %s", r.Expire)
 		}
-	}
-
-	var err error
-	r.RR, err = dns.NewRR(string(xs[0]))
-	if err != nil {
-		return Error{TypeInternalError, err, "failed to parse record"}
 	}
 
 	return nil

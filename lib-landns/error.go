@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// ErrorType is type of Error
+// ErrorType is type of Error.
 type ErrorType uint8
 
 const (
@@ -17,6 +17,9 @@ const (
 
 	// TypeArgumentError is a error for invalid argument error.
 	TypeArgumentError
+
+	// TypeExpirationError is error for record has expired.
+	TypeExpirationError
 )
 
 // String is converter to human readable string.
@@ -28,6 +31,8 @@ func (t ErrorType) String() string {
 		return "ExternalError"
 	case TypeArgumentError:
 		return "ArgumentError"
+	case TypeExpirationError:
+		return "ExpirationError"
 	default:
 		return "UnknownError"
 	}
