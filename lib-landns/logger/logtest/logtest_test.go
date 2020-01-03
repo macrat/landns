@@ -42,6 +42,10 @@ func TestDummyLogger(t *testing.T) {
 	l := new(logtest.DummyLogger)
 	es := []logtest.Entry{}
 
+	if l.GetLevel() != logger.DebugLevel {
+		t.Errorf("unexpected level: expected %s but got %s", logger.DebugLevel, l.GetLevel())
+	}
+
 	tests := []struct {
 		Message string
 		Fields  logger.Fields

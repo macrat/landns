@@ -68,6 +68,11 @@ func (l *DummyLogger) Fatal(message string, fields logger.Fields) {
 	})
 }
 
+// GetLevel is always returns logger.DebugLevel.
+func (l *DummyLogger) GetLevel() logger.Level {
+	return logger.DebugLevel
+}
+
 func (l *DummyLogger) makeError(expect []Entry) error {
 	msg := "unexpected log entries:\nexpected:\n"
 	for _, e := range expect {
