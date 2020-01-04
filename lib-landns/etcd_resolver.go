@@ -1,6 +1,7 @@
 package landns
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"regexp"
@@ -53,63 +54,82 @@ func (er *EtcdResolver) makeContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), er.Timeout)
 }
 
-func (er *EtcdResolver) makeKey(ctx context.Context, r DynamicRecord) (DynamicRecord, string, error) {
+func (er *EtcdResolver) getKey(r DynamicRecord) string {
 	if r.ID == nil {
-		resp, err := er.client.Get(ctx, er.Prefix+"/lastID")
-		if err != nil {
-			return r, "", Error{TypeExternalError, err, "failed to get last ID"}
-		}
-
-		id := 0
-		if len(resp.Kvs) > 0 {
-			id, err = strconv.Atoi(string(resp.Kvs[0].Value))
-			if err != nil {
-				return r, "", Error{TypeInternalError, err, "failed to parse last ID"}
-			}
-		}
-		id++
-		r.ID = &id
-
-		if _, err := er.client.Put(ctx, er.Prefix+"/lastID", strconv.Itoa(*r.ID)); err != nil {
-			return r, "", Error{TypeExternalError, err, "failed to put last ID"}
-		}
+		return fmt.Sprintf("%s/records%s", er.Prefix, r.Record.GetName().ToPath())
 	}
 
-	return er.findKey(ctx, r)
+	return fmt.Sprintf("%s/records%s/%d", er.Prefix, r.Record.GetName().ToPath(), *r.ID)
 }
 
-func (er *EtcdResolver) findKey(ctx context.Context, r DynamicRecord) (DynamicRecord, string, error) {
-	if r.ID != nil {
-		return r, fmt.Sprintf("%s/records%s/%d", er.Prefix, r.Record.GetName().ToPath(), *r.ID), nil
+func (er *EtcdResolver) makeKey(ctx context.Context, r DynamicRecord) (DynamicRecord, string, error) {
+	resp, err := er.client.Get(ctx, er.Prefix+"/lastID")
+	if err != nil {
+		return r, "", Error{TypeExternalError, err, "failed to get last ID"}
 	}
 
-	resp, err := er.client.Get(ctx, er.Prefix+"/records"+r.Record.GetName().ToPath()+"/", clientv3.WithPrefix())
+	id := 0
+	if len(resp.Kvs) > 0 {
+		id, err = strconv.Atoi(string(resp.Kvs[0].Value))
+		if err != nil {
+			return r, "", Error{TypeInternalError, err, "failed to parse last ID"}
+		}
+	}
+	id++
+	r.ID = &id
+
+	if _, err := er.client.Put(ctx, er.Prefix+"/lastID", strconv.Itoa(*r.ID)); err != nil {
+		return r, "", Error{TypeExternalError, err, "failed to put last ID"}
+	}
+
+	return r, er.getKey(r), nil
+}
+
+func (er *EtcdResolver) findKey(ctx context.Context, r DynamicRecord, withTTL bool) (DynamicRecord, string, error) {
+	resp, err := er.client.Get(ctx, er.getKey(r), clientv3.WithPrefix())
 	if err != nil {
 		return DynamicRecord{}, "", Error{TypeExternalError, err, "failed to get records"}
 	}
-	var r2 DynamicRecord
+	var r2 VolatileRecord
 	for _, x := range resp.Kvs {
 		if err := r2.UnmarshalText(x.Value); err != nil {
-			return DynamicRecord{}, "", Error{TypeInternalError, err, "failed to parse records"}
+			return DynamicRecord{}, "", Error{TypeInternalError, err, "failed to parse record"}
 		}
 
-		if r.Record.String() == r2.Record.String() {
-			ks := strings.Split(string(x.Key), "/")
-			id, err := strconv.Atoi(ks[len(ks)-1])
-			if err != nil {
-				return DynamicRecord{}, "", Error{TypeInternalError, err, "failed to parse record ID"}
-			}
-			r2.ID = &id
-			return er.makeKey(ctx, r2)
+		rec, err := r2.Record()
+		if err != nil {
+			return DynamicRecord{}, "", Error{TypeInternalError, err, "failed to parse record"}
 		}
+
+		if withTTL && r.Record.String() != rec.String() {
+			continue
+		}
+		if !withTTL && r.Record.WithoutTTL() != rec.WithoutTTL() {
+			continue
+		}
+
+		id, err := er.getIDbyKey(x.Key)
+		if err != nil {
+			return DynamicRecord{}, "", err
+		}
+		r.ID = &id
+
+		return r, string(x.Key), nil
 	}
 
-	return DynamicRecord{}, "", nil
+	r.ID = nil
+	return r, "", nil
 }
 
-func (er *EtcdResolver) getIDbyKey(key string) (int, error) {
-	ks := strings.Split(key, "/")
-	return strconv.Atoi(ks[len(ks)-1])
+func (er *EtcdResolver) getIDbyKey(key []byte) (int, error) {
+	ks := bytes.Split(key, []byte{'/'})
+
+	i, err := strconv.Atoi(string(ks[len(ks)-1]))
+	if err != nil {
+		return 0, Error{TypeInternalError, err, "failed to parse record ID"}
+	}
+
+	return i, nil
 }
 
 func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecordSet, error) {
@@ -134,7 +154,7 @@ func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecord
 
 		dr.Volatile = vr.Expire.Unix() > 0
 
-		id, err := er.getIDbyKey(string(r.Key))
+		id, err := er.getIDbyKey(r.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -146,21 +166,8 @@ func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecord
 	return rs, nil
 }
 
-func (er *EtcdResolver) findSameRecord(ctx context.Context, r DynamicRecord) (bool, error) {
-	resp, err := er.client.Get(ctx, er.Prefix+"/records"+r.Record.GetName().ToPath(), clientv3.WithPrefix())
-	if err != nil {
-		return false, Error{TypeExternalError, err, "failed to get records"}
-	}
-	for _, r2 := range resp.Kvs {
-		if r.String() == string(r2.Value) {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 func (er *EtcdResolver) dropRecord(ctx context.Context, r DynamicRecord) error {
-	_, key, err := er.findKey(ctx, r)
+	_, key, err := er.findKey(ctx, r, true)
 	if err != nil {
 		return err
 	}
@@ -179,35 +186,27 @@ func (er *EtcdResolver) dropRecord(ctx context.Context, r DynamicRecord) error {
 	if err != nil {
 		return Error{TypeExternalError, err, "failed to make reverse address"}
 	}
-	_, key, err = er.findKey(ctx, DynamicRecord{
+	return er.dropRecord(ctx, DynamicRecord{
 		Record: PtrRecord{
 			Name:   Domain(reverse),
 			TTL:    r.Record.GetTTL(),
 			Domain: r.Record.GetName(),
 		},
+		Volatile: r.Volatile,
 	})
-	if err != nil {
-		return err
-	} else if key == "" {
-		return nil
-	}
-	if _, err := er.client.Delete(ctx, key); err != nil {
-		return Error{TypeExternalError, err, "failed to delete record"}
-	}
-
-	return nil
 }
 
 func (er *EtcdResolver) insertSingleRecord(ctx context.Context, r DynamicRecord) error {
-	if found, err := er.findSameRecord(ctx, r); err != nil {
-		return err
-	} else if found {
-		return nil
-	}
-
-	r, key, err := er.makeKey(ctx, r)
+	r, key, err := er.findKey(ctx, r, false)
 	if err != nil {
 		return err
+	}
+
+	if key == "" {
+		r, key, err = er.makeKey(ctx, r)
+		if err != nil {
+			return err
+		}
 	}
 
 	options := []clientv3.OpOption{}
@@ -384,11 +383,7 @@ func (er *EtcdResolver) RemoveRecord(id int) error {
 
 	for _, r := range rs {
 		if *r.ID == id {
-			_, key, err := er.findKey(ctx, r)
-			if err != nil {
-				return err
-			}
-			_, err = er.client.Delete(ctx, key)
+			_, err = er.client.Delete(ctx, er.getKey(r))
 			if err != nil {
 				return Error{TypeExternalError, err, "failed to delete record"}
 			}

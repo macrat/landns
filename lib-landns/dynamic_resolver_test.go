@@ -16,6 +16,7 @@ var (
 		Tester func(testing.TB, landns.DynamicResolver)
 	}{
 		{"SetRecords", DynamicResolverTest_SetRecords},
+		{"SetRecords_updateTTL", DynamicResolverTest_SetRecords_updateTTL},
 		{"Records", DynamicResolverTest_Records},
 		{"GetRecord", DynamicResolverTest_GetRecord},
 		{"SearchRecords", DynamicResolverTest_SearchRecords},
@@ -178,6 +179,64 @@ func DynamicResolverTest_SetRecords(t testing.TB, resolver landns.DynamicResolve
 				"new.example.com. 42 IN A 127.0.1.1 ; ID:11",
 				"1.1.0.127.in-addr.arpa. 42 IN PTR new.example.com. ; ID:12",
 			},
+		},
+	}
+
+	for _, tt := range tests {
+		records, err := landns.NewDynamicRecordSet(tt.Records)
+		if err != nil {
+			t.Fatalf("failed to make dynamic records: %s", err)
+		}
+
+		if err := resolver.SetRecords(records); err != nil {
+			t.Errorf("failed to set records: %s", err)
+		}
+
+		rs, err := resolver.Records()
+		if err != nil {
+			t.Errorf("failed to get records: %s", err)
+		}
+		AssertDynamicRecordSet(t, tt.Expect, rs)
+	}
+}
+
+func DynamicResolverTest_SetRecords_updateTTL(t testing.TB, resolver landns.DynamicResolver) {
+	tests := []struct {
+		Records string
+		Expect  []string
+	}{
+		{
+			Records: `
+				example.com. 42 IN A 127.0.0.1
+			`,
+			Expect: []string{
+				"example.com. 42 IN A 127.0.0.1 ; ID:1",
+				"1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
+			},
+		},
+		{
+			Records: `
+				example.com. 84 IN A 127.0.0.1
+			`,
+			Expect: []string{
+				"example.com. 84 IN A 127.0.0.1 ; ID:1",
+				"1.0.0.127.in-addr.arpa. 84 IN PTR example.com. ; ID:2",
+			},
+		},
+		{
+			Records: `
+				;example.com. 42 IN A 127.0.0.1 ; ID:1
+			`,
+			Expect: []string{
+				"example.com. 84 IN A 127.0.0.1 ; ID:1",
+				"1.0.0.127.in-addr.arpa. 84 IN PTR example.com. ; ID:2",
+			},
+		},
+		{
+			Records: `
+				;example.com. 84 IN A 127.0.0.1 ; ID:1
+			`,
+			Expect: []string{},
 		},
 	}
 

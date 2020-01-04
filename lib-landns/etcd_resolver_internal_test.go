@@ -37,3 +37,57 @@ func TestCompileGlob(t *testing.T) {
 		}
 	}
 }
+
+func TestEtcdResolver_getIDbyKey(t *testing.T) {
+	tests := []struct {
+		Key    string
+		Expect int
+		Error  string
+	}{
+		{"/landns/com/example/42", 42, ""},
+		{"1", 1, ""},
+		{"/path/to/somewhere", 0, `failed to parse record ID: strconv.Atoi: parsing "somewhere": invalid syntax`},
+		{"", 0, `failed to parse record ID: strconv.Atoi: parsing "": invalid syntax`},
+	}
+
+	r := new(EtcdResolver)
+
+	for _, tt := range tests {
+		i, err := r.getIDbyKey([]byte(tt.Key))
+		if err != nil && tt.Error == "" {
+			t.Errorf("%s: unexpected error: %s", tt.Key, err)
+			continue
+		}
+		if tt.Error != "" && (err == nil || err.Error() != tt.Error) {
+			t.Errorf("%s: unexpected error:\nexpected: %v\nbut got:  %v", tt.Key, tt.Error, err)
+			continue
+		}
+
+		if i != tt.Expect {
+			t.Errorf("%s: unexpected ID: expected %d but got %d", tt.Key, tt.Expect, i)
+		}
+	}
+}
+
+func TestEtcdResolver_getKey(t *testing.T) {
+	id := int(42)
+
+	tests := []struct {
+		Record DynamicRecord
+		Expect string
+	}{
+		{DynamicRecord{Record: TxtRecord{Name: "example.com.", TTL: 10, Text: "hello world"}, ID: nil}, "/landns_test/records/com/example"},
+		{DynamicRecord{Record: TxtRecord{Name: "example.com.", TTL: 10, Text: "hello world"}, ID: &id}, "/landns_test/records/com/example/42"},
+	}
+
+	r := &EtcdResolver{
+		Prefix: "/landns_test",
+	}
+
+	for _, tt := range tests {
+		s := r.getKey(tt.Record)
+		if s != tt.Expect {
+			t.Errorf("%s: unexpected ID:\nexpected: %s\nbut got:  %s", tt.Record, tt.Expect, s)
+		}
+	}
+}
