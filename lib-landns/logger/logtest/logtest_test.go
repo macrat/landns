@@ -75,6 +75,37 @@ func TestDummyLogger(t *testing.T) {
 	}
 }
 
+func TestDummyLogger_String(t *testing.T) {
+	tests := []struct {
+		Logger *logtest.DummyLogger
+		Expect string
+	}{
+		{
+			&logtest.DummyLogger{
+				{logger.DebugLevel, "hello", nil},
+				{logger.InfoLevel, "world", logger.Fields{"id": 42}},
+			},
+			"[debug]hello[]\n[info]world[id:42]",
+		},
+		{
+			&logtest.DummyLogger{
+				{logger.DebugLevel, "hello", nil},
+			},
+			"[debug]hello[]",
+		},
+		{
+			&logtest.DummyLogger{},
+			"",
+		},
+	}
+
+	for _, tt := range tests {
+		if tt.Logger.String() != tt.Expect {
+			t.Errorf("unexpected string:\nexpected:\n%s\n\nbut got:\n%s", tt.Expect, tt.Logger.String())
+		}
+	}
+}
+
 func TestDummyLogger_Test(t *testing.T) {
 	t.Parallel()
 

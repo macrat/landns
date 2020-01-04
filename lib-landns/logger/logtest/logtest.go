@@ -4,6 +4,7 @@ package logtest
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/macrat/landns/lib-landns/logger"
 )
@@ -22,6 +23,15 @@ func (le Entry) String() string {
 
 // DummyLogger is dummy logger for logging test.
 type DummyLogger []Entry
+
+// String is converter to human readable string.
+func (l *DummyLogger) String() string {
+	ss := make([]string, len(*l))
+	for i := range *l {
+		ss[i] = (*l)[i].String()
+	}
+	return strings.Join(ss, "\n")
+}
 
 // Debug is writer to DebugLevel log.
 func (l *DummyLogger) Debug(message string, fields logger.Fields) {
