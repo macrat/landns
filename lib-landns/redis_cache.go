@@ -40,10 +40,10 @@ func NewRedisCache(addr net.Addr, database int, password string, upstream Resolv
 	}
 
 	return RedisCache{
-		addr: addr,
-		pool: pool,
+		addr:     addr,
+		pool:     pool,
 		upstream: upstream,
-		metrics: metrics,
+		metrics:  metrics,
 	}, nil
 }
 
@@ -87,7 +87,7 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 			}
 
 			rec := VolatileRecord{
-				RR: rr,
+				RR:     rr,
 				Expire: time.Now().Add(time.Duration(record.GetTTL()) * time.Second),
 			}
 

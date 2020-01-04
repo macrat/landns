@@ -68,7 +68,7 @@ func TestNewError(t *testing.T) {
 func TestWrapError(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct{
+	tests := []struct {
 		Original error
 		Type     ErrorType
 		Message  string

@@ -60,8 +60,8 @@ func wrapError(original error, typ ErrorType, message string) error {
 		return nil
 	}
 	return Error{
-		Type: typ,
-		Message: message,
+		Type:     typ,
+		Message:  message,
 		Original: original,
 	}
 }

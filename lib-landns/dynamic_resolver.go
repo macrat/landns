@@ -120,11 +120,7 @@ func (r DynamicRecord) VolatileRecord() (VolatileRecord, error) {
 	}
 
 	rr, err := r.Record.ToRR()
-	if err != nil {
-		return VolatileRecord{}, err
-	}
-
-	return VolatileRecord{rr, ttl}, nil
+	return VolatileRecord{rr, ttl}, err
 }
 
 // DynamicRecordSet is list of DynamicRecord

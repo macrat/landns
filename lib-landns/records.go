@@ -187,10 +187,7 @@ func (r AddressRecord) GetQtype() uint16 {
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r AddressRecord) ToRR() (dns.RR, error) {
 	rr, err := dns.NewRR(r.String())
-	if err != nil {
-		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
-	}
-	return rr, nil
+	return rr, wrapError(err, TypeInternalError, "failed to convert to RR")
 }
 
 // Validate is validator of record.
@@ -232,10 +229,7 @@ func (r NsRecord) GetQtype() uint16 {
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r NsRecord) ToRR() (dns.RR, error) {
 	rr, err := dns.NewRR(r.String())
-	if err != nil {
-		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
-	}
-	return rr, nil
+	return rr, wrapError(err, TypeInternalError, "failed to convert to RR")
 }
 
 // Validate is validator of record.
@@ -281,10 +275,7 @@ func (r CnameRecord) GetQtype() uint16 {
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r CnameRecord) ToRR() (dns.RR, error) {
 	rr, err := dns.NewRR(r.String())
-	if err != nil {
-		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
-	}
-	return rr, nil
+	return rr, wrapError(err, TypeInternalError, "failed to convert to RR")
 }
 
 // Validate is validator of record.
@@ -330,10 +321,7 @@ func (r PtrRecord) GetQtype() uint16 {
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r PtrRecord) ToRR() (dns.RR, error) {
 	rr, err := dns.NewRR(r.String())
-	if err != nil {
-		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
-	}
-	return rr, nil
+	return rr, wrapError(err, TypeInternalError, "failed to convert to RR")
 }
 
 // Validate is validator of record.
@@ -380,10 +368,7 @@ func (r MxRecord) GetQtype() uint16 {
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r MxRecord) ToRR() (dns.RR, error) {
 	rr, err := dns.NewRR(r.String())
-	if err != nil {
-		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
-	}
-	return rr, nil
+	return rr, wrapError(err, TypeInternalError, "failed to convert to RR")
 }
 
 // Validate is validator of record.
@@ -429,10 +414,7 @@ func (r TxtRecord) GetQtype() uint16 {
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r TxtRecord) ToRR() (dns.RR, error) {
 	rr, err := dns.NewRR(r.String())
-	if err != nil {
-		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
-	}
-	return rr, nil
+	return rr, wrapError(err, TypeInternalError, "failed to convert to RR")
 }
 
 // Validate is validator of record.
@@ -493,10 +475,7 @@ func (r SrvRecord) GetQtype() uint16 {
 // ToRR is converter to dns.RR of package github.com/miekg/dns
 func (r SrvRecord) ToRR() (dns.RR, error) {
 	rr, err := dns.NewRR(r.String())
-	if err != nil {
-		return nil, Error{TypeInternalError, err, "failed to convert to RR"}
-	}
-	return rr, nil
+	return rr, wrapError(err, TypeInternalError, "failed to convert to RR")
 }
 
 // Validate is validator of record.

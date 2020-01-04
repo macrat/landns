@@ -216,10 +216,7 @@ func (sr *SqliteResolver) SetRecords(rs DynamicRecordSet) error {
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return Error{TypeExternalError, err, "failed to commit transaction"}
-	}
-	return nil
+	return wrapError(tx.Commit(), TypeExternalError, "failed to commit transaction")
 }
 
 func scanRecords(rows *sql.Rows) (DynamicRecordSet, error) {

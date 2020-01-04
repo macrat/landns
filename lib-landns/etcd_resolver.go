@@ -125,11 +125,7 @@ func (er *EtcdResolver) getIDbyKey(key []byte) (int, error) {
 	ks := bytes.Split(key, []byte{'/'})
 
 	i, err := strconv.Atoi(string(ks[len(ks)-1]))
-	if err != nil {
-		return 0, Error{TypeInternalError, err, "failed to parse record ID"}
-	}
-
-	return i, nil
+	return i, wrapError(err, TypeInternalError, "failed to parse record ID")
 }
 
 func (er *EtcdResolver) readResponses(resp *clientv3.GetResponse) (DynamicRecordSet, error) {
@@ -245,16 +241,13 @@ func (er *EtcdResolver) insertRecord(ctx context.Context, r DynamicRecord) error
 			return Error{TypeExternalError, err, "failed to make reverse address"}
 		}
 
-		err = er.insertSingleRecord(ctx, DynamicRecord{
+		return er.insertSingleRecord(ctx, DynamicRecord{
 			Record: PtrRecord{
 				Name:   Domain(reverse),
 				TTL:    r.Record.GetTTL(),
 				Domain: r.Record.GetName(),
 			},
 		})
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -384,10 +377,7 @@ func (er *EtcdResolver) RemoveRecord(id int) error {
 	for _, r := range rs {
 		if *r.ID == id {
 			_, err = er.client.Delete(ctx, er.getKey(r))
-			if err != nil {
-				return Error{TypeExternalError, err, "failed to delete record"}
-			}
-			return nil
+			return wrapError(err, TypeExternalError, "failed to delete record")
 		}
 	}
 	return ErrNoSuchRecord
@@ -400,11 +390,7 @@ func (er *EtcdResolver) RecursionAvailable() bool {
 
 // Close is disconnector from etcd server.
 func (er *EtcdResolver) Close() error {
-	err := er.client.Close()
-	if err != nil {
-		return Error{TypeExternalError, err, "failed to close etcd connection"}
-	}
-	return nil
+	return wrapError(er.client.Close(), TypeExternalError, "failed to close etcd connection")
 }
 
 // Resolve is resolver using etcd.
