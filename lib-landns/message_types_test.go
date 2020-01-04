@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
 
@@ -93,8 +94,9 @@ func TestResponseWriterHook(t *testing.T) {
 	hookLog := make([]landns.Record, 0, 5)
 	hook := landns.ResponseWriterHook{
 		Writer: upstream,
-		OnAdd: func(r landns.Record) {
+		OnAdd: func(r landns.Record) error {
 			hookLog = append(hookLog, r)
+			return nil
 		},
 	}
 
@@ -134,6 +136,25 @@ func TestResponseWriterHook(t *testing.T) {
 				t.Errorf(`unexpected text in %s log: expected "%s" but got "%s"`, name, text, tr.Text)
 			}
 		}
+	}
+}
+
+func TestResponseWriterHook_error(t *testing.T) {
+	t.Parallel()
+
+	testError := fmt.Errorf("test error")
+
+	hook := landns.ResponseWriterHook{
+		Writer: testutil.EmptyResponseWriter{},
+		OnAdd: func(r landns.Record) error {
+			return testError
+		},
+	}
+
+	if err := hook.Add(landns.TxtRecord{Name: "example.com.", Text: "hello world"}); err == nil {
+		t.Errorf("expected error but got nil")
+	} else if err != testError {
+		t.Errorf("unexpected error\nexpected: %#v\nbut got: %#v", testError, err)
 	}
 }
 

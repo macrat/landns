@@ -84,12 +84,14 @@ func (rc *ResponseCallback) SetNoAuthoritative() {
 // ResponseWriterHook is a wrapper of ResponseWriter for hook events.
 type ResponseWriterHook struct {
 	Writer ResponseWriter
-	OnAdd  func(Record)
+	OnAdd  func(Record) error
 }
 
 func (rh ResponseWriterHook) Add(r Record) error {
 	if rh.OnAdd != nil {
-		rh.OnAdd(r)
+		if err := rh.OnAdd(r); err != nil {
+			return err
+		}
 	}
 	return rh.Writer.Add(r)
 }

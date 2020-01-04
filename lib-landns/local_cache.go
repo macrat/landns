@@ -105,12 +105,15 @@ func (lc *LocalCache) manage() {
 	}
 }
 
-func (lc *LocalCache) add(r Record) {
+func (lc *LocalCache) add(r Record) error {
 	if r.GetTTL() == 0 {
-		return
+		return nil
 	}
 
-	rr, _ := r.ToRR()
+	rr, err := r.ToRR()
+	if err != nil {
+		return err
+	}
 
 	if _, ok := lc.entries[r.GetQtype()][r.GetName()]; !ok {
 		lc.entries[r.GetQtype()][r.GetName()] = []VolatileRecord{
@@ -124,6 +127,8 @@ func (lc *LocalCache) add(r Record) {
 	}
 
 	lc.invoke <- struct{}{}
+
+	return nil
 }
 
 func (lc *LocalCache) resolveFromUpstream(w ResponseWriter, r Request) error {

@@ -64,8 +64,9 @@ func (ar AlternateResolver) Resolve(resp ResponseWriter, req Request) error {
 
 	resp = ResponseWriterHook{
 		Writer: resp,
-		OnAdd: func(r Record) {
+		OnAdd: func(r Record) error {
 			resolved = true
+			return nil
 		},
 	}
 

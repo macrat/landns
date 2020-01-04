@@ -57,13 +57,17 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 	ttl := uint32(math.MaxUint32)
 	wh := ResponseWriterHook{
 		Writer: w,
-		OnAdd: func(record Record) {
-			rr, _ := record.ToRR()
-			rc.client.RPush(key, VolatileRecord{rr, time.Now().Add(time.Duration(record.GetTTL()) * time.Second)}.String())
+		OnAdd: func(record Record) error {
+			rr, err := record.ToRR()
+			if err != nil {
+				return err
+			}
 
 			if ttl > record.GetTTL() {
 				ttl = record.GetTTL()
 			}
+
+			return rc.client.RPush(key, VolatileRecord{rr, time.Now().Add(time.Duration(record.GetTTL()) * time.Second)}.String()).Err()
 		},
 	}
 
