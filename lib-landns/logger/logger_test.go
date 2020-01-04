@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/macrat/landns/lib-landns/logger"
@@ -75,6 +76,36 @@ func TestBasicLogger(t *testing.T) {
 		{"error", l.Error, false},
 		{"fatal", l.Fatal, true},
 	}.Run(t, buf, l)
+}
+
+func TestBasicLogger_level(t *testing.T) {
+	levels := []logger.Level{
+		logger.FatalLevel,
+		logger.ErrorLevel,
+		logger.WarnLevel,
+		logger.InfoLevel,
+		logger.DebugLevel,
+	}
+
+	for i, level := range levels {
+		buf := bytes.NewBuffer([]byte{})
+		l := logger.New(buf, level)
+		l.Logger.ExitFunc = func(int) {}
+
+		if l.GetLevel() != level {
+			t.Errorf("failed to get level: expected %s but got %s", level, l.GetLevel())
+		}
+
+		l.Debug("d", logger.Fields{})
+		l.Info("i", logger.Fields{})
+		l.Warn("w", logger.Fields{})
+		l.Error("e", logger.Fields{})
+		l.Fatal("f", logger.Fields{})
+
+		if strings.Count(buf.String(), "\n") != i+1 {
+			t.Errorf("unexpected log length:\nexpected %d lines\nbut got:\n%s", i+1, buf.String())
+		}
+	}
 }
 
 func TestDefaultLogger(t *testing.T) {

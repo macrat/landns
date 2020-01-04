@@ -1,4 +1,3 @@
-// Package logger is the simple logger library for Landns.
 package logger
 
 import (
@@ -80,6 +79,7 @@ type Logger interface {
 	Warn(string, Fields)
 	Error(string, Fields)
 	Fatal(string, Fields)
+	GetLevel() Level
 }
 
 // BasicLogger is the default implements of Logger.
@@ -121,4 +121,9 @@ func (l *BasicLogger) Error(message string, fields Fields) {
 // Fatal is writer to FatalLevel log.
 func (l *BasicLogger) Fatal(message string, fields Fields) {
 	l.Logger.WithFields(logrus.Fields(fields)).Fatal(message)
+}
+
+// GetLevel is getter to current log level.
+func (l *BasicLogger) GetLevel() Level {
+	return Level(l.Logger.GetLevel())
 }

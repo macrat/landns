@@ -2,12 +2,22 @@ package landns_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/logger"
+	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/integration"
 )
+
+func init() {
+	clientv3.SetLogger(logger.GRPCLogger{
+		Logger: logger.New(os.Stderr, logger.ErrorLevel),
+		Fields: logger.Fields{"zone": "dynamic", "resolver": "EtcdResolver"},
+	})
+}
 
 func CreateEtcdResolver(t testing.TB) (*landns.EtcdResolver, []string, func()) {
 	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1, SkipCreatingClient: true})

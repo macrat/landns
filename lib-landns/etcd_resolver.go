@@ -8,9 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/macrat/landns/lib-landns/logger"
 	"github.com/miekg/dns"
 	"go.etcd.io/etcd/clientv3"
 )
+
+func init() {
+	clientv3.SetLogger(logger.GRPCLogger{
+		Fields: logger.Fields{"zone": "dynamic", "resolver": "EtcdResolver"},
+	})
+}
 
 // EtcdResolver is one implements of DynamicResolver using etcd.
 type EtcdResolver struct {
