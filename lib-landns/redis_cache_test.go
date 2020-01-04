@@ -43,7 +43,7 @@ func TestRedisCache(t *testing.T) {
 				}
 			}()
 
-			if resolver.String() != fmt.Sprintf("RedisCache[Redis<%s db:0>]", redisAddr) {
+			if resolver.String() != fmt.Sprintf("RedisCache[%s, SimpleResolver[3 domains 2 types 6 records]]", redisAddr) {
 				t.Errorf("unexpected string: %s", resolver)
 			}
 
@@ -61,6 +61,17 @@ func TestRedisCache(t *testing.T) {
 			}
 			return resolver
 		})
+	})
+
+	t.Run("failedToConnect", func(t *testing.T) {
+		expect := "failed to connect to Redis server: dial tcp :0: connect: connection refused"
+
+		_, err := landns.NewRedisCache(&net.TCPAddr{}, 0, "", testutil.DummyResolver{}, landns.NewMetrics("landns"))
+		if err == nil {
+			t.Errorf("expected error but got nil")
+		} else if err.Error() != expect {
+			t.Errorf("unexpected error:\nexpected: %#v\nbut got:  %#v", expect, err.Error())
+		}
 	})
 }
 
