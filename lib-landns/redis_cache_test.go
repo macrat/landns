@@ -24,8 +24,11 @@ func prepareRedisDB(t testing.TB) {
 	}
 	defer conn.Close()
 
-	if err := conn.Send("FLUSHDB"); err != nil {
-		t.Fatalf("failed to flush database")
+	if err := conn.Send("FLUSHALL"); err != nil {
+		t.Fatalf("failed to flush database: %s", err)
+	}
+	if err := conn.Flush(); err != nil {
+		t.Fatalf("failed to flush database: %s", err)
 	}
 }
 
