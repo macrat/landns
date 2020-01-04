@@ -35,7 +35,7 @@ func (h Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			req.Question = q
 
 			if err := h.Resolver.Resolve(resp, req); err != nil {
-				logger.Warn("failed to resolve", logger.Fields{"name": q.Name, "type": QtypeToString(q.Qtype), "reason": err})
+				logger.Warn("failed to resolve", logger.Fields{"proto": "dns", "name": q.Name, "type": QtypeToString(q.Qtype), "reason": err})
 				h.Metrics.Error(req, err)
 				errored = true
 			}
@@ -50,6 +50,6 @@ func (h Handler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	if !errored && len(msg.Answer) == 0 && len(msg.Question) > 0 {
 		q := msg.Question[0]
-		logger.Info("not found", logger.Fields{"name": q.Name, "type": QtypeToString(q.Qtype)})
+		logger.Info("not found", logger.Fields{"proto": "dns", "name": q.Name, "type": QtypeToString(q.Qtype)})
 	}
 }

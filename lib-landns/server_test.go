@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/macrat/landns/lib-landns"
+	"github.com/macrat/landns/lib-landns/logger/logtest"
 	"github.com/macrat/landns/lib-landns/testutil"
 	"github.com/miekg/dns"
 )
@@ -132,5 +133,26 @@ func TestServer_DebugMode(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestServer_logging(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	lt := logtest.Start()
+	defer lt.Close()
+
+	c, _ := testutil.StartServer(ctx, t, false)
+
+	if ln := len(*lt.Logger); ln != 0 {
+		t.Fatalf("unexpected log length: %d\n%s", ln, lt.Logger)
+	}
+
+	if _, err := c.Get(); err != nil {
+		t.Errorf("failed to get records: %s", err)
+	}
+
+	if ln := len(*lt.Logger); ln != 1 {
+		t.Errorf("unexpected log length: %d\n%s", ln, lt.Logger)
 	}
 }

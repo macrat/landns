@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 
+	"github.com/macrat/landns/lib-landns/logger/httplog"
 	"github.com/miekg/dns"
 )
 
@@ -49,7 +50,7 @@ func (s *Server) HTTPHandler() (http.Handler, error) {
 	mux.Handle("/metrics", metrics)
 	mux.Handle("/api/", http.StripPrefix("/api", DynamicAPI{s.DynamicResolver}.Handler()))
 
-	return mux, nil
+	return httplog.HTTPLogger{Handler: mux}, nil
 }
 
 // DNSHandler is getter of dns.Handler of package github.com/miekg/dns

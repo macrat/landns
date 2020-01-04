@@ -39,14 +39,14 @@ func TestHandler(t *testing.T) {
 	srv.Assert(t, dns.Question{Name: "notfound.example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET})
 	time.Sleep(10 * time.Millisecond)
 
-	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"name": "notfound.example.com.", "type": "A"}}}); err != nil {
+	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"proto": "dns", "name": "notfound.example.com.", "type": "A"}}}); err != nil {
 		t.Error(err)
 	}
 
 	srv.Assert(t, dns.Question{Name: "notfound.example.com.", Qtype: dns.TypeAAAA, Qclass: dns.ClassINET})
 	time.Sleep(10 * time.Millisecond)
 
-	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"name": "notfound.example.com.", "type": "AAAA"}}}); err != nil {
+	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"proto": "dns", "name": "notfound.example.com.", "type": "AAAA"}}}); err != nil {
 		t.Error(err)
 	}
 }
@@ -63,7 +63,7 @@ func TestHandler_ErrorHandling(t *testing.T) {
 
 	srv.Assert(t, dns.Question{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET})
 
-	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"name": "example.com.", "type": "A"}}}); err != nil {
+	if err := lt.Test([]logtest.Entry{{Level: logger.InfoLevel, Message: "not found", Fields: logger.Fields{"proto": "dns", "name": "example.com.", "type": "A"}}}); err != nil {
 		t.Error(err)
 	}
 
@@ -71,7 +71,7 @@ func TestHandler_ErrorHandling(t *testing.T) {
 
 	srv.Assert(t, dns.Question{Name: "example.com.", Qtype: dns.TypeA, Qclass: dns.ClassINET})
 
-	if err := lt.Test([]logtest.Entry{{Level: logger.WarnLevel, Message: "failed to resolve", Fields: logger.Fields{"reason": "test error", "name": "example.com.", "type": "A"}}}); err != nil {
+	if err := lt.Test([]logtest.Entry{{Level: logger.WarnLevel, Message: "failed to resolve", Fields: logger.Fields{"proto": "dns", "reason": "test error", "name": "example.com.", "type": "A"}}}); err != nil {
 		t.Error(err)
 	}
 }

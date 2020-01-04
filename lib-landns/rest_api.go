@@ -41,6 +41,8 @@ func (hh httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+
 	resp = strings.TrimRight(resp, "\n")
 	if len(resp) != 0 {
 		fmt.Fprintln(w, resp)
