@@ -53,7 +53,7 @@ func TestError(t *testing.T) {
 	}
 }
 
-func TestErrorf(t *testing.T) {
+func TestNewError(t *testing.T) {
 	t.Parallel()
 
 	orig := fmt.Errorf("original")
@@ -62,6 +62,30 @@ func TestErrorf(t *testing.T) {
 	expected := "hello world: original"
 	if err.Error() != expected {
 		t.Errorf("failed to create Error:\nexpected: %#v\nbut got:  %#v", expected, err.Error())
+	}
+}
+
+func TestWrapError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct{
+		Original error
+		Type     ErrorType
+		Message  string
+		Expect   string
+	}{
+		{fmt.Errorf("original"), TypeInternalError, "hello world", "hello world: original"},
+		{nil, TypeExternalError, "hello world", ""},
+	}
+
+	for _, tt := range tests {
+		err := wrapError(tt.Original, tt.Type, tt.Message)
+		if err == nil && tt.Expect != "" {
+			t.Errorf("failed to create Error:\nexpected: %#v\nbut got:  %#v", tt.Expect, err)
+		}
+		if err != nil && err.Error() != tt.Expect {
+			t.Errorf("failed to create Error:\nexpected: %#v\nbut got:  %#v", tt.Expect, err)
+		}
 	}
 }
 

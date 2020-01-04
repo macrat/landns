@@ -6,82 +6,113 @@ import (
 	"net"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/gomodule/redigo/redis"
 )
 
 // RedisCache is redis cache manager for Resolver.
 type RedisCache struct {
-	client   *redis.Client
+	addr     net.Addr
+	pool     *redis.Pool
 	upstream Resolver
 	metrics  *Metrics
 }
 
-// NewRedisCache is constructor of RedisCache.
-//
-// RedisCache will make connection to the Redis server. So you have to ensure to call RedisCache.Close.
-func NewRedisCache(addr *net.TCPAddr, database int, password string, upstream Resolver, metrics *Metrics) (RedisCache, error) {
-	rc := RedisCache{
-		client: redis.NewClient(&redis.Options{
-			Addr:     addr.String(),
-			Password: password,
-			DB:       database,
-		}),
-		upstream: upstream,
-		metrics:  metrics,
-	}
+/*
+NewRedisCache is constructor of RedisCache.
 
-	if err := rc.client.Ping().Err(); err != nil {
-		rc.client.Close()
+RedisCache will make connection to the Redis server. So you have to ensure to call RedisCache.Close.
+*/
+func NewRedisCache(addr net.Addr, database int, password string, upstream Resolver, metrics *Metrics) (RedisCache, error) {
+	pool := redis.NewPool(func() (redis.Conn, error) {
+		return redis.Dial(
+			addr.Network(),
+			addr.String(),
+			redis.DialDatabase(database),
+			redis.DialPassword(password),
+		)
+	}, 5)
+
+	con := pool.Get()
+	defer con.Close()
+	if err := con.Err(); err != nil {
+		pool.Close()
 		return RedisCache{}, Error{TypeExternalError, err, "failed to connect to Redis server"}
 	}
 
-	return rc, nil
+	return RedisCache{
+		addr: addr,
+		pool: pool,
+		upstream: upstream,
+		metrics: metrics,
+	}, nil
 }
 
 // String is description string getter.
 func (rc RedisCache) String() string {
-	return fmt.Sprintf("RedisCache[%s]", rc.client)
+	return fmt.Sprintf("RedisCache[%s, %s]", rc.addr, rc.upstream)
 }
 
 // Close is disconnect from Redis server.
 func (rc RedisCache) Close() error {
-	if err := rc.client.Close(); err != nil {
-		return Error{TypeExternalError, err, "failed to close Redis connection"}
-	}
-	return nil
+	return wrapError(rc.pool.Close(), TypeExternalError, "failed to close Redis connection")
 }
 
 func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string) error {
 	rc.metrics.CacheHit(r)
 
+	conn := rc.pool.Get()
+	defer conn.Close()
+	if err := conn.Send("MULTI"); err != nil {
+		return Error{TypeExternalError, err, "failed to start transaction"}
+	}
+	rollback := func() error {
+		return wrapError(conn.Send("DISCARD"), TypeExternalError, "failed to discard transaction")
+	}
+	commit := func() error {
+		return wrapError(conn.Send("EXEC"), TypeExternalError, "failed to execute transaction")
+	}
+
 	ttl := uint32(math.MaxUint32)
 	wh := ResponseWriterHook{
 		Writer: w,
 		OnAdd: func(record Record) error {
-			rr, err := record.ToRR()
-			if err != nil {
-				return err
-			}
-
 			if ttl > record.GetTTL() {
 				ttl = record.GetTTL()
 			}
 
-			return rc.client.RPush(key, VolatileRecord{rr, time.Now().Add(time.Duration(record.GetTTL()) * time.Second)}.String()).Err()
+			rr, err := record.ToRR()
+			if err != nil {
+				rollback()
+				return err
+			}
+
+			rec := VolatileRecord{
+				RR: rr,
+				Expire: time.Now().Add(time.Duration(record.GetTTL()) * time.Second),
+			}
+
+			if err := conn.Send("RPUSH", key, rec.String()); err != nil {
+				rollback()
+				return Error{TypeExternalError, err, "failed to push record"}
+			}
+
+			return nil
 		},
 	}
 
 	if err := rc.upstream.Resolve(wh, r); err != nil {
-		rc.client.Del(key)
+		rollback()
 		return err
 	}
 
 	if ttl == 0 {
-		rc.client.Del(key)
-	} else {
-		rc.client.Expire(key, time.Duration(ttl)*time.Second)
+		return rollback()
 	}
-	return nil
+
+	if err := conn.Send("EXPIRE", key, ttl); err != nil {
+		return Error{TypeExternalError, err, "failed to set expiration of records"}
+	}
+	return commit()
 }
 
 func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []string) error {
@@ -109,7 +140,10 @@ func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []strin
 func (rc RedisCache) Resolve(w ResponseWriter, r Request) error {
 	key := fmt.Sprintf("%s:%s", r.QtypeString(), r.Name)
 
-	resp, err := rc.client.LRange(key, 0, -1).Result()
+	conn := rc.pool.Get()
+	defer conn.Close()
+
+	resp, err := redis.Strings(conn.Do("LRANGE", key, 0, -1))
 	if err != nil {
 		return Error{TypeExternalError, err, "failed to get records"}
 	}
