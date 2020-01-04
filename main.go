@@ -63,6 +63,7 @@ func makeServer(args []string) (*service, error) {
 	redisDatabase := app.Flag("redis-database", "Database ID of Redis server.").PlaceHolder("ID").Int()
 	metricsNamespace := app.Flag("metrics-namespace", "Namespace of prometheus metrics.").Default("landns").String()
 	verbose := app.Flag("verbose", "Show verbose logs.").Short('v').Bool()
+	pprof := app.Flag("enable-pprof", "Enable pprof API.").Bool()
 
 	_, err := app.Parse(args)
 	if err != nil {
@@ -126,6 +127,7 @@ func makeServer(args []string) (*service, error) {
 		Metrics:         metrics,
 		DynamicResolver: dynamicResolver,
 		Resolvers:       resolver,
+		DebugMode:       *pprof,
 	}
 	return &service{
 		App: app,

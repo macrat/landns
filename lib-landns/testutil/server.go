@@ -12,7 +12,7 @@ import (
 )
 
 // StartServer is make landns.Server and start it.
-func StartServer(ctx context.Context, t SimpleTB) (client.Client, *net.UDPAddr) {
+func StartServer(ctx context.Context, t SimpleTB, debugMode bool) (client.Client, *net.UDPAddr) {
 	metrics := landns.NewMetrics("landns")
 	dyn, err := landns.NewSqliteResolver(":memory:", metrics)
 	if err != nil {
@@ -23,6 +23,7 @@ func StartServer(ctx context.Context, t SimpleTB) (client.Client, *net.UDPAddr) 
 		Metrics:         metrics,
 		DynamicResolver: dyn,
 		Resolvers:       dyn,
+		DebugMode:       debugMode,
 	}
 
 	apiAddr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: FindEmptyPort()}

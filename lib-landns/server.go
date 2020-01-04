@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/pprof"
 
 	"github.com/miekg/dns"
 )
@@ -14,15 +15,31 @@ type Server struct {
 	Metrics         *Metrics
 	DynamicResolver DynamicResolver
 	Resolvers       Resolver // Resolvers for this server. Must include DynamicResolver.
+	DebugMode       bool
 }
 
 // HTTPHandler is getter of http.Handler.
 func (s *Server) HTTPHandler() (http.Handler, error) {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `<h1>Landns</h1><a href="/metrics">metrics</a> <a href="/api/v1">records</a>`)
-	})
+	if !s.DebugMode {
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, `<h1>Landns</h1><a href="/metrics">metrics</a> <a href="/api/v1">records</a>`)
+		})
+	} else {
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, `<h1>Landns</h1><a href="/metrics">metrics</a> <a href="/debug/pprof/">pprof</a> <a href="/api/v1">records</a>`)
+		})
+
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+		mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+		mux.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+		mux.Handle("/debug/pprof/trace", pprof.Handler("trace"))
+	}
 
 	metrics, err := s.Metrics.HTTPHandler()
 	if err != nil {

@@ -16,7 +16,7 @@ func GetAPIAddress() (*url.URL, func()) {
 
 	tb := new(testutil.DummyTB)
 
-	client, _ := testutil.StartServer(ctx, tb)
+	client, _ := testutil.StartServer(ctx, tb, false)
 
 	return client.Endpoint, cancel
 }
@@ -74,7 +74,7 @@ func TestAPIClient(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	client, _ := testutil.StartServer(ctx, t)
+	client, _ := testutil.StartServer(ctx, t, false)
 
 	rs, err := landns.NewDynamicRecordSet(`a.example.com. 42 IN A 127.0.0.1 ; ID:1
 1.0.0.127.in-addr.arpa. 42 IN PTR a.example.com. ; ID:2

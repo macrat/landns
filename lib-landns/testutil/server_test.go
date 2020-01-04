@@ -11,7 +11,7 @@ import (
 
 func TestStartServer(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	client, addr := testutil.StartServer(ctx, t)
+	client, addr := testutil.StartServer(ctx, t, false)
 
 	if addr == nil {
 		t.Errorf("invalid address: %v", addr)
