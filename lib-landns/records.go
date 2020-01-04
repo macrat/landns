@@ -69,7 +69,7 @@ type Record interface {
 	GetTTL() uint32        // Get TTL for the Record.
 	ToRR() (dns.RR, error) // Get response record for dns.Msg of package github.com/miekg/dns.
 	Validate() error       // Validation Record and returns error if invalid.
-	WithoutTTL() string    // Get record string that replaced TTL number with "$TTL".
+	WithoutTTL() string    // Get record string that replaced TTL number with "0".
 }
 
 // NewRecord is make new Record from query string.
@@ -82,20 +82,25 @@ func NewRecord(str string) (Record, error) {
 	return NewRecordFromRR(rr)
 }
 
-// NewRecordWithExpire is make new Record from query string with expire time.
-func NewRecordWithExpire(str string, expire time.Time) (Record, error) {
+// NewRecordWithTTL is make new Record with TTL.
+func NewRecordWithTTL(str string, ttl uint32) (Record, error) {
 	rr, err := dns.NewRR(str)
 	if err != nil {
 		return nil, Error{TypeArgumentError, err, "failed to parse record"}
 	}
 
-	if expire.Before(time.Now()) {
-		return nil, newError(TypeArgumentError, nil, "expire can't be past time: %s", expire)
-	}
-
-	rr.Header().Ttl = uint32(math.Round(time.Until(expire).Seconds()))
+	rr.Header().Ttl = ttl
 
 	return NewRecordFromRR(rr)
+}
+
+// NewRecordWithExpire is make new Record from query string with expire time.
+func NewRecordWithExpire(str string, expire time.Time) (Record, error) {
+	if expire.Before(time.Now()) {
+		return nil, newError(TypeExpirationError, nil, "expire can't be past time: %s", expire)
+	}
+
+	return NewRecordWithTTL(str, uint32(math.Round(time.Until(expire).Seconds())))
 }
 
 // NewRecordFromRR is make new Record from dns.RR of package github.com/miekg/dns.
@@ -157,7 +162,7 @@ func (r AddressRecord) WithoutTTL() string {
 		qtype = "AAAA"
 	}
 
-	return fmt.Sprintf("%s $TTL IN %s %s", r.Name, qtype, r.Address)
+	return fmt.Sprintf("%s 0 IN %s %s", r.Name, qtype, r.Address)
 }
 
 // GetName is getter to name of record.
@@ -255,7 +260,7 @@ func (r CnameRecord) String() string {
 
 // WithoutTTL is make record string but mask TTL number.
 func (r CnameRecord) WithoutTTL() string {
-	return fmt.Sprintf("%s $TTL IN CNAME %s", r.Name, r.Target)
+	return fmt.Sprintf("%s 0 IN CNAME %s", r.Name, r.Target)
 }
 
 // GetName is getter to name of record.
@@ -304,7 +309,7 @@ func (r PtrRecord) String() string {
 
 // WithoutTTL is make record string but mask TTL number.
 func (r PtrRecord) WithoutTTL() string {
-	return fmt.Sprintf("%s $TTL IN PTR %s", r.Name, r.Domain)
+	return fmt.Sprintf("%s 0 IN PTR %s", r.Name, r.Domain)
 }
 
 // GetName is getter to name of record.
@@ -354,7 +359,7 @@ func (r MxRecord) String() string {
 
 // WithoutTTL is make record string but mask TTL number.
 func (r MxRecord) WithoutTTL() string {
-	return fmt.Sprintf("%s $TTL IN MX %d %s", r.Name, r.Preference, r.Target)
+	return fmt.Sprintf("%s 0 IN MX %d %s", r.Name, r.Preference, r.Target)
 }
 
 // GetName is getter to name of record.
@@ -403,7 +408,7 @@ func (r TxtRecord) String() string {
 
 // WithoutTTL is make record string but mask TTL number.
 func (r TxtRecord) WithoutTTL() string {
-	return fmt.Sprintf("%s $TTL IN TXT \"%s\"", r.Name, r.Text)
+	return fmt.Sprintf("%s 0 IN TXT \"%s\"", r.Name, r.Text)
 }
 
 // GetName is getter to name of record.
@@ -461,7 +466,7 @@ func (r SrvRecord) String() string {
 // WithoutTTL is make record string but mask TTL number.
 func (r SrvRecord) WithoutTTL() string {
 	return fmt.Sprintf(
-		"%s $TTL IN SRV %d %d %d %s",
+		"%s 0 IN SRV %d %d %d %s",
 		r.Name,
 		r.Priority,
 		r.Weight,

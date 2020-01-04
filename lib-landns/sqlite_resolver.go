@@ -43,6 +43,7 @@ func NewSqliteResolver(path string, metrics *Metrics) (*SqliteResolver, error) {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
 		qtype TEXT NOT NULL,
+		ttl INTEGER NOT NULL,
 		expire INTEGER NOT NULL,
 		record TEXT UNIQUE
 	)`)
@@ -94,25 +95,25 @@ func (sr *SqliteResolver) String() string {
 	return fmt.Sprintf("SqliteResolver[%s]", sr.path)
 }
 
-func insertRecord(search, ins *sql.Stmt, r DynamicRecord) error {
-	result, err := search.Query(r.Record.String())
-	if err != nil {
-		return Error{TypeExternalError, err, "failed to search exists record"}
-	}
-	defer result.Close()
-
-	if result.Next() {
-		return nil
-	}
-
+func insertRecord(update, ins *sql.Stmt, r DynamicRecord) error {
 	var expire int64
 	if r.Volatile {
 		expire = time.Now().Add(time.Duration(r.Record.GetTTL()) * time.Second).Unix()
 	}
 
-	_, err = ins.Exec(r.Record.GetName(), QtypeToString(r.Record.GetQtype()), expire, r.Record.String())
+	result, err := update.Exec(r.Record.GetTTL(), expire, r.Record.WithoutTTL())
 	if err != nil {
-		return Error{TypeExternalError, err, "failed to insert record"}
+		return Error{TypeExternalError, err, "failed to update exists record"}
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return Error{TypeInternalError, err, "failed to get number of updated records"}
+	}
+	if updated == 0 {
+		_, err = ins.Exec(r.Record.GetName(), QtypeToString(r.Record.GetQtype()), r.Record.GetTTL(), expire, r.Record.WithoutTTL())
+		if err != nil {
+			return Error{TypeExternalError, err, "failed to insert record"}
+		}
 	}
 
 	if r.Record.GetQtype() == dns.TypeA || r.Record.GetQtype() == dns.TypeAAAA {
@@ -120,10 +121,14 @@ func insertRecord(search, ins *sql.Stmt, r DynamicRecord) error {
 		if err != nil {
 			return newError(TypeArgumentError, err, "failed to convert to reverse address: %s", r.Record.(AddressRecord).Address)
 		}
-		_, err = ins.Exec(reverse, "PTR", expire, fmt.Sprintf("%s %d IN PTR %s", reverse, r.Record.GetTTL(), r.Record.GetName()))
-		if err != nil {
-			return Error{TypeExternalError, err, "failed to insert reverse record"}
-		}
+		return insertRecord(update, ins, DynamicRecord{
+			Record: PtrRecord{
+				Name:   Domain(reverse),
+				TTL:    r.Record.GetTTL(),
+				Domain: r.Record.GetName(),
+			},
+			Volatile: r.Volatile,
+		})
 	}
 
 	return nil
@@ -131,12 +136,12 @@ func insertRecord(search, ins *sql.Stmt, r DynamicRecord) error {
 
 func dropRecord(withID, withoutID *sql.Stmt, r DynamicRecord) error {
 	if r.ID == nil {
-		_, err := withoutID.Exec(r.Record.String())
+		_, err := withoutID.Exec(r.Record.GetTTL(), r.Record.WithoutTTL())
 		if err != nil {
 			return Error{TypeExternalError, err, "failed to drop record"}
 		}
 	} else {
-		_, err := withID.Exec(*r.ID, r.Record.String())
+		_, err := withID.Exec(*r.ID, r.Record.GetTTL(), r.Record.WithoutTTL())
 		if err != nil {
 			return Error{TypeExternalError, err, "failed to drop record"}
 		}
@@ -147,10 +152,14 @@ func dropRecord(withID, withoutID *sql.Stmt, r DynamicRecord) error {
 		if err != nil {
 			return newError(TypeArgumentError, err, "failed to convert to reverse address: %s", r.Record.(AddressRecord).Address)
 		}
-		_, err = withoutID.Exec(fmt.Sprintf("%s %d IN PTR %s", reverse, r.Record.GetTTL(), r.Record.GetName()))
-		if err != nil {
-			return Error{TypeExternalError, err, "failed to drop reverse record"}
-		}
+		return dropRecord(withID, withoutID, DynamicRecord{
+			Record: PtrRecord{
+				Name:   Domain(reverse),
+				TTL:    r.Record.GetTTL(),
+				Domain: r.Record.GetName(),
+			},
+			Volatile: r.Volatile,
+		})
 	}
 
 	return nil
@@ -165,38 +174,33 @@ func (sr *SqliteResolver) SetRecords(rs DynamicRecordSet) error {
 		return Error{TypeExternalError, err, "failed to begin transaction"}
 	}
 
-	dropWithID, err := tx.Prepare(`DELETE FROM records WHERE id = ? AND record = ?`)
+	dropWithID, err := tx.Prepare(`DELETE FROM records WHERE id = ? AND ttl = ? AND record = ?`)
 	if err != nil {
 		tx.Rollback()
 		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer dropWithID.Close()
 
-	dropWithoutID, err := tx.Prepare(`DELETE FROM records WHERE record = ?`)
+	dropWithoutID, err := tx.Prepare(`DELETE FROM records WHERE ttl = ? AND record = ?`)
 	if err != nil {
 		tx.Rollback()
 		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer dropWithoutID.Close()
 
-	search, err := tx.Prepare(`
-		SELECT 1 FROM records
-		WHERE record = ?
-		AND (expire = 0 OR expire > strftime('%s', CURRENT_TIMESTAMP))
-		LIMIT 1
-	`)
-	if err != nil {
-		tx.Rollback()
-		return Error{TypeInternalError, err, "failed to prepare query"}
-	}
-	defer search.Close()
-
-	ins, err := tx.Prepare(`INSERT INTO records (name, qtype, expire, record) VALUES (?, ?, ?, ?)`)
+	ins, err := tx.Prepare(`INSERT INTO records (name, qtype, ttl, expire, record) VALUES (?, ?, ?, ?, ?)`)
 	if err != nil {
 		tx.Rollback()
 		return Error{TypeInternalError, err, "failed to prepare query"}
 	}
 	defer ins.Close()
+
+	update, err := tx.Prepare(`UPDATE records SET ttl = ?, expire = ? WHERE record = ?`)
+	if err != nil {
+		tx.Rollback()
+		return Error{TypeInternalError, err, "failed to prepare query"}
+	}
+	defer update.Close()
 
 	for _, r := range rs {
 		if r.Disabled {
@@ -205,17 +209,21 @@ func (sr *SqliteResolver) SetRecords(rs DynamicRecordSet) error {
 				return err
 			}
 		} else {
-			if err := insertRecord(search, ins, r); err != nil {
+			if err := insertRecord(update, ins, r); err != nil {
 				tx.Rollback()
 				return err
 			}
 		}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return Error{TypeExternalError, err, "failed to commit transaction"}
+	}
+	return nil
 }
 
 func scanRecords(rows *sql.Rows) (DynamicRecordSet, error) {
+	var ttl uint32
 	var expire int64
 	var text string
 	var result DynamicRecordSet
@@ -223,7 +231,7 @@ func scanRecords(rows *sql.Rows) (DynamicRecordSet, error) {
 	for rows.Next() {
 		var dr DynamicRecord
 
-		if err := rows.Scan(&dr.ID, &expire, &text); err != nil {
+		if err := rows.Scan(&dr.ID, &ttl, &expire, &text); err != nil {
 			return DynamicRecordSet{}, Error{TypeExternalError, err, "failed to scan record row"}
 		}
 
@@ -232,7 +240,7 @@ func scanRecords(rows *sql.Rows) (DynamicRecordSet, error) {
 			dr.Record, err = NewRecordWithExpire(text, time.Unix(expire, 0))
 			dr.Volatile = true
 		} else {
-			dr.Record, err = NewRecord(text)
+			dr.Record, err = NewRecordWithTTL(text, ttl)
 		}
 		if err != nil {
 			return DynamicRecordSet{}, err
@@ -249,7 +257,7 @@ func (sr *SqliteResolver) Records() (DynamicRecordSet, error) {
 	defer sr.mutex.Unlock()
 
 	rows, err := sr.db.Query(`
-		SELECT id, expire, record FROM records
+		SELECT id, ttl, expire, record FROM records
 		WHERE (expire = 0 OR expire > strftime('%s', CURRENT_TIMESTAMP))
 		ORDER BY id
 	`)
@@ -278,7 +286,7 @@ func (sr *SqliteResolver) SearchRecords(suffix Domain) (DynamicRecordSet, error)
 	}
 
 	rows, err := sr.db.Query(`
-		SELECT id, expire, record FROM records
+		SELECT id, ttl, expire, record FROM records
 		WHERE (name = ? OR name LIKE ? ESCAPE '\')
 		AND (expire = 0 OR expire > strftime('%s', CURRENT_TIMESTAMP))
 		ORDER BY id
@@ -308,7 +316,7 @@ func (sr *SqliteResolver) GlobRecords(pattern string) (DynamicRecordSet, error) 
 	}
 
 	rows, err := sr.db.Query(`
-		SELECT id, expire, record FROM records
+		SELECT id, ttl, expire, record FROM records
 		WHERE name LIKE ? ESCAPE '\'
 		AND (expire = 0 OR expire > strftime('%s', CURRENT_TIMESTAMP))
 		ORDER BY id
@@ -326,7 +334,7 @@ func (sr *SqliteResolver) GetRecord(id int) (DynamicRecordSet, error) {
 	defer sr.mutex.Unlock()
 
 	rows, err := sr.db.Query(`
-		SELECT id, expire, record FROM records
+		SELECT id, ttl, expire, record FROM records
 		WHERE id = ?
 		AND (expire = 0 OR expire > strftime('%s', CURRENT_TIMESTAMP))
 	`, id)
@@ -361,7 +369,7 @@ func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
 	defer sr.mutex.Unlock()
 
 	rows, err := sr.db.Query(`
-		SELECT record, expire FROM records
+		SELECT record, ttl, expire FROM records
 		WHERE name = ? AND qtype = ?
 		AND (expire = 0 OR expire > strftime('%s', CURRENT_TIMESTAMP))
 	`, r.Name, r.QtypeString())
@@ -371,10 +379,11 @@ func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
 	defer rows.Close()
 
 	var text string
+	var ttl uint32
 	var expire int64
 
 	for rows.Next() {
-		if err := rows.Scan(&text, &expire); err != nil {
+		if err := rows.Scan(&text, &ttl, &expire); err != nil {
 			return Error{TypeExternalError, err, "failed to scan record row"}
 		}
 
@@ -384,7 +393,7 @@ func (sr *SqliteResolver) Resolve(w ResponseWriter, r Request) error {
 		if expire != 0 {
 			record, err = NewRecordWithExpire(text, time.Unix(expire, 0))
 		} else {
-			record, err = NewRecord(text)
+			record, err = NewRecordWithTTL(text, ttl)
 		}
 		if err != nil {
 			return err
