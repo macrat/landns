@@ -54,6 +54,18 @@ func newError(typ ErrorType, original error, format string, args ...interface{})
 	}
 }
 
+// wrapError is make new Error if err is not nil.
+func wrapError(original error, typ ErrorType, message string) error {
+	if original == nil {
+		return nil
+	}
+	return Error{
+		Type: typ,
+		Message: message,
+		Original: original,
+	}
+}
+
 // String is getter to human readable string.
 func (e Error) String() string {
 	return e.Error()

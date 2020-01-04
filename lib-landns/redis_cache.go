@@ -35,6 +35,7 @@ func NewRedisCache(addr net.Addr, database int, password string, upstream Resolv
 	con := pool.Get()
 	defer con.Close()
 	if err := con.Err(); err != nil {
+		pool.Close()
 		return RedisCache{}, Error{TypeExternalError, err, "failed to connect to Redis server"}
 	}
 
@@ -53,10 +54,7 @@ func (rc RedisCache) String() string {
 
 // Close is disconnect from Redis server.
 func (rc RedisCache) Close() error {
-	if err := rc.pool.Close(); err != nil {
-		return Error{TypeExternalError, err, "failed to close Redis connection"}
-	}
-	return nil
+	return wrapError(rc.pool.Close(), TypeExternalError, "failed to close Redis connection")
 }
 
 func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string) error {
@@ -65,13 +63,13 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 	conn := rc.pool.Get()
 	defer conn.Close()
 	if err := conn.Send("MULTI"); err != nil {
-		return err
+		return Error{TypeExternalError, err, "failed to start transaction"}
 	}
 	rollback := func() error {
-		return conn.Send("DISCARD")
+		return wrapError(conn.Send("DISCARD"), TypeExternalError, "failed to discard transaction")
 	}
 	commit := func() error {
-		return conn.Send("EXEC")
+		return wrapError(conn.Send("EXEC"), TypeExternalError, "failed to execute transaction")
 	}
 
 	ttl := uint32(math.MaxUint32)
@@ -95,7 +93,7 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 
 			if err := conn.Send("RPUSH", key, rec.String()); err != nil {
 				rollback()
-				return err
+				return Error{TypeExternalError, err, "failed to push record"}
 			}
 
 			return nil
@@ -107,13 +105,14 @@ func (rc RedisCache) resolveFromUpstream(w ResponseWriter, r Request, key string
 		return err
 	}
 
-	if ttl > 0 {
-		if err := conn.Send("EXPIRE", key, ttl); err != nil {
-			return nil
-		}
-		return commit()
+	if ttl == 0 {
+		return rollback()
 	}
-	return rollback()
+
+	if err := conn.Send("EXPIRE", key, ttl); err != nil {
+		return Error{TypeExternalError, err, "failed to set expiration of records"}
+	}
+	return commit()
 }
 
 func (rc RedisCache) resolveFromCache(w ResponseWriter, r Request, cache []string) error {
