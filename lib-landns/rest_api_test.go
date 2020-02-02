@@ -143,5 +143,8 @@ func TestDynamicAPI(t *testing.T) {
 			";      line 3: invalid format: test",
 			"",
 		}, "\n")},
+
+		{"GET", "/v1/id/hello", "", 404, "; 404: not found\n"},
+		{"DELETE", "/v1/id/hello", "", 404, "; 404: not found\n"},
 	}))
 }
