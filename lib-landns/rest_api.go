@@ -3,6 +3,7 @@ package landns
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,7 +26,26 @@ func (e HTTPError) Error() string {
 	return fmt.Sprintf("; %d: %s", e.StatusCode, strings.ReplaceAll(e.Message, "\n", "\n;      "))
 }
 
-type httpHandler func(path string, body string) (string, *HTTPError)
+func parseRecordSet(req, remote string) (DynamicRecordSet, *HTTPError) {
+	for _, x := range []struct {
+		From string
+		To   string
+	}{
+		{"$ADDR", remote},
+		{"$TTL", "3600"},
+		{"$$", "$"},
+	} {
+		req = strings.ReplaceAll(req, x.From, x.To)
+	}
+
+	rs, err := NewDynamicRecordSet(req)
+	if err != nil {
+		return nil, &HTTPError{http.StatusBadRequest, err.Error()}
+	}
+	return rs, nil
+}
+
+type httpHandler func(path string, body string, remote string) (string, *HTTPError)
 
 func (hh httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
@@ -35,7 +55,9 @@ func (hh httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, e := hh(r.URL.Path, string(body))
+	addr, _ := net.ResolveTCPAddr("tcp", r.RemoteAddr)
+
+	resp, e := hh(r.URL.Path, string(body), addr.IP.String())
 	if e != nil {
 		e.ServeHTTP(w, r)
 		return
@@ -65,7 +87,7 @@ type DynamicAPI struct {
 	Resolver DynamicResolver
 }
 
-func (d DynamicAPI) GetAllRecords(path, req string) (string, *HTTPError) {
+func (d DynamicAPI) GetAllRecords(path, req, remote string) (string, *HTTPError) {
 	records, err := d.Resolver.Records()
 	if err != nil {
 		return "", &HTTPError{http.StatusInternalServerError, "internal server error"}
@@ -74,7 +96,7 @@ func (d DynamicAPI) GetAllRecords(path, req string) (string, *HTTPError) {
 	return records.String(), nil
 }
 
-func (d DynamicAPI) GetRecordByID(path, req string) (string, *HTTPError) {
+func (d DynamicAPI) GetRecordByID(path, req, remote string) (string, *HTTPError) {
 	id, err := strconv.Atoi(path[len("/v1/id/"):])
 	if err != nil {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
@@ -92,7 +114,7 @@ func (d DynamicAPI) GetRecordByID(path, req string) (string, *HTTPError) {
 	return records.String(), nil
 }
 
-func (d DynamicAPI) GetRecordsBySuffix(path, req string) (string, *HTTPError) {
+func (d DynamicAPI) GetRecordsBySuffix(path, req, remote string) (string, *HTTPError) {
 	if path[len(path)-1] == '/' {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
 	}
@@ -116,7 +138,7 @@ func (d DynamicAPI) GetRecordsBySuffix(path, req string) (string, *HTTPError) {
 	return records.String(), nil
 }
 
-func (d DynamicAPI) GetRecordsByGlob(path, req string) (string, *HTTPError) {
+func (d DynamicAPI) GetRecordsByGlob(path, req, remote string) (string, *HTTPError) {
 	glob := path[len("/v1/glob/"):]
 	if strings.Contains(glob, "/") || len(glob) == 0 {
 		return "", &HTTPError{http.StatusNotFound, "not found"}
@@ -152,19 +174,19 @@ func (d DynamicAPI) setRecords(rs DynamicRecordSet) (string, *HTTPError) {
 	return fmt.Sprintf("; 200: add:%d delete:%d", add, del), nil
 }
 
-func (d DynamicAPI) PostRecords(path, req string) (string, *HTTPError) {
-	rs, err := NewDynamicRecordSet(req)
+func (d DynamicAPI) PostRecords(path, req, remote string) (string, *HTTPError) {
+	rs, err := parseRecordSet(req, remote)
 	if err != nil {
-		return "", &HTTPError{http.StatusBadRequest, err.Error()}
+		return "", err
 	}
 
 	return d.setRecords(rs)
 }
 
-func (d DynamicAPI) DeleteRecords(path, req string) (string, *HTTPError) {
-	rs, err := NewDynamicRecordSet(req)
+func (d DynamicAPI) DeleteRecords(path, req, remote string) (string, *HTTPError) {
+	rs, err := parseRecordSet(req, remote)
 	if err != nil {
-		return "", &HTTPError{http.StatusBadRequest, err.Error()}
+		return "", err
 	}
 
 	for i := range rs {
@@ -174,7 +196,7 @@ func (d DynamicAPI) DeleteRecords(path, req string) (string, *HTTPError) {
 	return d.setRecords(rs)
 }
 
-func (d DynamicAPI) DeleteRecordByID(path, req string) (string, *HTTPError) {
+func (d DynamicAPI) DeleteRecordByID(path, req, remote string) (string, *HTTPError) {
 	id, err := strconv.Atoi(path[len("/v1/id/"):])
 	if err != nil {
 		return "", &HTTPError{http.StatusNotFound, "not found"}

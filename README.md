@@ -119,7 +119,7 @@ $ curl http://localhost:9353/api/v1/glob/w*ample.com
 www.example.com 600 IN A 192.168.1.1 ; ID:1
 ```
 
-```
+``` shell
 $ cat config.zone
 router.service. 600 IN A 192.168.1.1
 gateway.service. 600 IN CNAME router.local.
@@ -159,6 +159,18 @@ $ curl http://localhost:9353/api/v1/id/4 -X DELETE  # Use DELETE method with ID
 
 $ curl http://localhost:9353/api/v1
 10.1.168.192.in-addr.arpa. 600 IN PTR alice.pc.local. ; ID:5
+```
+
+You can use variable.
+`$TTL` will replace to `3600`, and `$ADDR` will replace to IP address of client.
+
+``` shell
+$ curl http://localhost:9353/api/v1 -d 'example.com. $TTL IN A $ADDR'  # Use variable.
+; 200: add:1 delete:0
+
+$ curl http://localhost:9353/api/v1
+example.com. 3600 IN A 127.0.0.1 ; ID:1
+1.0.0.127.in-addr.arpa. 3600 IN PTR example.com. ; ID:2
 ```
 
 ### Get metrics (with prometheus)

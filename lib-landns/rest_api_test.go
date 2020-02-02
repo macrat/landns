@@ -13,17 +13,6 @@ import (
 func TestDynamicAPI(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	metrics := landns.NewMetrics("landns")
-	resolver, err := landns.NewSqliteResolver(":memory:", metrics)
-	if err != nil {
-		t.Fatalf("failed to make sqlite resolver: %s", err)
-	}
-
-	srv := testutil.StartHTTPServer(ctx, t, landns.DynamicAPI{resolver}.Handler())
-
 	type Test struct {
 		Method string
 		Path   string
@@ -34,6 +23,17 @@ func TestDynamicAPI(t *testing.T) {
 
 	tester := func(tests []Test) func(t *testing.T) {
 		return func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			metrics := landns.NewMetrics("landns")
+			resolver, err := landns.NewSqliteResolver(":memory:", metrics)
+			if err != nil {
+				t.Fatalf("failed to make sqlite resolver: %s", err)
+			}
+
+			srv := testutil.StartHTTPServer(ctx, t, landns.DynamicAPI{resolver}.Handler())
+
 			for _, tt := range tests {
 				srv.Do(t, tt.Method, tt.Path, tt.Body).Assert(t, tt.Status, tt.Expect)
 			}
@@ -103,6 +103,18 @@ func TestDynamicAPI(t *testing.T) {
 			"a.example.com. 42 IN A 127.0.0.1 ; ID:1",
 			"1.0.0.127.in-addr.arpa. 42 IN PTR a.example.com. ; ID:2",
 			"2.1.0.127.in-addr.arpa. 24 IN PTR b.example.com. ; ID:8",
+			"",
+		}, "\n")},
+	}))
+
+	t.Run("place holder", tester([]Test{
+		{"GET", "/v1", "", http.StatusOK, ""},
+
+		{"POST", "/v1", "example.com. 42 IN A $ADDR\nttl$TTL.com 84 IN TXT \"hello world\"", http.StatusOK, "; 200: add:2 delete:0\n"},
+		{"GET", "/v1", "", http.StatusOK, strings.Join([]string{
+			"example.com. 42 IN A 127.0.0.1 ; ID:1",
+			"1.0.0.127.in-addr.arpa. 42 IN PTR example.com. ; ID:2",
+			"ttl3600.com. 84 IN TXT \"hello world\" ; ID:3",
 			"",
 		}, "\n")},
 	}))
