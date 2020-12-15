@@ -4,7 +4,8 @@ Landns
 ![GitHub Actions](https://github.com/macrat/landns/workflows/Test%20and%20Build/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/macrat/landns/branch/master/graph/badge.svg)](https://codecov.io/gh/macrat/landns)
 [![Go Report Card](https://goreportcard.com/badge/github.com/macrat/landns)](https://goreportcard.com/report/github.com/macrat/landns)
-[![Docker Cloud Automated build](https://img.shields.io/docker/cloud/automated/macrat/landns?logo=docker&logoColor=white)](https://hub.docker.com/r/macrat/landns)
+[![Docker Hub](https://img.shields.io/badge/container-Docker%20Hub-blue.svg?logo=docker&logoColor=white)](https://hub.docker.com/r/macrat/landns)
+[![GitHub Container Registry](https://img.shields.io/badge/container-ghcr.io-blue.svg?logo=docker&logoColor=white)](https://github.com/users/macrat/packages/container/package/landns)
 [![License](https://img.shields.io/github/license/macrat/landns)](https://github.com/macrat/landns/blob/master/LICENSE)
 
 A DNS server for developers for home use.
