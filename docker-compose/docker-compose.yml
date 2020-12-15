@@ -2,7 +2,7 @@ version: '3'
 
 services:
   landns:
-    image: macrat/landns
+    image: macrat/landns:latest
 
     ports:
       - 127.0.0.1:53:53/udp
@@ -13,7 +13,7 @@ services:
     command: --upstream 8.8.8.8:53 --upstream 8.8.4.4:53 --verbose
 
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v2.23.0
 
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -25,7 +25,7 @@ services:
     restart: always
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:7.3.5
 
     volumes:
       - ./grafana:/etc/grafana/provisioning:ro

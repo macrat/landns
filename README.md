@@ -36,7 +36,7 @@ $ go get github.com/macrat/landns
 Or, you can use docker.
 
 ``` shell
-$ docker run -p 9353:9353/tcp -p 53:53/udp macrat/landns
+$ docker run -p 9353:9353/tcp -p 53:53/udp macrat/landns:latest
 ```
 
 ### Use as static DNS server
