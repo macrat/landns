@@ -26,7 +26,7 @@ func TestStartServer(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	_, err = client.Get()
-	if ok, e := regexp.MatchString(`Get http://[^: ]+:[0-9]+/api/v1: dial tcp [^: ]+:[0-9]+: connect: connection refused`, err.Error()); e != nil || !ok {
+	if ok, e := regexp.MatchString(`Get \"http://[^: ]+:[0-9]+/api/v1\": dial tcp [^: ]+:[0-9]+: connect: connection refused`, err.Error()); e != nil || !ok {
 		t.Errorf("failed to connect server: %s", err)
 	}
 }

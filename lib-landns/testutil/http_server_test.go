@@ -28,7 +28,7 @@ func TestHTTPServer(t *testing.T) {
 
 	tb := new(testutil.DummyTB)
 	srv.Do(tb, "GET", "/", "")
-	tb.AssertErrors(t, "failed to GET /: Get http://127.0.0.1:*/: dial tcp 127.0.0.1:*: connect: connection refused")
+	tb.AssertErrors(t, "failed to GET /: Get \"http://127.0.0.1:*/\": dial tcp 127.0.0.1:*: connect: connection refused")
 	tb.AssertFatals(t)
 }
 
