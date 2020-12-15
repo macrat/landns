@@ -63,6 +63,8 @@ jobs:
         run: |
           TAGS="${{ github.repository }}:latest"
           TAGS="${TAGS},ghcr.io/${{ github.repository }}:latest"
+          TAGS="${TAGS},${{ github.repository }}:${{ github.sha }}"
+          TAGS="${TAGS},ghcr.io/${{ github.repository }}:${{ github.sha }}"
           echo "::set-output name=TAGS::${TAGS}"
       - name: build and push
         uses: docker/build-push-action@v2
