@@ -10,8 +10,6 @@ Landns
 
 A DNS server for developers for home use.
 
-**BE CAREFUL**: this product is not stable yet. may change options and behavior.
-
 
 ## Features
 
