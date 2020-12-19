@@ -175,3 +175,59 @@ example.com. 3600 IN A 127.0.0.1 ; ID:1
 ### Get metrics (with prometheus)
 
 Landns serve metrics for Prometheus by default in port 9353.
+
+
+### Use as library
+
+Landns can use as a library like below.
+
+``` golang
+package main
+
+import (
+	"context"
+	"net"
+
+	"github.com/macrat/landns/lib-landns"
+)
+
+type Resolver struct {
+	metrics *landns.Metrics
+}
+
+func (rs Resolver) Resolve(w landns.ResponseWriter, r landns.Request) error {
+	w.Add(landns.AddressRecord{
+		Name:    "test.local",
+		TTL:     100,
+		Address: net.ParseIP("127.1.2.3"),
+	})
+	return nil
+}
+
+func (rs Resolver) RecursionAvailable() bool {
+	return false
+}
+
+func (rs Resolver) Close() error {
+	return nil
+}
+
+func main() {
+	metrics := landns.NewMetrics("test_dns")
+	resolver := Resolver{metrics}
+	server := landns.Server{
+		Name:      "Test DNS", // The name for page title of metrics server.
+		Metrics:   metrics,
+		Resolvers: resolver,
+		DebugMode: true,
+	}
+	server.ListenAndServe(
+		context.Background(),
+		&net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 8053},
+		&net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: 1053},
+		"udp",
+	)
+}
+```
+
+Above code will behave DNS server for `test.local`, and metrics server.
