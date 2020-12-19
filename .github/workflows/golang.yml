@@ -45,7 +45,6 @@ jobs:
     needs: Test
     if: "${{ github.event_name == 'push' }}"
     steps:
-      - uses: actions/checkout@v1
       - uses: docker/setup-qemu-action@v1
       - uses: docker/setup-buildx-action@v1
       - name: login DockerHub
@@ -79,9 +78,3 @@ jobs:
           push: true
           tags: ${{ steps.tags.outputs.TAGS }}
           platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7
-      - name: update description
-        uses: peter-evans/dockerhub-description@v2
-        with:
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ github.repository }}
