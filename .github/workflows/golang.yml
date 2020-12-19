@@ -61,7 +61,7 @@ jobs:
       - name: generate tags
         id: tags
         run: |
-          VERSION=${REF#refs/*/}
+          VERSION=${GITHUB_REF#refs/*/}
 
           TAGS="${{ github.repository }}:${VERSION}"
           TAGS="${TAGS},ghcr.io/${{ github.repository }}:${VERSION}"
