@@ -13,6 +13,7 @@ import (
 
 // Server is the Landns server instance.
 type Server struct {
+	Name            string
 	Metrics         *Metrics
 	DynamicResolver DynamicResolver
 	Resolvers       Resolver // Resolvers for this server. Must include DynamicResolver.
@@ -23,13 +24,18 @@ type Server struct {
 func (s *Server) HTTPHandler() (http.Handler, error) {
 	mux := http.NewServeMux()
 
+	serverName := s.Name
+	if serverName == "" {
+		serverName = "Landns"
+	}
+
 	if !s.DebugMode {
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintln(w, `<h1>Landns</h1><a href="/metrics">metrics</a> <a href="/api/v1">records</a>`)
+			fmt.Fprintf(w, "<h1>%s</h1><a href=\"/metrics\">metrics</a> <a href=\"/api/v1\">records</a>\n", serverName)
 		})
 	} else {
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintln(w, `<h1>Landns</h1><a href="/metrics">metrics</a> <a href="/debug/pprof/">pprof</a> <a href="/api/v1">records</a>`)
+			fmt.Fprintf(w, "<h1>%s</h1><a href=\"/metrics\">metrics</a> <a href=\"/debug/pprof/\">pprof</a> <a href=\"/api/v1\">records</a>\n", serverName)
 		})
 
 		mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -48,7 +54,9 @@ func (s *Server) HTTPHandler() (http.Handler, error) {
 	}
 
 	mux.Handle("/metrics", metrics)
-	mux.Handle("/api/", http.StripPrefix("/api", DynamicAPI{s.DynamicResolver}.Handler()))
+	if s.DynamicResolver != nil {
+		mux.Handle("/api/", http.StripPrefix("/api", DynamicAPI{s.DynamicResolver}.Handler()))
+	}
 
 	return httplog.HTTPLogger{Handler: mux}, nil
 }
