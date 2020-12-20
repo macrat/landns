@@ -29,6 +29,37 @@ func TestLevel(t *testing.T) {
 	}
 }
 
+func TestLevel_UnmarshalText(t *testing.T) {
+	tests := []struct {
+		Str string
+		Expect logger.Level
+	}{
+		{"debug", logger.DebugLevel},
+		{"DEBUG", logger.DebugLevel},
+		{"info", logger.InfoLevel},
+		{"INFORMATION", logger.InfoLevel},
+		{"Warn", logger.WarnLevel},
+		{"warning", logger.WarnLevel},
+		{"error", logger.ErrorLevel},
+		{"FATAL", logger.FatalLevel},
+	}
+
+	for _, tt := range tests {
+		var ll logger.Level
+
+		if err := (&ll).UnmarshalText([]byte(tt.Str)); err != nil {
+			t.Errorf("failed to unmarshal text %#v: %s", tt.Str, err)
+		} else if ll != tt.Expect {
+			t.Errorf("unexpect unmarshaled result: expected %s but got %s", tt.Expect, ll)
+		}
+	}
+
+	var ll logger.Level
+	if err := (&ll).UnmarshalText([]byte("no such level")); err == nil {
+		t.Errorf("expected error but not reported")
+	}
+}
+
 type LoggerTestEntry struct {
 	Level string
 	Func  func(string, logger.Fields)

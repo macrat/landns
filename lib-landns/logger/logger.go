@@ -1,8 +1,10 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -13,6 +15,25 @@ type Level uint
 // String is converter to human readable string.
 func (ll Level) String() string {
 	return logrus.Level(ll).String()
+}
+
+// UnmarshalText is convert from bytes string.
+func (ll *Level) UnmarshalText(text []byte) error {
+	switch strings.ToLower(string(text)) {
+	case "debug":
+		*ll = DebugLevel
+	case "info", "information":
+		*ll = InfoLevel
+	case "warn", "warning":
+		*ll = WarnLevel
+	case "error":
+		*ll = ErrorLevel
+	case "fatal":
+		*ll = FatalLevel
+	default:
+		return fmt.Errorf("unknown level: %s", string(text))
+	}
+	return nil
 }
 
 const (
