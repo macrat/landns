@@ -14,7 +14,7 @@
   "author": "MacRat <m@crat.jp> (https://blanktar.jp)",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.21.0"
+    "axios": "^0.21.1"
   },
   "devDependencies": {
     "@types/mocha": "8.2.0",
