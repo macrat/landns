@@ -13,7 +13,7 @@ services:
     command: --upstream 8.8.8.8:53 --upstream 8.8.4.4:53 --verbose
 
   prometheus:
-    image: prom/prometheus:v2.24.0
+    image: prom/prometheus:v2.24.1
 
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
