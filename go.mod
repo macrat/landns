@@ -9,6 +9,6 @@ require (
 	github.com/miekg/dns v1.1.38
 	github.com/prometheus/client_golang v1.9.0
 	github.com/sirupsen/logrus v1.7.0
-	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
+	go.etcd.io/etcd/v3/v3 v3.4.14
 	gopkg.in/yaml.v2 v2.4.0
 )
