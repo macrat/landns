@@ -23,7 +23,7 @@
     "mocha": "8.3.0",
     "nyc": "15.1.0",
     "power-assert": "1.6.1",
-    "rollup": "2.38.5",
+    "rollup": "2.39.0",
     "rollup-plugin-commonjs": "10.1.0",
     "rollup-plugin-node-resolve": "5.2.0",
     "rollup-plugin-typescript2": "0.29.0",
